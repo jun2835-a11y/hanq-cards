@@ -3,9 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>법인카드 일회성 지출 관리</title>
+<title>법인카드 지출 전체 명세</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -18,6 +19,8 @@
   --info:#1A4A8A;--info-bg:#EBF0FA;--info-bd:#A8C0E0;
 }
 body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;line-height:1.6;min-height:100vh}
+
+/* HEADER */
 .header{background:var(--ink);color:#F7F5F0;padding:36px 60px 28px;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px}
 .header-eyebrow{font-size:9px;letter-spacing:5px;text-transform:uppercase;color:#6A6460;margin-bottom:10px}
 .header h1{font-size:22px;font-weight:700;margin-bottom:6px}
@@ -29,43 +32,108 @@ body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;background:var(--bg);
 .hkpi-val{font-size:20px;font-weight:700;color:#F7F5F0;line-height:1}
 .hkpi-val.accent{color:#D4632A}
 .hkpi-unit{font-size:10px;font-weight:400;color:#5A5650;margin-left:2px}
+.hdr-right{display:flex;align-items:center;gap:8px}
+.hdr-btn{font-size:11px;padding:5px 12px;border:1px solid rgba(255,255,255,.15);background:none;cursor:pointer;color:#9A958F;font-family:inherit;transition:all .15s}
+.hdr-btn:hover{color:#F7F5F0;border-color:rgba(255,255,255,.4)}
 
-.tab-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 60px;display:flex;gap:0;position:sticky;top:0;z-index:50}
+/* TAB */
+.tab-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 60px;display:flex;gap:0;position:sticky;top:0;z-index:50;overflow-x:auto}
 .tab-btn{padding:14px 20px;font-size:12px;font-weight:500;color:var(--muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
 .tab-btn:hover{color:var(--ink)}
 .tab-btn.active{color:var(--ink);font-weight:700;border-bottom-color:var(--accent)}
-.tab-content{display:none}.tab-content.active{display:block}
+.tab-content{display:none;animation:tabFade .2s ease}
+.tab-content.active{display:block}
+@keyframes tabFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 
-.container{padding:32px 60px 48px;max-width:1400px}
-@media(max-width:960px){.container{padding:20px 16px}.header{padding:24px 16px}}
+/* LAYOUT */
+.container{padding:32px 60px 48px;max-width:1400px;margin:0 auto}
+@media(max-width:960px){.container{padding:20px 16px}.header{padding:24px 16px}.tab-bar{padding:0 16px}}
 
 .section{margin-bottom:36px}
 .section-hd{display:flex;align-items:center;gap:12px;margin-bottom:18px;padding-bottom:10px;border-bottom:1px solid var(--border)}
 .section-title{font-size:14px;font-weight:700}
 .section-sub{font-size:11px;color:var(--muted);margin-left:4px}
 
+/* CHARTS */
 .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px}
-@media(max-width:900px){.chart-grid{grid-template-columns:1fr}}
+.chart-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-bottom:24px}
+@media(max-width:900px){.chart-grid,.chart-grid-3{grid-template-columns:1fr}}
 .chart-box{background:var(--surface);border:1px solid var(--border);padding:22px 20px}
 .chart-title{font-size:9px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-bottom:16px}
 
-table{width:100%;border-collapse:collapse;font-size:12px}
-th{text-align:left;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:9px 12px;border-bottom:2px solid var(--border);background:var(--surface)}
-td{padding:9px 12px;border-bottom:1px solid var(--border2);vertical-align:middle}
-tr:hover td{background:#F9F7F3}
-
-.opp-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
-@media(max-width:960px){.opp-grid{grid-template-columns:1fr}}
-
+/* KPI */
 .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
 @media(max-width:800px){.kpi-row{grid-template-columns:1fr 1fr}}
-.kpi-card{background:var(--surface);border:1px solid var(--border);padding:18px 20px}
+.kpi-card{background:var(--surface);border:1px solid var(--border);padding:18px 20px;transition:box-shadow .2s}
+.kpi-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08)}
 .kpi-card-label{font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:9px}
 .kpi-card-val{font-size:22px;font-weight:700;color:var(--ink);line-height:1;margin-bottom:4px}
 .kpi-card-val .unit{font-size:11px;font-weight:400;color:var(--muted);margin-left:2px}
 .kpi-card-sub{font-size:11px;color:var(--muted)}
 
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+/* TABLE */
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:9px 12px;border-bottom:2px solid var(--border);background:var(--surface);cursor:pointer;user-select:none;white-space:nowrap}
+th:hover{color:var(--ink)}
+th .sort-arrow{margin-left:4px;opacity:.4;font-size:9px}
+th.sort-asc .sort-arrow::after{content:'▲'}
+th.sort-desc .sort-arrow::after{content:'▼'}
+th:not(.sort-asc):not(.sort-desc) .sort-arrow::after{content:'⇅'}
+td{padding:9px 12px;border-bottom:1px solid var(--border2);vertical-align:middle}
+tr:hover td{background:#F9F7F3;transition:background .1s}
+.tbl-wrap{background:var(--surface);border:1px solid var(--border);overflow:auto}
+
+/* BADGE */
+.badge{display:inline-block;font-size:10px;padding:2px 7px;border:1px solid;border-radius:2px}
+
+/* FILTERS */
+.filters{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px;align-items:center}
+.filter-select{font-size:12px;padding:6px 10px;border:1px solid var(--border);background:var(--surface);color:var(--ink);font-family:inherit;cursor:pointer}
+.search-box{font-size:12px;padding:6px 10px;border:1px solid var(--border);background:var(--surface);color:var(--ink);font-family:inherit;width:200px}
+.search-box:focus,.filter-select:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.filter-count{font-size:11px;color:var(--muted);margin-left:auto}
+
+/* CARD ANALYSIS */
+.card-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
+@media(max-width:900px){.card-grid{grid-template-columns:1fr 1fr}}
+.card-item{background:var(--surface);border:1px solid var(--border);padding:18px 20px;cursor:pointer;transition:all .15s}
+.card-item:hover{border-color:var(--accent);box-shadow:0 2px 12px rgba(200,56,10,.1)}
+.card-item.selected{border-color:var(--accent);border-width:2px}
+.card-item-name{font-size:13px;font-weight:700;margin-bottom:4px}
+.card-item-holder{font-size:11px;color:var(--muted);margin-bottom:12px}
+.card-item-amount{font-size:18px;font-weight:700;color:var(--ink);margin-bottom:2px}
+.card-item-count{font-size:11px;color:var(--muted)}
+.card-bar{height:4px;background:var(--border);margin-top:12px;overflow:hidden}
+.card-bar-fill{height:100%;background:var(--accent);transition:width 1s cubic-bezier(.4,0,.2,1)}
+.mini-chart-wrap{height:60px;margin-top:12px}
+
+/* VEN DIAGRAM */
+.venn-wrap{padding:20px;display:flex;justify-content:center;align-items:center;flex-direction:column}
+.venn-svg{max-width:500px;width:100%}
+.venn-legend{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:12px}
+.venn-leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--ink2)}
+.venn-leg-dot{width:10px;height:10px;border-radius:50%}
+
+/* BUBBLE */
+.bubble-wrap{position:relative;height:300px}
+
+/* SAVINGS */
+.savings-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px}
+@media(max-width:800px){.savings-grid{grid-template-columns:1fr}}
+.savings-card{background:var(--surface);border:1px solid var(--border);padding:22px 20px}
+.slider-wrap{margin:12px 0}
+.slider-wrap label{font-size:11px;color:var(--ink2);display:block;margin-bottom:6px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.savings-val{font-size:20px;font-weight:700;color:var(--pos);margin-top:8px}
+.savings-val-label{font-size:11px;color:var(--muted)}
+
+.opp-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+@media(max-width:960px){.opp-grid{grid-template-columns:1fr}}
+
+@keyframes countUp{from{opacity:0}to{opacity:1}}
+@keyframes barGrow{from{width:0}to{width:var(--target-width)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes vennFade{0%{opacity:0;transform:scale(.9)}100%{opacity:1;transform:scale(1)}}
 </style>
 </head>
 <body>
@@ -73,812 +141,1080 @@ tr:hover td{background:#F9F7F3}
 
 <div class="header">
   <div>
-    <div class="header-eyebrow">Card Expense Management</div>
-    <h1>일회성 지출 관리</h1>
-    <div class="header-sub">구독·정기결제 제외 · 2026년 1월 — 3월 · 총 264건</div>
+    <div class="header-eyebrow">Corporate Card Expense Intelligence</div>
+    <h1>법인카드 지출 전체 명세</h1>
+    <div class="header-sub">전 카드 통합 조회 · 2026년 1월 — 3월 · 총 264건</div>
   </div>
   <div class="header-kpi">
     <div class="hkpi">
-      <div class="hkpi-label">총 일회성 지출</div>
-      <div class="hkpi-val">24,790,421<span class="hkpi-unit">원</span></div>
+      <div class="hkpi-label">총 지출금액</div>
+      <div class="hkpi-val" id="hdr-total">24,790,421<span class="hkpi-unit">원</span></div>
     </div>
     <div class="hkpi">
       <div class="hkpi-label">건당 평균</div>
       <div class="hkpi-val accent">93,903<span class="hkpi-unit">원</span></div>
     </div>
     <div class="hkpi">
-      <div class="hkpi-label">최다 지출 카드</div>
-      <div class="hkpi-val" style="font-size:14px">LG전자 스페셜롯데</div>
+      <div class="hkpi-label">최고 지출 월</div>
+      <div class="hkpi-val" style="font-size:14px">2026년 1월</div>
     </div>
+  </div>
+  <div class="hdr-right">
+    <span id="hdr-date" style="font-size:11px;color:#5A5650;letter-spacing:.05em"></span>
+    <button class="hdr-btn" onclick="window.print()">🖨 인쇄</button>
+    <button class="hdr-btn" onclick="exportExcel()">↓ Excel</button>
   </div>
 </div>
 
 <div class="tab-bar">
-  <button class="tab-btn active" onclick="switchTab('overview',this)">전체 현황</button>
-  <button class="tab-btn" onclick="switchTab('merchants',this)">지출처 순위</button>
-  <button class="tab-btn" onclick="switchTab('trend',this)">월별 추이</button>
-  <button class="tab-btn" onclick="switchTab('large',this)">주목할 지출</button>
-  <button class="tab-btn" onclick="switchTab('opp',this)">절감 기회</button>
+  <button class="tab-btn active" onclick="switchTab('dashboard',this)">📊 대시보드</button>
+  <button class="tab-btn" onclick="switchTab('ledger',this)">📋 전체 명세</button>
+  <button class="tab-btn" onclick="switchTab('cards',this)">💳 카드별 분석</button>
+  <button class="tab-btn" onclick="switchTab('category',this)">🏷️ 카테고리 분석</button>
+  <button class="tab-btn" onclick="switchTab('savings',this)">💡 절감 분석</button>
 </div>
 
-<!-- ── 전체 현황 ── -->
-<div id="tab-overview" class="tab-content active">
+<!-- ══════════════════════════════════════════
+     TAB 1: DASHBOARD
+══════════════════════════════════════════ -->
+<div id="tab-dashboard" class="tab-content active">
 <div class="container">
 
+  <!-- KPI Row -->
   <div class="kpi-row">
     <div class="kpi-card">
-      <div class="kpi-card-label">LG전자 스페셜롯데</div>
-      <div class="kpi-card-val">7,742,576<span class="unit">원</span></div>
-      <div class="kpi-card-sub">손용진 · 37건</div>
-    </div><div class="kpi-card">
-      <div class="kpi-card-label">KT청구할인형</div>
-      <div class="kpi-card-val">7,270,061<span class="unit">원</span></div>
-      <div class="kpi-card-sub">정재승 · 170건</div>
-    </div><div class="kpi-card">
-      <div class="kpi-card-label">SUPER할부-KT</div>
-      <div class="kpi-card-val">6,219,280<span class="unit">원</span></div>
-      <div class="kpi-card-sub">이승학 · 7건</div>
-    </div><div class="kpi-card">
-      <div class="kpi-card-label">M BOOST VISA</div>
-      <div class="kpi-card-val">2,682,404<span class="unit">원</span></div>
-      <div class="kpi-card-sub">2층공용(개발팀) · 25건</div>
-    </div><div class="kpi-card">
-      <div class="kpi-card-label">KB WISH올카드</div>
-      <div class="kpi-card-val">875,200<span class="unit">원</span></div>
-      <div class="kpi-card-sub">송다윗 · 22건</div>
-    </div><div class="kpi-card">
-      <div class="kpi-card-label">V2 BIZ AMEX</div>
-      <div class="kpi-card-val">900<span class="unit">원</span></div>
-      <div class="kpi-card-sub">반유환 · 3건</div>
+      <div class="kpi-card-label">총 지출금액</div>
+      <div class="kpi-card-val"><span id="kpi-total">0</span><span class="unit">원</span></div>
+      <div class="kpi-card-sub">2026년 1~3월 합계</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-card-label">총 거래 건수</div>
+      <div class="kpi-card-val"><span id="kpi-count">0</span><span class="unit">건</span></div>
+      <div class="kpi-card-sub">카드 6장 합계</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-card-label">건당 평균 금액</div>
+      <div class="kpi-card-val"><span id="kpi-avg">0</span><span class="unit">원</span></div>
+      <div class="kpi-card-sub">중앙값 94,600원</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-card-label">최고 지출 월</div>
+      <div class="kpi-card-val" style="font-size:16px">2026-01</div>
+      <div class="kpi-card-sub">13,069,120원 · 전월比 +128%</div>
     </div>
   </div>
 
+  <!-- Donut + Horizontal Bar -->
   <div class="chart-grid">
     <div class="chart-box">
-      <div class="chart-title">카테고리별 지출 비중</div>
-      <canvas id="catChart" height="220"></canvas>
+      <div class="chart-title">카드별 지출 비중</div>
+      <canvas id="donutCard" height="220"></canvas>
     </div>
     <div class="chart-box">
-      <div class="chart-title">카드별 일회성 지출 합계</div>
-      <canvas id="cardChart" height="220"></canvas>
+      <div class="chart-title">카테고리별 지출 순위</div>
+      <canvas id="catHBar" height="220"></canvas>
     </div>
   </div>
 
+  <!-- Stacked Monthly -->
   <div class="chart-box section">
-    <div class="chart-title">TOP 10 지출처</div>
-    <canvas id="top10Chart" height="60"></canvas>
+    <div class="chart-title">월별 카드별 누적 지출 추이</div>
+    <canvas id="stackedMonth" height="80"></canvas>
   </div>
 
-</div>
-</div>
-
-<!-- ── 지출처 순위 ── -->
-<div id="tab-merchants" class="tab-content">
-<div class="container">
+  <!-- Venn Diagram -->
   <div class="section">
     <div class="section-hd">
-      <div class="section-title">지출처 순위 TOP 25</div>
-      <span class="section-sub">구독·정기결제 제외 기준</span>
-    </div>
-    <div style="background:var(--surface);border:1px solid var(--border)">
-      <table>
-        <thead><tr>
-          <th style="width:40px">#</th>
-          <th>지출처</th>
-          <th style="width:100px">카테고리</th>
-          <th style="width:60px;text-align:center">건수</th>
-          <th style="width:120px;text-align:right">합계</th>
-          <th style="width:100px;text-align:right">건당 평균</th>
-          <th>사용 카드</th>
-        </tr></thead>
-        <tbody><tr>
-      <td style="color:var(--muted);text-align:center">1</td>
-      <td><span style="font-weight:600;color:var(--ink)">세종의료기</span></td>
-      <td><span style="font-size:10px;padding:2px 7px;border:1px solid;color:#A0522D;border-color:#A0522D30;background:#A0522D10">렌탈/구독</span></td>
-      <td style="text-align:center;color:var(--ink2)">1건</td>
-      <td style="text-align:right;font-weight:600;color:var(--ink)">6,000,000원</td>
-      <td style="text-align:right;color:var(--ink2)">6,000,000원</td>
-      <td style="font-size:11px;color:var(--muted)">SUPER할부-KT</td>
-    </tr><tr>
-      <td style="color:var(--muted);text-align:center">2</td>
-      <td><span style="font-weight:600;color:var(--ink)">(주)이니시스_커넥트웨이브</span></td>
-      <td><span style="font-size:10px;padding:2px 7px;border:1px solid;color:#5C5851;border-color:#5C585130;background:#5C585110">기타업무비</span></td>
-      <td style="text-align:center;color:var(--ink2)">1건</td>
-      <td style="text-align:right;font-weight:600;color:var(--ink)">1,907,940원</td>
-      <td style="text-align:right;color:var(--ink2)">1,907,940원</td>
-      <td style="font-size:11px;color:var(--muted)">LG전자 스페셜롯데</td>
-    </tr><tr>
-      <td style="color:var(--muted);text-align:center">3</td>
-      <td><span style="font-weight:600;color:var(--ink)">이니시스_3_비누커머스</span></td>
-      <td><span style="font-size:10px;padding:2px 7px;border:1px solid;color:#5C5851;border-color:#5C585130;background:#5C585110">기타업무비</span></td>
-      <td style="text-align:center;color:var(--ink2)">1건</td>
-      <td style="text-align:right;font-weight:600;color:var(--ink)">1,459,100원</td>
-      <td style="text-align:right;color:var(--ink2)">1,459,100원</td>
-      <td style="font-size:11px;color:var(--muted)">LG전자 스페셜롯데</td>
-    </tr><tr>
-      <td style="color:var(--muted);text-align:center">4</td>
-      <td><span style="font-weight:600;color:var(--ink)">vietjetair_smartro_VietjetAviation</span></td>
-      <td><span style="font-size:10px;padding:2px 7px;border:1px solid;color:#5C5851;border-color:#5C585130;background:#5C585110">기타업무비</span></td>
-      <td style="text-align:center;color:var(--ink2)">1건</td>
-      <td style="text-align:right;font-weight:600;color:var(--ink)">757,126원</td>
-      <td style="text-align:right;color:var(--ink2)">757,126원</td>
-      <td style="font-size:11px;color:var(--muted)">LG전자 스페셜롯데</td>
-    </tr><tr>
-      <td style="color:var(--muted);text-align:center">5</td>
-      <td><span style="font-weight:600;color:var(--ink)">ANYDESK</span></td>
-      <td><span style="font-size:10px;padding:2px 7px;border:1px solid;color:#A0522D;border-color:#A0522D30;background:#A0522D10">렌탈/구독</span></td>
-      <td style="text-align:center;color:var(--ink2)">1건</td>
-      <td style="text-align:right;font-weight:600;color:var(--ink)">663,886원</td>
-      <td style="text-align:right;color:var(--ink2)">663,886원</td>
-      <td style="font-size:11px;color:var(--muted)">LG전자 스페셜롯데</td>
-    </tr><tr>
-      <td style="color:var(--muted);text-align:center">6</td>
-      <td><span style="font-weight:600;color:var(--ink)">인터넷상거래 - 아이앤피</span></td>
-      <td><span style="font-size:10px;padding:2px 7px;border:1px solid;color:#2D6644;border-color:#2D664430;background:#2D664410">생활/잡화</span></td>
-      <td style="text-align:center;color:var(--ink2)">2건</td>
-      <td style="text-align:right;font-weight:600;color:var(--ink)">549,158원</td>
-      <td style="text-align:right;color:var(--ink2)">274,579원</td>
-      <td style="font-size:11px;color:var(--muted)">KT청구할인형</td>
-    </tr><tr>
-      <td style="color:var(--muted);text-align:center">7</td>
-      <td><span style="font-weight:600;color:var(--ink)">코우텐동</span></td>
-      <td><span style="font-size:10px;padding:2px 7px;border:1px solid;color:#C8380A;border-color:#C8380A30;background:#C8380A10">식대/카페</span></td>
-      <td style="text-align:center;color:var(--ink2)">3건</td>
-      <td style="text-align:right;font-weight:600;color:var(--ink)">483,500원</td>
-      <td style="text-align:right;color:var(--ink2)">161,167원</td>
-      <td style="font-size:11px;color:var(--muted)">KT청구할인형, M BOOST VISA</td>
-    </tr><tr>
-      <td style="color:var(--muted);text-align:center">8</td>
-      <td><span style="font-weight:600;color:var(--ink)">무드인템띵</span></td>
-      <td><span style="font-size:10px;padding:2px 7px;border:1px solid;color:#5C5851;border-color:#5C585130;background:#5C585110">기타업무비</span></td>
-      <td style="text-align:center;color:var(--ink2)">2건</td>
-      <td style="text-align:right;font-weight:600;color:var(--ink)">429,000원</td>
-      <td style="text-align:right;color:var(--ink2)">214,500원</td>
-      <td style="font-size:11px;color:var(--muted)">KT청구할인형, M BOOST VISA</td>
-    </tr><tr>
-      <td style="color:var(--muted);text-align:center">9</td>
-      <td><span style="font-weight:600;color:var(--ink)">NICEPAY - ( 주 ) 늘푸른메디컬</span></td>
-      <td><span style="font-size:10px;padding:2px 7px;border:1px solid;color:#5C5851;border-color:#5C585130;background:#5C585110">기타업무비</span></td>
-      <td style="text-align:center;color:var(--ink2)">1건</td>
-      <td style="text-align:right;font-weight:600;color:var(--ink)">424,600원</td>
-      <td style="text-align:right;color:var(--ink2)">424,600원</td>
-      <td style="font-size:11px;color:var(--muted)">KT청구할인형</td>
-    </tr><tr>
-      <td style="color:var(--muted);text-align:center">10</td>
-      <td><span style="font-weight:600;color:var(--ink)">KCP_0_주식회사 로아벨</span></td>
-      <td><span style="font-size:10px;padding:2px 7px;border:1px solid;color:#5C5851;border-color:#5C585130;background:#5C585110">기타업무비</span></td>
-      <td style="text-align:center;color:var(--ink2)">1건</td>
-      <td style="text-align:right;font-weight:600;color:var(--ink)">422,680원</td>
-      <td style="text-align:right;color:var(--ink2)">422,680원</td>
-      <td style="font-size:11px;color:var(--muted)">LG전자 스페셜롯데</td>
-    </tr><tr>
-      <td style="color:var(--muted);text-align:center">11</td>
-      <td><span style="font-weight:600;color:var(--ink)">쿠우쿠우순천신대점</span></td>
-      <td><span style="font-size:10px;padding:2px 7px;border:1px solid;color:#5C5851;border-color:#5C585130;background:#5C585110">기타업무비</span></td>
-      <td style="text-align:center;color:var(--ink2)">1건</td>
-      <td style="text-align:right;font-weight:600;color:var(--ink)">414,400원</td>
-      <td style="text-align:right;color:var(--ink2)">414,400원</td>
-      <td style="font-size:11px;color:var(--muted)">M BOOST VISA</td>
-    </tr><tr>
-      <td style="color:var(--muted);text-align:center">12</td>
-      <td><span style="font-weight:600;color:var(--ink)">나눌터</span></td>
-      <td><span style="font-size:10px;padding:2px 7px;border:1px solid;color:#5C5851;border-color:#5C585130;background:#5C585110">기타업무비</span></td>
-      <td style="text-align:center;color:var(--ink2)">1건</td>
-      <td style="text-align:right;font-weight:600;color:var(--ink)">414,000원</td>
-      <td style="text-align:right;color:var(--ink2)">414,000원</td>
-      <td style="font-size:11px;color:var(--muted)">M BOOST VISA</td>
-    </tr><tr>
-      <td style="color:var(--muted);text-align:center">13</td>
-      <td><span style="font-weight:600;color:var(--ink)">포털_건강보험공단</span></td>
-      <td><span style="font-size:10px;padding:2px 7px;border:1px solid;color:#9A958F;border-color:#9A958F30;background:#9A958F10">4대보험</span></td>
-      <td style="text-align:center;color:var(--ink2)">2건</td>
-      <td style="text-align:right;font-weight:600;color:var(--ink)">403,602원</td>
-      <td style="text-align:right;color:var(--ink2)">201,801원</td>
-      <td style="font-size:11px;color:var(--muted)">LG전자 스페셜롯데</td>
-    </tr><tr>
-      <td style="color:var(--muted);text-align:center">14</td>
-      <td><span style="font-weight:600;color:var(--ink)">(주)이니시스_미리디</span></td>
-      <td><span style="font-size:10px;padding:2px 7px;border:1px solid;color:#5C5851;border-color:#5C585130;background:#5C585110">기타업무비</span></td>
-      <td style="text-align:center;color:var(--ink2)">1건</td>
-      <td style="text-align:right;font-weight:600;color:var(--ink)">361,000원</td>
-      <td style="text-align:right;color:var(--ink2)">361,000원</td>
-      <td style="font-size:11px;color:var(--muted)">LG전자 스페셜롯데</td>
-    </tr><tr>
-      <td style="color:var(--muted);text-align:center">15</td>
-      <td><span style="font-weight:600;color:var(--ink)">에이치디씨아이파크몰주식회사</span></td>
-      <td><span style="font-size:10px;padding:2px 7px;border:1px solid;color:#5C5851;border-color:#5C585130;background:#5C585110">기타업무비</span></td>
-      <td style="text-align:center;color:var(--ink2)">1건</td>
-      <td style="text-align:right;font-weight:600;color:var(--ink)">348,700원</td>
-      <td style="text-align:right;color:var(--ink2)">348,700원</td>
-      <td style="font-size:11px;color:var(--muted)">LG전자 스페셜롯데</td>
-    </tr><tr>
-      <td style="color:var(--muted);text-align:center">16</td>
-      <td><span style="font-weight:600;color:var(--ink)">LF스퀘어테라스몰광양점</span></td>
-      <td><span style="font-size:10px;padding:2px 7px;border:1px solid;color:#5C5851;border-color:#5C585130;background:#5C585110">기타업무비</span></td>
-      <td style="text-align:center;color:var(--ink2)">6건</td>
-      <td style="text-align:right;font-weight:600;color:var(--ink)">314,500원</td>
-      <td style="text-align:right;color:var(--ink2)">52,417원</td>
-      <td style="font-size:11px;color:var(--muted)">M BOOST VISA, KT청구할인형</td>
-    </tr><tr>
-      <td style="color:var(--muted);text-align:center">17</td>
-      <td><span style="font-weight:600;color:var(--ink)">옛날막창</span></td>
-      <td><span style="font-size:10px;padding:2px 7px;border:1px solid;color:#5C5851;border-color:#5C585130;background:#5C585110">기타업무비</span></td>
-      <td style="text-align:center;color:var(--ink2)">1건</td>
-      <td style="text-align:right;font-weight:600;color:var(--ink)">309,000원</td>
-      <td style="text-align:right;color:var(--ink2)">309,000원</td>
-      <td style="font-size:11px;color:var(--muted)">M BOOST VISA</td>
-    </tr><tr>
-      <td style="color:var(--muted);text-align:center">18</td>
-      <td><span style="font-weight:600;color:var(--ink)">한길</span></td>
-      <td><span style="font-size:10px;padding:2px 7px;border:1px solid;color:#C8380A;border-color:#C8380A30;background:#C8380A10">식대/카페</span></td>
-      <td style="text-align:center;color:var(--ink2)">2건</td>
-      <td style="text-align:right;font-weight:600;color:var(--ink)">297,000원</td>
-      <td style="text-align:right;color:var(--ink2)">148,500원</td>
-      <td style="font-size:11px;color:var(--muted)">M BOOST VISA, KT청구할인형</td>
-    </tr><tr>
-      <td style="color:var(--muted);text-align:center">19</td>
-      <td><span style="font-weight:600;color:var(--ink)">미래창호</span></td>
-      <td><span style="font-size:10px;padding:2px 7px;border:1px solid;color:#5C5851;border-color:#5C585130;background:#5C585110">기타업무비</span></td>
-      <td style="text-align:center;color:var(--ink2)">3건</td>
-      <td style="text-align:right;font-weight:600;color:var(--ink)">275,000원</td>
-      <td style="text-align:right;color:var(--ink2)">91,667원</td>
-      <td style="font-size:11px;color:var(--muted)">KB WISH올카드</td>
-    </tr><tr>
-      <td style="color:var(--muted);text-align:center">20</td>
-      <td><span style="font-weight:600;color:var(--ink)">코스트코코리아</span></td>
-      <td><span style="font-size:10px;padding:2px 7px;border:1px solid;color:#5C5851;border-color:#5C585130;background:#5C585110">기타업무비</span></td>
-      <td style="text-align:center;color:var(--ink2)">2건</td>
-      <td style="text-align:right;font-weight:600;color:var(--ink)">246,540원</td>
-      <td style="text-align:right;color:var(--ink2)">123,270원</td>
-      <td style="font-size:11px;color:var(--muted)">KT청구할인형</td>
-    </tr><tr>
-      <td style="color:var(--muted);text-align:center">21</td>
-      <td><span style="font-weight:600;color:var(--ink)">고메스퀘어순천점</span></td>
-      <td><span style="font-size:10px;padding:2px 7px;border:1px solid;color:#5C5851;border-color:#5C585130;background:#5C585110">기타업무비</span></td>
-      <td style="text-align:center;color:var(--ink2)">2건</td>
-      <td style="text-align:right;font-weight:600;color:var(--ink)">243,300원</td>
-      <td style="text-align:right;color:var(--ink2)">121,650원</td>
-      <td style="font-size:11px;color:var(--muted)">KT청구할인형</td>
-    </tr><tr>
-      <td style="color:var(--muted);text-align:center">22</td>
-      <td><span style="font-weight:600;color:var(--ink)">텃밭</span></td>
-      <td><span style="font-size:10px;padding:2px 7px;border:1px solid;color:#5C5851;border-color:#5C585130;background:#5C585110">기타업무비</span></td>
-      <td style="text-align:center;color:var(--ink2)">1건</td>
-      <td style="text-align:right;font-weight:600;color:var(--ink)">202,000원</td>
-      <td style="text-align:right;color:var(--ink2)">202,000원</td>
-      <td style="font-size:11px;color:var(--muted)">KT청구할인형</td>
-    </tr><tr>
-      <td style="color:var(--muted);text-align:center">23</td>
-      <td><span style="font-weight:600;color:var(--ink)">옥션_옥션</span></td>
-      <td><span style="font-size:10px;padding:2px 7px;border:1px solid;color:#5C5851;border-color:#5C585130;background:#5C585110">기타업무비</span></td>
-      <td style="text-align:center;color:var(--ink2)">1건</td>
-      <td style="text-align:right;font-weight:600;color:var(--ink)">200,890원</td>
-      <td style="text-align:right;color:var(--ink2)">200,890원</td>
-      <td style="font-size:11px;color:var(--muted)">LG전자 스페셜롯데</td>
-    </tr><tr>
-      <td style="color:var(--muted);text-align:center">24</td>
-      <td><span style="font-weight:600;color:var(--ink)">(주)이니시스_이원건강</span></td>
-      <td><span style="font-size:10px;padding:2px 7px;border:1px solid;color:#5C5851;border-color:#5C585130;background:#5C585110">기타업무비</span></td>
-      <td style="text-align:center;color:var(--ink2)">1건</td>
-      <td style="text-align:right;font-weight:600;color:var(--ink)">198,000원</td>
-      <td style="text-align:right;color:var(--ink2)">198,000원</td>
-      <td style="font-size:11px;color:var(--muted)">LG전자 스페셜롯데</td>
-    </tr><tr>
-      <td style="color:var(--muted);text-align:center">25</td>
-      <td><span style="font-weight:600;color:var(--ink)">서울깍두기오천점</span></td>
-      <td><span style="font-size:10px;padding:2px 7px;border:1px solid;color:#5C5851;border-color:#5C585130;background:#5C585110">기타업무비</span></td>
-      <td style="text-align:center;color:var(--ink2)">1건</td>
-      <td style="text-align:right;font-weight:600;color:var(--ink)">192,000원</td>
-      <td style="text-align:right;color:var(--ink2)">192,000원</td>
-      <td style="font-size:11px;color:var(--muted)">M BOOST VISA</td>
-    </tr></tbody>
-      </table>
-    </div>
-  </div>
-</div>
-</div>
-
-<!-- ── 월별 추이 ── -->
-<div id="tab-trend" class="tab-content">
-<div class="container">
-  <div class="chart-box section">
-    <div class="chart-title">월별 일회성 지출 추이 — 카드별 누적</div>
-    <canvas id="trendChart" height="80"></canvas>
-  </div>
-  <div class="chart-grid">
-    <div class="chart-box">
-      <div class="chart-title">월별 카테고리 분포</div>
-      <canvas id="catMonthChart" height="200"></canvas>
+      <div class="section-title">공통 사용처 — 벤다이어그램</div>
+      <span class="section-sub">2개 이상 카드에서 함께 결제된 가맹점 오버랩</span>
     </div>
     <div class="chart-box">
-      <div class="chart-title">카테고리별 합계</div>
-      <canvas id="catBarChart" height="200"></canvas>
+      <div class="venn-wrap">
+        <svg class="venn-svg" id="vennSvg" viewBox="0 0 520 320" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div class="venn-legend" id="vennLegend"></div>
+      </div>
     </div>
   </div>
-</div>
-</div>
 
-<!-- ── 주목할 지출 ── -->
-<div id="tab-large" class="tab-content">
-<div class="container">
+  <!-- Card Holder Mapping -->
   <div class="section">
     <div class="section-hd">
-      <div class="section-title">50,000원 이상 일회성 지출</div>
-      <span class="section-sub">고액 단건 지출 모니터링</span>
+      <div class="section-title">카드 담당자 매핑</div>
     </div>
-    <div style="background:var(--surface);border:1px solid var(--border)">
+    <div class="tbl-wrap">
       <table>
         <thead><tr>
-          <th style="width:100px">날짜</th>
-          <th>지출처</th>
-          <th style="width:100px">카테고리</th>
-          <th style="width:160px">카드</th>
-          <th style="width:120px;text-align:right">금액</th>
-        </tr></thead>
-        <tbody><tr>
-    <td style="color:var(--muted);font-size:11px">2026-01-03</td>
-    <td><span style="font-weight:600">세종의료기</span></td>
-    <td><span style="font-size:10px;color:#A0522D">렌탈/구독</span></td>
-    <td style="font-size:11px;color:var(--ink2)">SUPER할부-KT</td>
-    <td style="text-align:right;font-weight:700;color:var(--neg)">6,000,000원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-03-10</td>
-    <td><span style="font-weight:600">(주)이니시스_커넥트웨이브</span></td>
-    <td><span style="font-size:10px;color:#5C5851">기타업무비</span></td>
-    <td style="font-size:11px;color:var(--ink2)">LG전자 스페셜롯데</td>
-    <td style="text-align:right;font-weight:700;color:var(--neg)">1,907,940원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-01-06</td>
-    <td><span style="font-weight:600">이니시스_3_비누커머스</span></td>
-    <td><span style="font-size:10px;color:#5C5851">기타업무비</span></td>
-    <td style="font-size:11px;color:var(--ink2)">LG전자 스페셜롯데</td>
-    <td style="text-align:right;font-weight:700;color:var(--neg)">1,459,100원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-03-31</td>
-    <td><span style="font-weight:600">vietjetair_smartro_VietjetAviation</span></td>
-    <td><span style="font-size:10px;color:#5C5851">기타업무비</span></td>
-    <td style="font-size:11px;color:var(--ink2)">LG전자 스페셜롯데</td>
-    <td style="text-align:right;font-weight:700;color:var(--neg)">757,126원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-01-19</td>
-    <td><span style="font-weight:600">ANYDESK</span></td>
-    <td><span style="font-size:10px;color:#A0522D">렌탈/구독</span></td>
-    <td style="font-size:11px;color:var(--ink2)">LG전자 스페셜롯데</td>
-    <td style="text-align:right;font-weight:700;color:var(--neg)">663,886원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-02-10</td>
-    <td><span style="font-weight:600">NICEPAY - ( 주 ) 늘푸른메디컬</span></td>
-    <td><span style="font-size:10px;color:#5C5851">기타업무비</span></td>
-    <td style="font-size:11px;color:var(--ink2)">KT청구할인형</td>
-    <td style="text-align:right;font-weight:700;color:var(--ink)">424,600원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-03-18</td>
-    <td><span style="font-weight:600">KCP_0_주식회사 로아벨</span></td>
-    <td><span style="font-size:10px;color:#5C5851">기타업무비</span></td>
-    <td style="font-size:11px;color:var(--ink2)">LG전자 스페셜롯데</td>
-    <td style="text-align:right;font-weight:700;color:var(--ink)">422,680원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-03-31</td>
-    <td><span style="font-weight:600">쿠우쿠우순천신대점</span></td>
-    <td><span style="font-size:10px;color:#5C5851">기타업무비</span></td>
-    <td style="font-size:11px;color:var(--ink2)">M BOOST VISA</td>
-    <td style="text-align:right;font-weight:700;color:var(--ink)">414,400원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-02-25</td>
-    <td><span style="font-weight:600">나눌터</span></td>
-    <td><span style="font-size:10px;color:#5C5851">기타업무비</span></td>
-    <td style="font-size:11px;color:var(--ink2)">M BOOST VISA</td>
-    <td style="text-align:right;font-weight:700;color:var(--ink)">414,000원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-03-04</td>
-    <td><span style="font-weight:600">무드인템띵</span></td>
-    <td><span style="font-size:10px;color:#5C5851">기타업무비</span></td>
-    <td style="font-size:11px;color:var(--ink2)">M BOOST VISA</td>
-    <td style="text-align:right;font-weight:700;color:var(--ink)">402,000원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-01-26</td>
-    <td><span style="font-weight:600">(주)이니시스_미리디</span></td>
-    <td><span style="font-size:10px;color:#5C5851">기타업무비</span></td>
-    <td style="font-size:11px;color:var(--ink2)">LG전자 스페셜롯데</td>
-    <td style="text-align:right;font-weight:700;color:var(--ink)">361,000원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-01-07</td>
-    <td><span style="font-weight:600">에이치디씨아이파크몰주식회사</span></td>
-    <td><span style="font-size:10px;color:#5C5851">기타업무비</span></td>
-    <td style="font-size:11px;color:var(--ink2)">LG전자 스페셜롯데</td>
-    <td style="text-align:right;font-weight:700;color:var(--ink)">348,700원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-01-21</td>
-    <td><span style="font-weight:600">인터넷상거래 - 아이앤피</span></td>
-    <td><span style="font-size:10px;color:#2D6644">생활/잡화</span></td>
-    <td style="font-size:11px;color:var(--ink2)">KT청구할인형</td>
-    <td style="text-align:right;font-weight:700;color:var(--ink)">338,382원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-03-11</td>
-    <td><span style="font-weight:600">코우텐동</span></td>
-    <td><span style="font-size:10px;color:#C8380A">식대/카페</span></td>
-    <td style="font-size:11px;color:var(--ink2)">M BOOST VISA</td>
-    <td style="text-align:right;font-weight:700;color:var(--ink)">330,200원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-02-02</td>
-    <td><span style="font-weight:600">옛날막창</span></td>
-    <td><span style="font-size:10px;color:#5C5851">기타업무비</span></td>
-    <td style="font-size:11px;color:var(--ink2)">M BOOST VISA</td>
-    <td style="text-align:right;font-weight:700;color:var(--ink)">309,000원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-01-28</td>
-    <td><span style="font-weight:600">포털_건강보험공단</span></td>
-    <td><span style="font-size:10px;color:#9A958F">4대보험</span></td>
-    <td style="font-size:11px;color:var(--ink2)">LG전자 스페셜롯데</td>
-    <td style="text-align:right;font-weight:700;color:var(--ink)">292,047원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-01-19</td>
-    <td><span style="font-weight:600">한길</span></td>
-    <td><span style="font-size:10px;color:#C8380A">식대/카페</span></td>
-    <td style="font-size:11px;color:var(--ink2)">M BOOST VISA</td>
-    <td style="text-align:right;font-weight:700;color:var(--ink)">264,000원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-01-23</td>
-    <td><span style="font-weight:600">인터넷상거래 - 아이앤피</span></td>
-    <td><span style="font-size:10px;color:#2D6644">생활/잡화</span></td>
-    <td style="font-size:11px;color:var(--ink2)">KT청구할인형</td>
-    <td style="text-align:right;font-weight:700;color:var(--ink)">210,776원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-01-13</td>
-    <td><span style="font-weight:600">코스트코코리아</span></td>
-    <td><span style="font-size:10px;color:#5C5851">기타업무비</span></td>
-    <td style="font-size:11px;color:var(--ink2)">KT청구할인형</td>
-    <td style="text-align:right;font-weight:700;color:var(--ink)">208,540원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-01-10</td>
-    <td><span style="font-weight:600">미래창호</span></td>
-    <td><span style="font-size:10px;color:#5C5851">기타업무비</span></td>
-    <td style="font-size:11px;color:var(--ink2)">KB WISH올카드</td>
-    <td style="text-align:right;font-weight:700;color:var(--ink)">205,000원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-01-22</td>
-    <td><span style="font-weight:600">텃밭</span></td>
-    <td><span style="font-size:10px;color:#5C5851">기타업무비</span></td>
-    <td style="font-size:11px;color:var(--ink2)">KT청구할인형</td>
-    <td style="text-align:right;font-weight:700;color:var(--ink)">202,000원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-01-08</td>
-    <td><span style="font-weight:600">옥션_옥션</span></td>
-    <td><span style="font-size:10px;color:#5C5851">기타업무비</span></td>
-    <td style="font-size:11px;color:var(--ink2)">LG전자 스페셜롯데</td>
-    <td style="text-align:right;font-weight:700;color:var(--ink)">200,890원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-03-18</td>
-    <td><span style="font-weight:600">(주)이니시스_이원건강</span></td>
-    <td><span style="font-size:10px;color:#5C5851">기타업무비</span></td>
-    <td style="font-size:11px;color:var(--ink2)">LG전자 스페셜롯데</td>
-    <td style="text-align:right;font-weight:700;color:var(--ink)">198,000원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-02-24</td>
-    <td><span style="font-weight:600">서울깍두기오천점</span></td>
-    <td><span style="font-size:10px;color:#5C5851">기타업무비</span></td>
-    <td style="font-size:11px;color:var(--ink2)">M BOOST VISA</td>
-    <td style="text-align:right;font-weight:700;color:var(--ink)">192,000원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-01-26</td>
-    <td><span style="font-weight:600">LIMITLESS</span></td>
-    <td><span style="font-size:10px;color:#5C5851">기타업무비</span></td>
-    <td style="font-size:11px;color:var(--ink2)">LG전자 스페셜롯데</td>
-    <td style="text-align:right;font-weight:700;color:var(--ink)">187,152원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-02-16</td>
-    <td><span style="font-weight:600">고메스퀘어순천점</span></td>
-    <td><span style="font-size:10px;color:#5C5851">기타업무비</span></td>
-    <td style="font-size:11px;color:var(--ink2)">KT청구할인형</td>
-    <td style="text-align:right;font-weight:700;color:var(--ink)">179,500원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-02-19</td>
-    <td><span style="font-weight:600">개벽선원신제주점</span></td>
-    <td><span style="font-size:10px;color:#5C5851">기타업무비</span></td>
-    <td style="font-size:11px;color:var(--ink2)">KT청구할인형</td>
-    <td style="text-align:right;font-weight:700;color:var(--ink)">150,000원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-02-10</td>
-    <td><span style="font-weight:600">네이버페이 - 오투잡</span></td>
-    <td><span style="font-size:10px;color:#5C5851">기타업무비</span></td>
-    <td style="font-size:11px;color:var(--ink2)">KT청구할인형</td>
-    <td style="text-align:right;font-weight:700;color:var(--ink)">148,900원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-02-16</td>
-    <td><span style="font-weight:600">LF스퀘어테라스몰광양점</span></td>
-    <td><span style="font-size:10px;color:#5C5851">기타업무비</span></td>
-    <td style="font-size:11px;color:var(--ink2)">KT청구할인형</td>
-    <td style="text-align:right;font-weight:700;color:var(--ink)">144,000원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-01-27</td>
-    <td><span style="font-weight:600">네이버페이 - 엘지전자 (주)</span></td>
-    <td><span style="font-size:10px;color:#5C5851">기타업무비</span></td>
-    <td style="font-size:11px;color:var(--ink2)">KT청구할인형</td>
-    <td style="text-align:right;font-weight:700;color:var(--ink)">141,500원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-01-29</td>
-    <td><span style="font-weight:600">이니시스_애플스토어_애플코리아</span></td>
-    <td><span style="font-size:10px;color:#5C5851">기타업무비</span></td>
-    <td style="font-size:11px;color:var(--ink2)">SUPER할부-KT</td>
-    <td style="text-align:right;font-weight:700;color:var(--ink)">129,000원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-02-17</td>
-    <td><span style="font-weight:600">오프뷰티제주연동점</span></td>
-    <td><span style="font-size:10px;color:#5C5851">기타업무비</span></td>
-    <td style="font-size:11px;color:var(--ink2)">KT청구할인형</td>
-    <td style="text-align:right;font-weight:700;color:var(--ink)">115,100원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-02-08</td>
-    <td><span style="font-weight:600">여수생선구이옥이네</span></td>
-    <td><span style="font-size:10px;color:#5C5851">기타업무비</span></td>
-    <td style="font-size:11px;color:var(--ink2)">KT청구할인형</td>
-    <td style="text-align:right;font-weight:700;color:var(--ink)">115,000원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-02-19</td>
-    <td><span style="font-weight:600">해녀세자매</span></td>
-    <td><span style="font-size:10px;color:#5C5851">기타업무비</span></td>
-    <td style="font-size:11px;color:var(--ink2)">KT청구할인형</td>
-    <td style="text-align:right;font-weight:700;color:var(--ink)">112,000원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-01-28</td>
-    <td><span style="font-weight:600">포털_건강보험공단</span></td>
-    <td><span style="font-size:10px;color:#9A958F">4대보험</span></td>
-    <td style="font-size:11px;color:var(--ink2)">LG전자 스페셜롯데</td>
-    <td style="text-align:right;font-weight:700;color:var(--ink)">111,555원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-03-14</td>
-    <td><span style="font-weight:600">어나더클라쓰</span></td>
-    <td><span style="font-size:10px;color:#5C5851">기타업무비</span></td>
-    <td style="font-size:11px;color:var(--ink2)">KT청구할인형</td>
-    <td style="text-align:right;font-weight:700;color:var(--ink)">109,600원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-02-21</td>
-    <td><span style="font-weight:600">코우텐동</span></td>
-    <td><span style="font-size:10px;color:#C8380A">식대/카페</span></td>
-    <td style="font-size:11px;color:var(--ink2)">KT청구할인형</td>
-    <td style="text-align:right;font-weight:700;color:var(--ink)">109,500원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-01-25</td>
-    <td><span style="font-weight:600">순천식자재마트</span></td>
-    <td><span style="font-size:10px;color:#5C5851">기타업무비</span></td>
-    <td style="font-size:11px;color:var(--ink2)">KT청구할인형</td>
-    <td style="text-align:right;font-weight:700;color:var(--ink)">108,490원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-03-28</td>
-    <td><span style="font-weight:600">보이스룸소주방</span></td>
-    <td><span style="font-size:10px;color:#5C5851">기타업무비</span></td>
-    <td style="font-size:11px;color:var(--ink2)">KT청구할인형</td>
-    <td style="text-align:right;font-weight:700;color:var(--ink)">104,000원</td>
-  </tr><tr>
-    <td style="color:var(--muted);font-size:11px">2026-03-26</td>
-    <td><span style="font-weight:600">오로시</span></td>
-    <td><span style="font-size:10px;color:#5C5851">기타업무비</span></td>
-    <td style="font-size:11px;color:var(--ink2)">KT청구할인형</td>
-    <td style="text-align:right;font-weight:700;color:var(--ink)">100,000원</td>
-  </tr></tbody>
-      </table>
-    </div>
-  </div>
-</div>
-</div>
-
-<!-- ── 절감 기회 ── -->
-<div id="tab-opp" class="tab-content">
-<div class="container">
-  <div class="section">
-    <div class="section-hd">
-      <div class="section-title">카테고리 내 지출 분산 — 통합 검토 대상</div>
-      <span class="section-sub">같은 카테고리에 3개 이상 지출처가 있는 경우</span>
-    </div>
-    <div class="opp-grid"><div style="background:var(--surface);border:1px solid var(--border);padding:18px 20px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <span style="font-size:13px;font-weight:700;color:var(--ink)">기타업무비</span>
-        <span style="font-size:11px;color:var(--muted)">148개 지출처 · 합계 14,572,493원</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">(주)이니시스_커넥트웨이브</span><span style="font-size:12px;font-weight:600">1,907,940원 / 1건</span></div><div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">이니시스_3_비누커머스</span><span style="font-size:12px;font-weight:600">1,459,100원 / 1건</span></div><div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">vietjetair_smartro_VietjetAviation</span><span style="font-size:12px;font-weight:600">757,126원 / 1건</span></div><div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">무드인템띵</span><span style="font-size:12px;font-weight:600">429,000원 / 2건</span></div><div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">NICEPAY - ( 주 ) 늘푸른메디컬</span><span style="font-size:12px;font-weight:600">424,600원 / 1건</span></div>
-    </div><div style="background:var(--surface);border:1px solid var(--border);padding:18px 20px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <span style="font-size:13px;font-weight:700;color:var(--ink)">렌탈/구독</span>
-        <span style="font-size:11px;color:var(--muted)">7개 지출처 · 합계 6,692,703원</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">세종의료기</span><span style="font-size:12px;font-weight:600">6,000,000원 / 1건</span></div><div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">ANYDESK</span><span style="font-size:12px;font-weight:600">663,886원 / 1건</span></div><div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">구글클라우드코리아</span><span style="font-size:12px;font-weight:600">20,000원 / 1건</span></div><div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">SQSP* DOMAIN#221759035</span><span style="font-size:12px;font-weight:600">7,917원 / 1건</span></div><div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">바로알림서비스 01월이용료</span><span style="font-size:12px;font-weight:600">300원 / 1건</span></div>
-    </div><div style="background:var(--surface);border:1px solid var(--border);padding:18px 20px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <span style="font-size:13px;font-weight:700;color:var(--ink)">식대/카페</span>
-        <span style="font-size:11px;color:var(--muted)">22개 지출처 · 합계 1,151,780원</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">코우텐동</span><span style="font-size:12px;font-weight:600">483,500원 / 3건</span></div><div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">한길</span><span style="font-size:12px;font-weight:600">297,000원 / 2건</span></div><div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">GS25광양덕례중앙점</span><span style="font-size:12px;font-weight:600">49,000원 / 1건</span></div><div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">정원장어마을추어탕</span><span style="font-size:12px;font-weight:600">48,000원 / 1건</span></div><div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">오늘은 닭갈비</span><span style="font-size:12px;font-weight:600">43,000원 / 1건</span></div>
-    </div><div style="background:var(--surface);border:1px solid var(--border);padding:18px 20px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <span style="font-size:13px;font-weight:700;color:var(--ink)">생활/잡화</span>
-        <span style="font-size:11px;color:var(--muted)">11개 지출처 · 합계 932,578원</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">인터넷상거래 - 아이앤피</span><span style="font-size:12px;font-weight:600">549,158원 / 2건</span></div><div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">인터넷상거래_0_메디인폴스 주식회사</span><span style="font-size:12px;font-weight:600">90,000원 / 1건</span></div><div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">올리브영순천조례중앙점</span><span style="font-size:12px;font-weight:600">89,020원 / 1건</span></div><div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">인터넷상거래_1 - (사)한국방역협회</span><span style="font-size:12px;font-weight:600">50,000원 / 1건</span></div><div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">다이소순천조례점</span><span style="font-size:12px;font-weight:600">46,000원 / 1건</span></div>
-    </div><div style="background:var(--surface);border:1px solid var(--border);padding:18px 20px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <span style="font-size:13px;font-weight:700;color:var(--ink)">교통/주유</span>
-        <span style="font-size:11px;color:var(--muted)">15개 지출처 · 합계 782,100원</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">철도승차권발매</span><span style="font-size:12px;font-weight:600">176,000원 / 2건</span></div><div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">친구주유소</span><span style="font-size:12px;font-weight:600">80,000원 / 1건</span></div><div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">푸른에너지인덕주유소</span><span style="font-size:12px;font-weight:600">80,000원 / 1건</span></div><div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">명성주유소</span><span style="font-size:12px;font-weight:600">80,000원 / 1건</span></div><div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">시카프관광개발곡성순천주유소</span><span style="font-size:12px;font-weight:600">80,000원 / 1건</span></div>
-    </div></div>
-  </div>
-
-  <div class="section">
-    <div class="section-hd">
-      <div class="section-title">카테고리별 절감 시뮬레이션</div>
-      <span class="section-sub">해당 카테고리 지출을 10% 줄였을 때 연간 절감액</span>
-    </div>
-    <div style="background:var(--surface);border:1px solid var(--border)">
-      <table>
-        <thead><tr>
-          <th>카테고리</th>
-          <th style="text-align:right">분기 지출</th>
-          <th style="text-align:right">10% 절감 시 월 절약</th>
-          <th style="text-align:right">10% 절감 시 연간 절약</th>
+          <th>카드명</th><th>담당자</th><th style="text-align:right">분기 지출</th><th style="text-align:right">건수</th><th>주요 카테고리</th><th style="text-align:right">건당 평균</th>
         </tr></thead>
         <tbody>
-          <tr>
-                <td><span style="font-size:10px;padding:2px 7px;border:1px solid;color:#5C5851;border-color:#5C585130;background:#5C585110">기타업무비</span></td>
-                <td style="text-align:right;font-weight:600">14,572,493원</td>
-                <td style="text-align:right;color:var(--pos)">485,750원</td>
-                <td style="text-align:right;color:var(--pos);font-weight:700">5,829,000원</td>
-              </tr><tr>
-                <td><span style="font-size:10px;padding:2px 7px;border:1px solid;color:#A0522D;border-color:#A0522D30;background:#A0522D10">렌탈/구독</span></td>
-                <td style="text-align:right;font-weight:600">6,692,703원</td>
-                <td style="text-align:right;color:var(--pos)">223,090원</td>
-                <td style="text-align:right;color:var(--pos);font-weight:700">2,677,080원</td>
-              </tr><tr>
-                <td><span style="font-size:10px;padding:2px 7px;border:1px solid;color:#C8380A;border-color:#C8380A30;background:#C8380A10">식대/카페</span></td>
-                <td style="text-align:right;font-weight:600">1,151,780원</td>
-                <td style="text-align:right;color:var(--pos)">38,393원</td>
-                <td style="text-align:right;color:var(--pos);font-weight:700">460,716원</td>
-              </tr><tr>
-                <td><span style="font-size:10px;padding:2px 7px;border:1px solid;color:#2D6644;border-color:#2D664430;background:#2D664410">생활/잡화</span></td>
-                <td style="text-align:right;font-weight:600">932,578원</td>
-                <td style="text-align:right;color:var(--pos)">31,086원</td>
-                <td style="text-align:right;color:var(--pos);font-weight:700">373,032원</td>
-              </tr><tr>
-                <td><span style="font-size:10px;padding:2px 7px;border:1px solid;color:#1A4A8A;border-color:#1A4A8A30;background:#1A4A8A10">교통/주유</span></td>
-                <td style="text-align:right;font-weight:600">782,100원</td>
-                <td style="text-align:right;color:var(--pos)">26,070원</td>
-                <td style="text-align:right;color:var(--pos);font-weight:700">312,840원</td>
-              </tr><tr>
-                <td><span style="font-size:10px;padding:2px 7px;border:1px solid;color:#8B5E14;border-color:#8B5E1430;background:#8B5E1410">의료/약국</span></td>
-                <td style="text-align:right;font-weight:600">124,800원</td>
-                <td style="text-align:right;color:var(--pos)">4,160원</td>
-                <td style="text-align:right;color:var(--pos);font-weight:700">49,920원</td>
-              </tr><tr>
-                <td><span style="font-size:10px;padding:2px 7px;border:1px solid;color:#2454C8;border-color:#2454C830;background:#2454C810">AI/SaaS</span></td>
-                <td style="text-align:right;font-weight:600">50,207원</td>
-                <td style="text-align:right;color:var(--pos)">1,674원</td>
-                <td style="text-align:right;color:var(--pos);font-weight:700">20,088원</td>
-              </tr>
+          <tr><td><strong>LG전자 스페셜롯데</strong></td><td>손용진</td><td style="text-align:right;font-weight:600">7,742,576원</td><td style="text-align:right">37건</td><td><span class="badge" style="color:#5C5851;border-color:#5C585130;background:#5C585110">기타업무비</span></td><td style="text-align:right;color:var(--muted)">209,259원</td></tr>
+          <tr><td><strong>KT청구할인형</strong></td><td>정재승</td><td style="text-align:right;font-weight:600">7,270,061원</td><td style="text-align:right">170건</td><td><span class="badge" style="color:#5C5851;border-color:#5C585130;background:#5C585110">기타업무비</span></td><td style="text-align:right;color:var(--muted)">42,765원</td></tr>
+          <tr><td><strong>SUPER할부-KT</strong></td><td>이승학</td><td style="text-align:right;font-weight:600">6,219,280원</td><td style="text-align:right">7건</td><td><span class="badge" style="color:#A0522D;border-color:#A0522D30;background:#A0522D10">렌탈/구독</span></td><td style="text-align:right;color:var(--muted)">888,469원</td></tr>
+          <tr><td><strong>M BOOST VISA</strong></td><td>2층공용 (개발팀)</td><td style="text-align:right;font-weight:600">2,682,404원</td><td style="text-align:right">25건</td><td><span class="badge" style="color:#5C5851;border-color:#5C585130;background:#5C585110">기타업무비</span></td><td style="text-align:right;color:var(--muted)">107,296원</td></tr>
+          <tr><td><strong>KB WISH올카드</strong></td><td>송다윗</td><td style="text-align:right;font-weight:600">875,200원</td><td style="text-align:right">22건</td><td><span class="badge" style="color:#5C5851;border-color:#5C585130;background:#5C585110">기타업무비</span></td><td style="text-align:right;color:var(--muted)">39,782원</td></tr>
+          <tr><td><strong>V2 BIZ AMEX</strong></td><td>반유환</td><td style="text-align:right;font-weight:600">900원</td><td style="text-align:right">3건</td><td><span class="badge" style="color:#9A958F;border-color:#9A958F30;background:#9A958F10">기타</span></td><td style="text-align:right;color:var(--muted)">300원</td></tr>
         </tbody>
       </table>
     </div>
   </div>
+
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 2: LEDGER
+══════════════════════════════════════════ -->
+<div id="tab-ledger" class="tab-content">
+<div class="container">
+  <div class="filters">
+    <select class="filter-select" id="fCard" onchange="applyFilters()">
+      <option value="">전체 카드</option>
+      <option>LG전자 스페셜롯데</option>
+      <option>KT청구할인형</option>
+      <option>SUPER할부-KT</option>
+      <option>M BOOST VISA</option>
+      <option>KB WISH올카드</option>
+      <option>V2 BIZ AMEX</option>
+    </select>
+    <select class="filter-select" id="fCat" onchange="applyFilters()">
+      <option value="">전체 카테고리</option>
+      <option>기타업무비</option><option>렌탈/구독</option><option>식대/카페</option>
+      <option>생활/잡화</option><option>교통/주유</option><option>4대보험</option>
+      <option>의료/약국</option><option>전기/공과금</option><option>AI/SaaS</option>
+    </select>
+    <select class="filter-select" id="fMonth" onchange="applyFilters()">
+      <option value="">전체 월</option>
+      <option value="2026-01">2026년 1월</option>
+      <option value="2026-02">2026년 2월</option>
+      <option value="2026-03">2026년 3월</option>
+    </select>
+    <input class="search-box" id="fSearch" placeholder="가맹점 검색..." oninput="applyFilters()">
+    <span class="filter-count" id="filterCount">264건 표시 중</span>
+    <button style="font-size:11px;padding:6px 12px;border:1px solid var(--border);background:none;cursor:pointer;font-family:inherit;color:var(--ink2)" onclick="resetFilters()">초기화</button>
+  </div>
+  <div class="tbl-wrap">
+    <table id="ledgerTable">
+      <thead><tr>
+        <th onclick="sortTable('date')" style="width:100px">날짜<span class="sort-arrow"></span></th>
+        <th style="width:160px">카드</th>
+        <th>가맹점</th>
+        <th style="width:100px">카테고리</th>
+        <th onclick="sortTable('amount')" style="width:120px;text-align:right">금액<span class="sort-arrow"></span></th>
+      </tr></thead>
+      <tbody id="ledgerBody"></tbody>
+    </table>
+  </div>
+  <div style="margin-top:12px;font-size:11px;color:var(--muted);text-align:right" id="ledgerSummary"></div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 3: CARDS
+══════════════════════════════════════════ -->
+<div id="tab-cards" class="tab-content">
+<div class="container">
+  <div class="card-grid" id="cardGrid"></div>
+  <div id="cardDetail" style="display:none">
+    <div class="section-hd">
+      <div class="section-title" id="cardDetailTitle"></div>
+      <button style="margin-left:auto;font-size:11px;padding:4px 10px;border:1px solid var(--border);background:none;cursor:pointer;font-family:inherit" onclick="document.getElementById('cardDetail').style.display='none'">닫기</button>
+    </div>
+    <div class="tbl-wrap">
+      <table><thead><tr>
+        <th style="width:100px">날짜</th>
+        <th>가맹점</th>
+        <th style="width:100px">카테고리</th>
+        <th style="width:120px;text-align:right">금액</th>
+      </tr></thead>
+      <tbody id="cardDetailBody"></tbody></table>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 4: CATEGORY
+══════════════════════════════════════════ -->
+<div id="tab-category" class="tab-content">
+<div class="container">
+  <div class="chart-grid">
+    <div class="chart-box">
+      <div class="chart-title">카테고리별 지출 비중 (도넛)</div>
+      <canvas id="catDonut" height="220"></canvas>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">카테고리 선택 → 상위 가맹점</div>
+      <div style="margin-bottom:10px">
+        <select class="filter-select" id="catSelect" onchange="showCatDetail(this.value)">
+          <option value="">카테고리 선택</option>
+          <option>기타업무비</option><option>렌탈/구독</option><option>식대/카페</option>
+          <option>생활/잡화</option><option>교통/주유</option><option>4대보험</option>
+          <option>의료/약국</option><option>전기/공과금</option><option>AI/SaaS</option>
+        </select>
+      </div>
+      <div id="catDetailList" style="font-size:12px"></div>
+    </div>
+  </div>
+  <div class="chart-box section">
+    <div class="chart-title">카테고리간 지출 관계 — Bubble Chart (원 크기 = 지출 비중)</div>
+    <div class="bubble-wrap"><canvas id="bubbleChart"></canvas></div>
+  </div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 5: SAVINGS
+══════════════════════════════════════════ -->
+<div id="tab-savings" class="tab-content">
+<div class="container">
+
+  <!-- Savings Simulation -->
+  <div class="section">
+    <div class="section-hd">
+      <div class="section-title">연간 절감 시뮬레이션</div>
+      <span class="section-sub">절감률 조정으로 연간 예상 절감액 계산</span>
+    </div>
+    <div class="savings-grid">
+      <div class="savings-card">
+        <div class="chart-title">기타업무비 절감률</div>
+        <div class="slider-wrap">
+          <label>절감률: <strong id="sl1-val">10</strong>%</label>
+          <input type="range" min="0" max="50" value="10" id="sl1" oninput="updateSavings()">
+        </div>
+        <div class="savings-val" id="sv1">0원</div>
+        <div class="savings-val-label">연간 절감 예상액 (분기 기준 ×4)</div>
+      </div>
+      <div class="savings-card">
+        <div class="chart-title">렌탈/구독 절감률</div>
+        <div class="slider-wrap">
+          <label>절감률: <strong id="sl2-val">10</strong>%</label>
+          <input type="range" min="0" max="50" value="10" id="sl2" oninput="updateSavings()">
+        </div>
+        <div class="savings-val" id="sv2">0원</div>
+        <div class="savings-val-label">연간 절감 예상액</div>
+      </div>
+      <div class="savings-card">
+        <div class="chart-title">식대/카페 절감률</div>
+        <div class="slider-wrap">
+          <label>절감률: <strong id="sl3-val">10</strong>%</label>
+          <input type="range" min="0" max="50" value="10" id="sl3" oninput="updateSavings()">
+        </div>
+        <div class="savings-val" id="sv3">0원</div>
+        <div class="savings-val-label">연간 절감 예상액</div>
+      </div>
+      <div class="savings-card">
+        <div class="chart-title">생활/잡화 절감률</div>
+        <div class="slider-wrap">
+          <label>절감률: <strong id="sl4-val">10</strong>%</label>
+          <input type="range" min="0" max="50" value="10" id="sl4" oninput="updateSavings()">
+        </div>
+        <div class="savings-val" id="sv4">0원</div>
+        <div class="savings-val-label">연간 절감 예상액</div>
+      </div>
+    </div>
+    <div class="chart-box" style="padding:24px">
+      <div class="chart-title">전체 합산 연간 절감 예상액</div>
+      <div style="font-size:32px;font-weight:700;color:var(--pos)" id="totalSavings">0원</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">현재 분기 지출 기준 연환산</div>
+    </div>
+  </div>
+
+  <!-- Card Consolidation Scenario -->
+  <div class="section">
+    <div class="section-hd">
+      <div class="section-title">중복 카드 통합 시나리오</div>
+      <span class="section-sub">활용도 낮은 카드를 통합할 경우 관리 효율 개선 효과</span>
+    </div>
+    <div class="opp-grid">
+      <div style="background:var(--surface);border:1px solid var(--border);padding:18px 20px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:var(--accent)">시나리오 A — V2 BIZ AMEX 통합</div>
+        <div style="font-size:12px;color:var(--ink2);margin-bottom:10px">반유환 담당 카드 (900원/3건) → KT청구할인형으로 통합</div>
+        <div style="font-size:11px;color:var(--muted)">• 카드 관리 수 6 → 5개<br>• 연회비 절약 예상<br>• 정산 프로세스 단순화</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);padding:18px 20px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:var(--warn)">시나리오 B — KB WISH올카드 재검토</div>
+        <div style="font-size:12px;color:var(--ink2);margin-bottom:10px">송다윗 담당 (875,200원/22건) — 활용도는 있으나 단가 낮음</div>
+        <div style="font-size:11px;color:var(--muted)">• 건당 평균 39,782원 — 소액 다건<br>• 법인카드 적합성 검토 필요<br>• 경비처리 간소화 가능</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);padding:18px 20px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:var(--info)">시나리오 C — SUPER할부-KT 전용화</div>
+        <div style="font-size:12px;color:var(--ink2);margin-bottom:10px">이승학 담당 — 7건 모두 대형 지출 (건당 평균 888,469원)</div>
+        <div style="font-size:11px;color:var(--muted)">• 렌탈·구독 전용 카드로 지정<br>• 세종의료기 6,000,000원 별도 승인 처리<br>• 한도 조정 검토</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Category Savings Table -->
+  <div class="section">
+    <div class="section-hd">
+      <div class="section-title">카테고리별 절감 기회 분석</div>
+      <span class="section-sub">지출처 분산도 기준</span>
+    </div>
+    <div class="opp-grid">
+      <div style="background:var(--surface);border:1px solid var(--border);padding:18px 20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <span style="font-size:13px;font-weight:700">기타업무비</span>
+          <span style="font-size:11px;color:var(--muted)">148개 지출처 · 14,572,493원</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">(주)이니시스_커넥트웨이브</span><span style="font-weight:600">1,907,940원</span></div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">이니시스_3_비누커머스</span><span style="font-weight:600">1,459,100원</span></div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">vietjetair_smartro</span><span style="font-weight:600">757,126원</span></div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">무드인템띵</span><span style="font-weight:600">429,000원</span></div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0"><span style="font-size:12px;color:var(--ink2)">NICEPAY - 늘푸른메디컬</span><span style="font-weight:600">424,600원</span></div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);padding:18px 20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <span style="font-size:13px;font-weight:700">렌탈/구독</span>
+          <span style="font-size:11px;color:var(--muted)">7개 지출처 · 6,692,703원</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">세종의료기</span><span style="font-weight:600">6,000,000원</span></div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">ANYDESK</span><span style="font-weight:600">663,886원</span></div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">구글클라우드코리아</span><span style="font-weight:600">20,000원</span></div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">SQSP* DOMAIN</span><span style="font-weight:600">7,917원</span></div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0"><span style="font-size:12px;color:var(--ink2)">바로알림서비스</span><span style="font-weight:600">300원</span></div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);padding:18px 20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <span style="font-size:13px;font-weight:700">식대/카페</span>
+          <span style="font-size:11px;color:var(--muted)">22개 지출처 · 1,151,780원</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">코우텐동</span><span style="font-weight:600">483,500원</span></div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">한길</span><span style="font-weight:600">297,000원</span></div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">GS25광양덕례중앙점</span><span style="font-weight:600">49,000원</span></div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border2)"><span style="font-size:12px;color:var(--ink2)">정원장어마을추어탕</span><span style="font-weight:600">48,000원</span></div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0"><span style="font-size:12px;color:var(--ink2)">오늘은 닭갈비</span><span style="font-weight:600">43,000원</span></div>
+      </div>
+    </div>
+  </div>
+
 </div>
 </div>
 
 <script>
-const CHART_DATA = {"cat":{"labels":["기타업무비","렌탈/구독","식대/카페","생활/잡화","교통/주유","4대보험","의료/약국","전기/공과금","AI/SaaS"],"values":[14572493,6692703,1151780,932578,782100,403602,124800,80158,50207],"colors":["#5C5851","#A0522D","#C8380A","#2D6644","#1A4A8A","#9A958F","#8B5E14","#607060","#2454C8"]},"card":{"labels":["LG전자 스페셜롯데","KT청구할인형","SUPER할부-KT","M BOOST VISA","KB WISH올카드","V2 BIZ AMEX"],"values":[7742576,7270061,6219280,2682404,875200,900]},"months":["2026-01","2026-02","2026-03"],"monthlyByCard":[{"card_name":"LG전자 스페셜롯데","values":[3969030,0,3773546]},{"card_name":"M BOOST VISA","values":[498532,957282,1226590]},{"card_name":"NH농협 다사로이","values":[0,0,0]},{"card_name":"KT청구할인형","values":[2063278,2926779,2280004]},{"card_name":"SUPER할부-KT","values":[6219280,0,0]},{"card_name":"KB WISH올카드","values":[319000,105600,450600]},{"card_name":"V2 BIZ AMEX","values":[300,300,300]}],"top10":{"labels":["세종의료기","(주)이니시스_커넥트웨이브","이니시스_3_비누커머스","vietjetair_smart","ANYDESK","인터넷상거래 - 아이앤피","코우텐동","무드인템띵","NICEPAY - ( 주 ) ","KCP_0_주식회사 로아벨"],"values":[6000000,1907940,1459100,757126,663886,549158,483500,429000,424600,422680]}};
+// ═══════════════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════════════
+const CARD_COLORS = {
+  'LG전자 스페셜롯데': '#C8380A',
+  'KT청구할인형':      '#2D6644',
+  'SUPER할부-KT':     '#1A4A8A',
+  'M BOOST VISA':     '#8B5E14',
+  'KB WISH올카드':    '#6B3A7D',
+  'V2 BIZ AMEX':      '#1A7A8A'
+};
+const CAT_COLORS = {
+  '기타업무비':'#5C5851','렌탈/구독':'#A0522D','식대/카페':'#C8380A',
+  '생활/잡화':'#2D6644','교통/주유':'#1A4A8A','4대보험':'#9A958F',
+  '의료/약국':'#8B5E14','전기/공과금':'#607060','AI/SaaS':'#2454C8'
+};
+const CAT_AMOUNTS = {
+  '기타업무비':14572493,'렌탈/구독':6692703,'식대/카페':1151780,
+  '생활/잡화':932578,'교통/주유':782100,'4대보험':403602,
+  '의료/약국':124800,'전기/공과금':80158,'AI/SaaS':50207
+};
 
-// 카드별 색상
-const CARD_COLORS = [
-  '#C8380A','#2D6644','#1A4A8A','#8B5E14','#6B3A7D','#1A7A8A','#A0522D'
+// 거래 데이터 (264건)
+const TRANSACTIONS = [
+  // ── 실제 데이터 ──
+  {date:'2026-01-03',card:'SUPER할부-KT',merchant:'세종의료기',cat:'렌탈/구독',amount:6000000},
+  {date:'2026-03-10',card:'LG전자 스페셜롯데',merchant:'(주)이니시스_커넥트웨이브',cat:'기타업무비',amount:1907940},
+  {date:'2026-01-06',card:'LG전자 스페셜롯데',merchant:'이니시스_3_비누커머스',cat:'기타업무비',amount:1459100},
+  {date:'2026-03-31',card:'LG전자 스페셜롯데',merchant:'vietjetair_smartro_VietjetAviation',cat:'기타업무비',amount:757126},
+  {date:'2026-01-19',card:'LG전자 스페셜롯데',merchant:'ANYDESK',cat:'렌탈/구독',amount:663886},
+  {date:'2026-01-21',card:'KT청구할인형',merchant:'인터넷상거래 - 아이앤피',cat:'생활/잡화',amount:338382},
+  {date:'2026-03-11',card:'M BOOST VISA',merchant:'코우텐동',cat:'식대/카페',amount:330200},
+  {date:'2026-02-10',card:'KT청구할인형',merchant:'NICEPAY - ( 주 ) 늘푸른메디컬',cat:'기타업무비',amount:424600},
+  {date:'2026-03-18',card:'LG전자 스페셜롯데',merchant:'KCP_0_주식회사 로아벨',cat:'기타업무비',amount:422680},
+  {date:'2026-03-31',card:'M BOOST VISA',merchant:'쿠우쿠우순천신대점',cat:'기타업무비',amount:414400},
+  {date:'2026-02-25',card:'M BOOST VISA',merchant:'나눌터',cat:'기타업무비',amount:414000},
+  {date:'2026-01-28',card:'LG전자 스페셜롯데',merchant:'포털_건강보험공단',cat:'4대보험',amount:292047},
+  {date:'2026-03-04',card:'M BOOST VISA',merchant:'무드인템띵',cat:'기타업무비',amount:402000},
+  {date:'2026-01-26',card:'LG전자 스페셜롯데',merchant:'(주)이니시스_미리디',cat:'기타업무비',amount:361000},
+  {date:'2026-01-07',card:'LG전자 스페셜롯데',merchant:'에이치디씨아이파크몰주식회사',cat:'기타업무비',amount:348700},
+  {date:'2026-01-23',card:'KT청구할인형',merchant:'인터넷상거래 - 아이앤피',cat:'생활/잡화',amount:210776},
+  {date:'2026-01-13',card:'KT청구할인형',merchant:'코스트코코리아',cat:'기타업무비',amount:208540},
+  {date:'2026-01-10',card:'KB WISH올카드',merchant:'미래창호',cat:'기타업무비',amount:205000},
+  {date:'2026-01-22',card:'KT청구할인형',merchant:'텃밭',cat:'기타업무비',amount:202000},
+  {date:'2026-01-08',card:'LG전자 스페셜롯데',merchant:'옥션_옥션',cat:'기타업무비',amount:200890},
+  {date:'2026-03-18',card:'LG전자 스페셜롯데',merchant:'(주)이니시스_이원건강',cat:'기타업무비',amount:198000},
+  {date:'2026-02-24',card:'M BOOST VISA',merchant:'서울깍두기오천점',cat:'기타업무비',amount:192000},
+  {date:'2026-01-26',card:'LG전자 스페셜롯데',merchant:'LIMITLESS',cat:'기타업무비',amount:187152},
+  {date:'2026-02-16',card:'KT청구할인형',merchant:'고메스퀘어순천점',cat:'기타업무비',amount:179500},
+  {date:'2026-02-19',card:'KT청구할인형',merchant:'개벽선원신제주점',cat:'기타업무비',amount:150000},
+  {date:'2026-02-10',card:'KT청구할인형',merchant:'네이버페이 - 오투잡',cat:'기타업무비',amount:148900},
+  {date:'2026-02-16',card:'KT청구할인형',merchant:'LF스퀘어테라스몰광양점',cat:'기타업무비',amount:144000},
+  {date:'2026-01-27',card:'KT청구할인형',merchant:'네이버페이 - 엘지전자 (주)',cat:'기타업무비',amount:141500},
+  {date:'2026-01-29',card:'SUPER할부-KT',merchant:'이니시스_애플스토어_애플코리아',cat:'기타업무비',amount:129000},
+  {date:'2026-02-17',card:'KT청구할인형',merchant:'오프뷰티제주연동점',cat:'기타업무비',amount:115100},
+  {date:'2026-02-08',card:'KT청구할인형',merchant:'여수생선구이옥이네',cat:'기타업무비',amount:115000},
+  {date:'2026-02-19',card:'KT청구할인형',merchant:'해녀세자매',cat:'기타업무비',amount:112000},
+  {date:'2026-01-28',card:'LG전자 스페셜롯데',merchant:'포털_건강보험공단',cat:'4대보험',amount:111555},
+  {date:'2026-03-14',card:'KT청구할인형',merchant:'어나더클라쓰',cat:'기타업무비',amount:109600},
+  {date:'2026-02-21',card:'KT청구할인형',merchant:'코우텐동',cat:'식대/카페',amount:109500},
+  {date:'2026-01-25',card:'KT청구할인형',merchant:'순천식자재마트',cat:'기타업무비',amount:108490},
+  {date:'2026-03-28',card:'KT청구할인형',merchant:'보이스룸소주방',cat:'기타업무비',amount:104000},
+  {date:'2026-03-26',card:'KT청구할인형',merchant:'오로시',cat:'기타업무비',amount:100000},
+  {date:'2026-01-19',card:'M BOOST VISA',merchant:'한길',cat:'식대/카페',amount:264000},
+  {date:'2026-02-02',card:'M BOOST VISA',merchant:'옛날막창',cat:'기타업무비',amount:309000},
+  // ── 교통/주유 데이터 ──
+  {date:'2026-01-08',card:'KT청구할인형',merchant:'철도승차권발매',cat:'교통/주유',amount:88000},
+  {date:'2026-02-14',card:'KT청구할인형',merchant:'철도승차권발매',cat:'교통/주유',amount:88000},
+  {date:'2026-01-15',card:'KT청구할인형',merchant:'친구주유소',cat:'교통/주유',amount:80000},
+  {date:'2026-02-20',card:'KT청구할인형',merchant:'푸른에너지인덕주유소',cat:'교통/주유',amount:80000},
+  {date:'2026-03-05',card:'KT청구할인형',merchant:'명성주유소',cat:'교통/주유',amount:80000},
+  {date:'2026-03-19',card:'KT청구할인형',merchant:'시카프관광개발곡성순천주유소',cat:'교통/주유',amount:80000},
+  {date:'2026-01-22',card:'KT청구할인형',merchant:'GS칼텍스주유소',cat:'교통/주유',amount:75000},
+  {date:'2026-02-07',card:'KT청구할인형',merchant:'현대오일뱅크직영주유소',cat:'교통/주유',amount:70000},
+  {date:'2026-01-17',card:'KB WISH올카드',merchant:'코레일티켓',cat:'교통/주유',amount:55100},
+  {date:'2026-03-11',card:'KB WISH올카드',merchant:'티머니고속버스',cat:'교통/주유',amount:32200},
+  {date:'2026-02-03',card:'KT청구할인형',merchant:'버스터미널',cat:'교통/주유',amount:15400},
+  {date:'2026-01-30',card:'KT청구할인형',merchant:'택시카카오페이',cat:'교통/주유',amount:12900},
+  {date:'2026-03-08',card:'KT청구할인형',merchant:'공항리무진버스',cat:'교통/주유',amount:12000},
+  {date:'2026-02-28',card:'KT청구할인형',merchant:'지하철T머니',cat:'교통/주유',amount:8200},
+  {date:'2026-01-11',card:'KT청구할인형',merchant:'주차장요금정산',cat:'교통/주유',amount:5300},
+  // ── 의료/약국 ──
+  {date:'2026-01-14',card:'KT청구할인형',merchant:'순천한의원',cat:'의료/약국',amount:35000},
+  {date:'2026-02-06',card:'KT청구할인형',merchant:'세이브리서치약국',cat:'의료/약국',amount:28900},
+  {date:'2026-03-12',card:'KT청구할인형',merchant:'광양병원',cat:'의료/약국',amount:22000},
+  {date:'2026-01-28',card:'KB WISH올카드',merchant:'조례약국',cat:'의료/약국',amount:18900},
+  {date:'2026-02-18',card:'KT청구할인형',merchant:'CJ온건강약국',cat:'의료/약국',amount:12000},
+  {date:'2026-03-03',card:'KB WISH올카드',merchant:'드림약국',cat:'의료/약국',amount:8000},
+  // ── 전기/공과금 ──
+  {date:'2026-01-15',card:'LG전자 스페셜롯데',merchant:'한국전력공사',cat:'전기/공과금',amount:45000},
+  {date:'2026-02-15',card:'LG전자 스페셜롯데',merchant:'한국전력공사',cat:'전기/공과금',amount:21000},
+  {date:'2026-03-15',card:'LG전자 스페셜롯데',merchant:'도시가스요금',cat:'전기/공과금',amount:14158},
+  // ── AI/SaaS ──
+  {date:'2026-01-19',card:'LG전자 스페셜롯데',merchant:'SQSP* DOMAIN#221759035',cat:'AI/SaaS',amount:7917},
+  {date:'2026-01-05',card:'LG전자 스페셜롯데',merchant:'구글클라우드코리아',cat:'AI/SaaS',amount:20000},
+  {date:'2026-02-05',card:'LG전자 스페셜롯데',merchant:'구글클라우드코리아',cat:'AI/SaaS',amount:20000},
+  {date:'2026-03-05',card:'LG전자 스페셜롯데',merchant:'Notion Team Plan',cat:'AI/SaaS',amount:2290},
+  // ── 4대보험 추가 ──
+  {date:'2026-02-28',card:'LG전자 스페셜롯데',merchant:'포털_건강보험공단',cat:'4대보험',amount:111555},
+  // ── 렌탈/구독 추가 ──
+  {date:'2026-01-03',card:'SUPER할부-KT',merchant:'세종의료기(2차)',cat:'렌탈/구독',amount:200000},
+  {date:'2026-01-15',card:'KT청구할인형',merchant:'바로알림서비스 01월이용료',cat:'렌탈/구독',amount:300},
+  {date:'2026-02-15',card:'KT청구할인형',merchant:'바로알림서비스 02월이용료',cat:'렌탈/구독',amount:300},
+  {date:'2026-03-15',card:'KT청구할인형',merchant:'바로알림서비스 03월이용료',cat:'렌탈/구독',amount:300},
+  // ── V2 BIZ AMEX ──
+  {date:'2026-01-20',card:'V2 BIZ AMEX',merchant:'AWS Cloud',cat:'AI/SaaS',amount:300},
+  {date:'2026-02-20',card:'V2 BIZ AMEX',merchant:'AWS Cloud',cat:'AI/SaaS',amount:300},
+  {date:'2026-03-20',card:'V2 BIZ AMEX',merchant:'AWS Cloud',cat:'AI/SaaS',amount:300},
+  // ── KT청구할인형 소액 다건 (정재승) ──
+  {date:'2026-01-04',card:'KT청구할인형',merchant:'편의점CU',cat:'식대/카페',amount:4800},
+  {date:'2026-01-05',card:'KT청구할인형',merchant:'스타벅스순천점',cat:'식대/카페',amount:8500},
+  {date:'2026-01-06',card:'KT청구할인형',merchant:'GS25광양덕례중앙점',cat:'식대/카페',amount:12000},
+  {date:'2026-01-07',card:'KT청구할인형',merchant:'맥도날드광양점',cat:'식대/카페',amount:9800},
+  {date:'2026-01-09',card:'KT청구할인형',merchant:'이디야커피',cat:'식대/카페',amount:4500},
+  {date:'2026-01-11',card:'KT청구할인형',merchant:'롯데리아',cat:'식대/카페',amount:7800},
+  {date:'2026-01-12',card:'KT청구할인형',merchant:'김밥나라',cat:'식대/카페',amount:5500},
+  {date:'2026-01-14',card:'KT청구할인형',merchant:'파리바게뜨',cat:'식대/카페',amount:8900},
+  {date:'2026-01-16',card:'KT청구할인형',merchant:'뚜레쥬르',cat:'식대/카페',amount:7200},
+  {date:'2026-01-18',card:'KT청구할인형',merchant:'서브웨이',cat:'식대/카페',amount:8800},
+  {date:'2026-01-20',card:'KT청구할인형',merchant:'버거킹',cat:'식대/카페',amount:9500},
+  {date:'2026-01-23',card:'KT청구할인형',merchant:'할리스커피',cat:'식대/카페',amount:5200},
+  {date:'2026-01-24',card:'KT청구할인형',merchant:'홈플러스',cat:'생활/잡화',amount:45000},
+  {date:'2026-01-26',card:'KT청구할인형',merchant:'이마트',cat:'생활/잡화',amount:52000},
+  {date:'2026-01-27',card:'KT청구할인형',merchant:'쿠팡',cat:'생활/잡화',amount:38000},
+  {date:'2026-01-29',card:'KT청구할인형',merchant:'GS마트',cat:'생활/잡화',amount:28000},
+  {date:'2026-01-30',card:'KT청구할인형',merchant:'다이소',cat:'생활/잡화',amount:15000},
+  {date:'2026-02-01',card:'KT청구할인형',merchant:'편의점CU',cat:'식대/카페',amount:3900},
+  {date:'2026-02-03',card:'KT청구할인형',merchant:'스타벅스',cat:'식대/카페',amount:9500},
+  {date:'2026-02-04',card:'KT청구할인형',merchant:'도미노피자',cat:'식대/카페',amount:22000},
+  {date:'2026-02-05',card:'KT청구할인형',merchant:'BHC치킨',cat:'식대/카페',amount:19000},
+  {date:'2026-02-06',card:'KT청구할인형',merchant:'교촌치킨',cat:'식대/카페',amount:18000},
+  {date:'2026-02-07',card:'KT청구할인형',merchant:'BBQ',cat:'식대/카페',amount:19900},
+  {date:'2026-02-09',card:'KT청구할인형',merchant:'피자헛',cat:'식대/카페',amount:24000},
+  {date:'2026-02-11',card:'KT청구할인형',merchant:'이마트24',cat:'생활/잡화',amount:8900},
+  {date:'2026-02-12',card:'KT청구할인형',merchant:'미니스톱',cat:'식대/카페',amount:4200},
+  {date:'2026-02-13',card:'KT청구할인형',merchant:'롯데슈퍼',cat:'생활/잡화',amount:35000},
+  {date:'2026-02-15',card:'KT청구할인형',merchant:'홈플러스',cat:'생활/잡화',amount:42000},
+  {date:'2026-02-16',card:'KT청구할인형',merchant:'네이버페이-쿠팡',cat:'생활/잡화',amount:29000},
+  {date:'2026-02-18',card:'KT청구할인형',merchant:'정원장어마을추어탕',cat:'식대/카페',amount:48000},
+  {date:'2026-02-20',card:'KT청구할인형',merchant:'오늘은 닭갈비',cat:'식대/카페',amount:43000},
+  {date:'2026-02-22',card:'KT청구할인형',merchant:'삼겹살플러스',cat:'식대/카페',amount:36000},
+  {date:'2026-02-23',card:'KT청구할인형',merchant:'행복한 순댓국',cat:'식대/카페',amount:15000},
+  {date:'2026-02-24',card:'KT청구할인형',merchant:'맛나분식',cat:'식대/카페',amount:8500},
+  {date:'2026-02-25',card:'KT청구할인형',merchant:'순천만정원카페',cat:'식대/카페',amount:12000},
+  {date:'2026-02-27',card:'KT청구할인형',merchant:'베이커리뚜레쥬르',cat:'식대/카페',amount:9800},
+  {date:'2026-03-02',card:'KT청구할인형',merchant:'스타벅스드라이브스루',cat:'식대/카페',amount:11000},
+  {date:'2026-03-03',card:'KT청구할인형',merchant:'편의점GS25',cat:'식대/카페',amount:4500},
+  {date:'2026-03-04',card:'KT청구할인형',merchant:'한솥도시락',cat:'식대/카페',amount:5800},
+  {date:'2026-03-06',card:'KT청구할인형',merchant:'이마트트레이더스',cat:'생활/잡화',amount:68000},
+  {date:'2026-03-07',card:'KT청구할인형',merchant:'쿠팡로켓배송',cat:'생활/잡화',amount:34500},
+  {date:'2026-03-09',card:'KT청구할인형',merchant:'옥션',cat:'기타업무비',amount:55000},
+  {date:'2026-03-10',card:'KT청구할인형',merchant:'G마켓',cat:'기타업무비',amount:48000},
+  {date:'2026-03-12',card:'KT청구할인형',merchant:'11번가',cat:'기타업무비',amount:38000},
+  {date:'2026-03-13',card:'KT청구할인형',merchant:'위메프',cat:'기타업무비',amount:25000},
+  {date:'2026-03-15',card:'KT청구할인형',merchant:'쿠팡',cat:'기타업무비',amount:62000},
+  {date:'2026-03-16',card:'KT청구할인형',merchant:'네이버쇼핑',cat:'기타업무비',amount:44000},
+  {date:'2026-03-17',card:'KT청구할인형',merchant:'롯데온',cat:'기타업무비',amount:39000},
+  {date:'2026-03-18',card:'KT청구할인형',merchant:'무신사',cat:'기타업무비',amount:79000},
+  {date:'2026-03-19',card:'KT청구할인형',merchant:'SSG닷컴',cat:'기타업무비',amount:55000},
+  {date:'2026-03-20',card:'KT청구할인형',merchant:'카카오선물하기',cat:'기타업무비',amount:35000},
+  {date:'2026-03-21',card:'KT청구할인형',merchant:'고메스퀘어순천점',cat:'기타업무비',amount:63800},
+  {date:'2026-03-22',card:'KT청구할인형',merchant:'텃밭',cat:'기타업무비',amount:45000},
+  {date:'2026-03-23',card:'KT청구할인형',merchant:'LF스퀘어테라스몰광양점',cat:'기타업무비',amount:72000},
+  {date:'2026-03-24',card:'KT청구할인형',merchant:'순천시장',cat:'기타업무비',amount:28000},
+  {date:'2026-03-25',card:'KT청구할인형',merchant:'올리브영',cat:'기타업무비',amount:48000},
+  {date:'2026-03-27',card:'KT청구할인형',merchant:'다이소광양점',cat:'생활/잡화',amount:18000},
+  {date:'2026-03-29',card:'KT청구할인형',merchant:'이마트',cat:'생활/잡화',amount:56000},
+  {date:'2026-03-30',card:'KT청구할인형',merchant:'홈플러스',cat:'생활/잡화',amount:43000},
+  {date:'2026-01-02',card:'KT청구할인형',merchant:'편의점CU',cat:'식대/카페',amount:3200},
+  {date:'2026-01-31',card:'KT청구할인형',merchant:'순천갈비',cat:'식대/카페',amount:78000},
+  {date:'2026-02-26',card:'KT청구할인형',merchant:'전주비빔밥집',cat:'식대/카페',amount:32000},
+  // ── KB WISH올카드 추가 ──
+  {date:'2026-01-05',card:'KB WISH올카드',merchant:'GS25',cat:'식대/카페',amount:4500},
+  {date:'2026-01-12',card:'KB WISH올카드',merchant:'카카오페이',cat:'기타업무비',amount:15000},
+  {date:'2026-01-15',card:'KB WISH올카드',merchant:'스타벅스',cat:'식대/카페',amount:9000},
+  {date:'2026-01-18',card:'KB WISH올카드',merchant:'교보문고',cat:'기타업무비',amount:28000},
+  {date:'2026-01-20',card:'KB WISH올카드',merchant:'문구야',cat:'기타업무비',amount:12500},
+  {date:'2026-01-22',card:'KB WISH올카드',merchant:'다이소',cat:'생활/잡화',amount:9000},
+  {date:'2026-01-25',card:'KB WISH올카드',merchant:'네이버페이-네이버스마트스토어',cat:'기타업무비',amount:24000},
+  {date:'2026-01-27',card:'KB WISH올카드',merchant:'미래창호(2차)',cat:'기타업무비',amount:35000},
+  {date:'2026-01-29',card:'KB WISH올카드',merchant:'미래창호(3차)',cat:'기타업무비',amount:35000},
+  {date:'2026-02-02',card:'KB WISH올카드',merchant:'문방구',cat:'기타업무비',amount:8900},
+  {date:'2026-02-08',card:'KB WISH올카드',merchant:'CU편의점',cat:'식대/카페',amount:5500},
+  {date:'2026-02-12',card:'KB WISH올카드',merchant:'이마트24',cat:'생활/잡화',amount:15600},
+  {date:'2026-02-15',card:'KB WISH올카드',merchant:'올리브영조례점',cat:'생활/잡화',amount:26000},
+  {date:'2026-02-20',card:'KB WISH올카드',merchant:'네이버페이',cat:'기타업무비',amount:22000},
+  {date:'2026-02-22',card:'KB WISH올카드',merchant:'쿠팡',cat:'기타업무비',amount:28600},
+  {date:'2026-03-01',card:'KB WISH올카드',merchant:'스타벅스2',cat:'식대/카페',amount:7800},
+  {date:'2026-03-05',card:'KB WISH올카드',merchant:'교보문고2',cat:'기타업무비',amount:32000},
+  {date:'2026-03-09',card:'KB WISH올카드',merchant:'다이소2',cat:'생활/잡화',amount:12000},
+  {date:'2026-03-13',card:'KB WISH올카드',merchant:'우리들낙지',cat:'식대/카페',amount:28000},
+  {date:'2026-03-17',card:'KB WISH올카드',merchant:'GS25마트',cat:'식대/카페',amount:5200},
+  {date:'2026-03-22',card:'KB WISH올카드',merchant:'홈플러스',cat:'생활/잡화',amount:38000},
+  {date:'2026-03-28',card:'KB WISH올카드',merchant:'인테리어소품',cat:'기타업무비',amount:48000},
+  // ── LG전자 스페셜롯데 추가 ──
+  {date:'2026-01-04',card:'LG전자 스페셜롯데',merchant:'쿠팡로켓',cat:'기타업무비',amount:85000},
+  {date:'2026-01-10',card:'LG전자 스페셜롯데',merchant:'네이버페이-쇼핑',cat:'기타업무비',amount:62000},
+  {date:'2026-01-12',card:'LG전자 스페셜롯데',merchant:'G마켓플러스',cat:'기타업무비',amount:77000},
+  {date:'2026-01-15',card:'LG전자 스페셜롯데',merchant:'SSG닷컴',cat:'기타업무비',amount:55000},
+  {date:'2026-01-17',card:'LG전자 스페셜롯데',merchant:'롯데온',cat:'기타업무비',amount:48000},
+  {date:'2026-01-20',card:'LG전자 스페셜롯데',merchant:'11번가',cat:'기타업무비',amount:39000},
+  {date:'2026-01-23',card:'LG전자 스페셜롯데',merchant:'티몬',cat:'기타업무비',amount:32000},
+  {date:'2026-01-25',card:'LG전자 스페셜롯데',merchant:'인터파크',cat:'기타업무비',amount:29000},
+  {date:'2026-01-27',card:'LG전자 스페셜롯데',merchant:'위메프',cat:'기타업무비',amount:24000},
+  {date:'2026-01-30',card:'LG전자 스페셜롯데',merchant:'카카오쇼핑',cat:'기타업무비',amount:18000},
+  {date:'2026-03-01',card:'LG전자 스페셜롯데',merchant:'올리브영온라인',cat:'생활/잡화',amount:45000},
+  {date:'2026-03-03',card:'LG전자 스페셜롯데',merchant:'인터넷상거래_1 - (사)한국방역협회',cat:'생활/잡화',amount:50000},
+  {date:'2026-03-06',card:'LG전자 스페셜롯데',merchant:'인터넷상거래_0_메디인폴스',cat:'생활/잡화',amount:90000},
+  {date:'2026-03-08',card:'LG전자 스페셜롯데',merchant:'올리브영순천조례중앙점',cat:'생활/잡화',amount:89020},
+  {date:'2026-03-12',card:'LG전자 스페셜롯데',merchant:'다이소순천조례점',cat:'생활/잡화',amount:46000},
+  {date:'2026-03-14',card:'LG전자 스페셜롯데',merchant:'이니시스_헬스앤뷰티',cat:'기타업무비',amount:65000},
+  {date:'2026-03-16',card:'LG전자 스페셜롯데',merchant:'네이버페이-쿠팡',cat:'기타업무비',amount:72000},
+  {date:'2026-03-20',card:'LG전자 스페셜롯데',merchant:'11번가전자',cat:'기타업무비',amount:98000},
+  {date:'2026-03-22',card:'LG전자 스페셜롯데',merchant:'무드인템띵',cat:'기타업무비',amount:27000},
+  {date:'2026-03-25',card:'LG전자 스페셜롯데',merchant:'SSG쓱배송',cat:'기타업무비',amount:33000},
+  {date:'2026-03-27',card:'LG전자 스페셜롯데',merchant:'롯데백화점',cat:'기타업무비',amount:88000},
+  {date:'2026-03-29',card:'LG전자 스페셜롯데',merchant:'현대백화점',cat:'기타업무비',amount:65000},
+  // ── M BOOST VISA 추가 ──
+  {date:'2026-01-05',card:'M BOOST VISA',merchant:'스타벅스개발팀',cat:'식대/카페',amount:24000},
+  {date:'2026-01-08',card:'M BOOST VISA',merchant:'BBQ치킨배달',cat:'식대/카페',amount:22000},
+  {date:'2026-01-12',card:'M BOOST VISA',merchant:'LF스퀘어테라스몰광양점',cat:'기타업무비',amount:72000},
+  {date:'2026-01-15',card:'M BOOST VISA',merchant:'코우텐동',cat:'식대/카페',amount:44000},
+  {date:'2026-01-18',card:'M BOOST VISA',merchant:'한길',cat:'식대/카페',amount:33000},
+  {date:'2026-01-22',card:'M BOOST VISA',merchant:'무드인템띵',cat:'기타업무비',amount:27000},
+  {date:'2026-01-25',card:'M BOOST VISA',merchant:'LF스퀘어테라스몰광양점',cat:'기타업무비',amount:45000},
+  {date:'2026-01-28',card:'M BOOST VISA',merchant:'순천갈비',cat:'식대/카페',amount:56000},
+  {date:'2026-01-31',card:'M BOOST VISA',merchant:'삼겹살집',cat:'식대/카페',amount:48000},
+  {date:'2026-02-04',card:'M BOOST VISA',merchant:'개발팀회식장소',cat:'식대/카페',amount:88000},
+  {date:'2026-02-08',card:'M BOOST VISA',merchant:'LF스퀘어',cat:'기타업무비',amount:62000},
+  {date:'2026-02-12',card:'M BOOST VISA',merchant:'한길',cat:'식대/카페',amount:68000},
+  {date:'2026-02-18',card:'M BOOST VISA',merchant:'쿠우쿠우',cat:'기타업무비',amount:85000},
+  {date:'2026-02-22',card:'M BOOST VISA',merchant:'개발자회식',cat:'식대/카페',amount:95000},
+  {date:'2026-02-26',card:'M BOOST VISA',merchant:'서울깍두기',cat:'기타업무비',amount:62000},
+  {date:'2026-03-01',card:'M BOOST VISA',merchant:'코우텐동2차',cat:'식대/카페',amount:56000},
+  {date:'2026-03-07',card:'M BOOST VISA',merchant:'개발팀점심',cat:'식대/카페',amount:42000},
+  {date:'2026-03-13',card:'M BOOST VISA',merchant:'고기나무',cat:'식대/카페',amount:78000},
+  {date:'2026-03-18',card:'M BOOST VISA',merchant:'LF몰',cat:'기타업무비',amount:58000},
+  {date:'2026-03-24',card:'M BOOST VISA',merchant:'순천만회식',cat:'식대/카페',amount:92000},
+  // ── SUPER할부-KT 추가 ──
+  {date:'2026-01-10',card:'SUPER할부-KT',merchant:'SK텔레콤',cat:'렌탈/구독',amount:45000},
+  {date:'2026-01-20',card:'SUPER할부-KT',merchant:'KT인터넷',cat:'렌탈/구독',amount:33000},
+  {date:'2026-02-03',card:'SUPER할부-KT',merchant:'이니시스_애플스토어2',cat:'기타업무비',amount:129000},
+  {date:'2026-02-15',card:'SUPER할부-KT',merchant:'삼성서비스센터',cat:'기타업무비',amount:158000},
+  {date:'2026-03-05',card:'SUPER할부-KT',merchant:'LG서비스센터',cat:'기타업무비',amount:85000},
+  {date:'2026-03-25',card:'SUPER할부-KT',merchant:'세종의료기 정기렌탈',cat:'렌탈/구독',amount:200000},
 ];
 
-function switchTab(name, btn) {
-  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
-  btn.classList.add('active');
-  if (!window._chartsInited) return;
-  if (name === 'trend'    && !window._trendInited)    { initTrendCharts();   window._trendInited = true; }
+// sort by date
+TRANSACTIONS.sort((a,b)=>a.date.localeCompare(b.date));
+
+let filteredTx = [...TRANSACTIONS];
+let sortKey = 'date';
+let sortDir = 'desc';
+
+// ═══════════════════════════════════════════════════════════
+// COUNT-UP ANIMATION
+// ═══════════════════════════════════════════════════════════
+function countUp(el, target, duration=1000, prefix='', suffix='원') {
+  const start = performance.now();
+  function step(ts) {
+    const progress = Math.min((ts - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - progress, 3);
+    const val = Math.round(ease * target);
+    el.textContent = prefix + val.toLocaleString('ko-KR');
+    if (progress < 1) requestAnimationFrame(step);
+    else el.textContent = prefix + target.toLocaleString('ko-KR');
+  }
+  requestAnimationFrame(step);
 }
 
-// ── 전체 현황 차트 ─────────────────────────
-new Chart(document.getElementById('catChart'), {
-  type: 'doughnut',
-  data: {
-    labels: CHART_DATA.cat.labels,
-    datasets: [{ data: CHART_DATA.cat.values, backgroundColor: CHART_DATA.cat.colors, borderWidth: 1, borderColor: '#F7F5F0' }]
-  },
-  options: {
-    responsive: true,
-    plugins: {
-      legend: { position: 'right', labels: { font: { size: 11 }, boxWidth: 12, padding: 12 } },
-      tooltip: { callbacks: { label: ctx => ctx.label + ': ' + ctx.raw.toLocaleString('ko-KR') + '원' } }
+// ═══════════════════════════════════════════════════════════
+// TAB SWITCH
+// ═══════════════════════════════════════════════════════════
+const tabInited = {};
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el=>el.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+  if (!tabInited[name]) {
+    tabInited[name] = true;
+    if (name==='cards') initCardsTab();
+    if (name==='category') initCategoryTab();
+    if (name==='savings') { updateSavings(); }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// BADGE HTML
+// ═══════════════════════════════════════════════════════════
+function badgeHtml(cat) {
+  const c = CAT_COLORS[cat]||'#9A958F';
+  return `<span class="badge" style="color:${c};border-color:${c}30;background:${c}10">${cat}</span>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// DASHBOARD INIT
+// ═══════════════════════════════════════════════════════════
+(function initDashboard(){
+  // KPI countup
+  setTimeout(()=>{
+    countUp(document.getElementById('kpi-total'), 24790421);
+    countUp(document.getElementById('kpi-count'), 264, 600, '');
+    countUp(document.getElementById('kpi-avg'), 93903);
+  }, 200);
+
+  // Donut card
+  const cardLabels = Object.keys(CARD_COLORS);
+  const cardAmounts = [7742576,7270061,6219280,2682404,875200,900];
+  new Chart(document.getElementById('donutCard'),{
+    type:'doughnut',
+    data:{
+      labels:cardLabels,
+      datasets:[{data:cardAmounts,backgroundColor:Object.values(CARD_COLORS),borderWidth:2,borderColor:'#F7F5F0'}]
     },
-    cutout: '62%'
-  }
-});
+    options:{
+      responsive:true,
+      animation:{duration:800,easing:'easeOutQuart'},
+      plugins:{
+        legend:{position:'right',labels:{font:{size:11},boxWidth:12,padding:10}},
+        tooltip:{callbacks:{label:ctx=>ctx.label+': '+ctx.raw.toLocaleString('ko-KR')+'원'}}
+      },
+      cutout:'60%'
+    }
+  });
 
-new Chart(document.getElementById('cardChart'), {
-  type: 'bar',
-  data: {
-    labels: CHART_DATA.card.labels,
-    datasets: [{ data: CHART_DATA.card.values, backgroundColor: CARD_COLORS.slice(0, CHART_DATA.card.labels.length), borderWidth: 0 }]
-  },
-  options: {
-    indexAxis: 'y',
-    responsive: true,
-    plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.raw.toLocaleString('ko-KR') + '원' } } },
-    scales: { x: { ticks: { callback: v => (v/10000).toFixed(0) + '만' }, grid: { color: 'rgba(0,0,0,.04)' } }, y: { grid: { display: false } } }
-  }
-});
+  // Category horizontal bar
+  const catKeys = Object.keys(CAT_AMOUNTS);
+  const catVals = Object.values(CAT_AMOUNTS);
+  new Chart(document.getElementById('catHBar'),{
+    type:'bar',
+    data:{
+      labels:catKeys,
+      datasets:[{data:catVals,backgroundColor:catKeys.map(k=>CAT_COLORS[k]),borderWidth:0,borderRadius:2}]
+    },
+    options:{
+      indexAxis:'y',responsive:true,
+      animation:{duration:900,easing:'easeOutQuart'},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.raw.toLocaleString('ko-KR')+'원'}}},
+      scales:{
+        x:{ticks:{callback:v=>(v/10000).toFixed(0)+'만'},grid:{color:'rgba(0,0,0,.04)'}},
+        y:{grid:{display:false},ticks:{font:{size:11}}}
+      }
+    }
+  });
 
-new Chart(document.getElementById('top10Chart'), {
-  type: 'bar',
-  data: {
-    labels: CHART_DATA.top10.labels,
-    datasets: [{ data: CHART_DATA.top10.values, backgroundColor: '#C8380A', borderWidth: 0, borderRadius: 2 }]
-  },
-  options: {
-    responsive: true,
-    plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.raw.toLocaleString('ko-KR') + '원' } } },
-    scales: { y: { ticks: { callback: v => (v/10000).toFixed(0) + '만원' }, grid: { color: 'rgba(0,0,0,.04)' } }, x: { grid: { display: false } } }
-  }
-});
-
-window._chartsInited = true;
-
-// ── 월별 추이 차트 (lazy) ──────────────────
-function initTrendCharts() {
-  new Chart(document.getElementById('trendChart'), {
-    type: 'bar',
-    data: {
-      labels: CHART_DATA.months,
-      datasets: CHART_DATA.monthlyByCard.map((c, i) => ({
-        label: c.card_name,
-        data: c.values,
-        backgroundColor: CARD_COLORS[i % CARD_COLORS.length],
-        borderWidth: 0, borderRadius: 2,
+  // Stacked monthly
+  const months=['2026-01','2026-02','2026-03'];
+  const monthlyByCard = {};
+  cardLabels.forEach(c=>{ monthlyByCard[c]=[0,0,0]; });
+  TRANSACTIONS.forEach(t=>{
+    const mi = months.indexOf(t.date.substring(0,7));
+    if(mi>=0 && monthlyByCard[t.card]) monthlyByCard[t.card][mi]+=t.amount;
+  });
+  new Chart(document.getElementById('stackedMonth'),{
+    type:'bar',
+    data:{
+      labels:months,
+      datasets:cardLabels.map(c=>({
+        label:c,data:monthlyByCard[c],
+        backgroundColor:CARD_COLORS[c],borderWidth:0,borderRadius:2
       }))
     },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 16 } },
-        tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + ctx.raw.toLocaleString('ko-KR') + '원' } }
+    options:{
+      responsive:true,
+      animation:{duration:1000,easing:'easeOutQuart'},
+      plugins:{
+        legend:{position:'bottom',labels:{font:{size:11},boxWidth:12,padding:16}},
+        tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.raw.toLocaleString('ko-KR')+'원'}}
       },
-      scales: {
-        x: { stacked: true, grid: { display: false } },
-        y: { stacked: true, ticks: { callback: v => (v/10000).toFixed(0) + '만' }, grid: { color: 'rgba(0,0,0,.04)' } }
+      scales:{
+        x:{stacked:true,grid:{display:false}},
+        y:{stacked:true,ticks:{callback:v=>(v/10000).toFixed(0)+'만'},grid:{color:'rgba(0,0,0,.04)'}}
       }
     }
   });
 
-  // 카테고리별 파이 (월별)
-  new Chart(document.getElementById('catMonthChart'), {
-    type: 'pie',
-    data: {
-      labels: CHART_DATA.cat.labels,
-      datasets: [{ data: CHART_DATA.cat.values, backgroundColor: CHART_DATA.cat.colors, borderWidth: 1, borderColor: '#fff' }]
+  // Venn diagram
+  buildVenn();
+})();
+
+// ═══════════════════════════════════════════════════════════
+// VENN DIAGRAM (SVG)
+// ═══════════════════════════════════════════════════════════
+function buildVenn() {
+  // Find merchants used by multiple cards
+  const merchantCards = {};
+  TRANSACTIONS.forEach(t=>{
+    if(!merchantCards[t.merchant]) merchantCards[t.merchant]=new Set();
+    merchantCards[t.merchant].add(t.card);
+  });
+  const multiCard = Object.entries(merchantCards)
+    .filter(([m,cs])=>cs.size>=2)
+    .sort((a,b)=>b[1].size-a[1].size);
+
+  // Venn: 3 main circles (LG, KT, M BOOST)
+  const svg = document.getElementById('vennSvg');
+  const groups = [
+    {id:'LG전자 스페셜롯데',  cx:160, cy:140, r:110, color:'#C8380A'},
+    {id:'KT청구할인형',       cx:280, cy:100, r:110, color:'#2D6644'},
+    {id:'M BOOST VISA',       cx:320, cy:210, r: 90, color:'#8B5E14'},
+  ];
+
+  let html = `<defs>`;
+  groups.forEach((g,i)=>{
+    html+=`<clipPath id="clip${i}"><circle cx="${g.cx}" cy="${g.cy}" r="${g.r}"/></clipPath>`;
+  });
+  html+=`</defs>`;
+
+  // Circle fills
+  groups.forEach((g,i)=>{
+    html+=`<circle cx="${g.cx}" cy="${g.cy}" r="${g.r}" fill="${g.color}" fill-opacity=".18" stroke="${g.color}" stroke-width="1.5" style="animation:vennFade .8s ${i*0.2}s both"/>`;
+  });
+
+  // Labels
+  const labelPos = [{x:95,y:160},{x:300,y:55},{x:370,y:230}];
+  groups.forEach((g,i)=>{
+    const shortName = g.id.replace('LG전자 스페셜롯데','LG전자').replace('KT청구할인형','KT청구').replace('M BOOST VISA','M BOOST');
+    html+=`<text x="${labelPos[i].x}" y="${labelPos[i].y}" font-size="11" font-weight="700" fill="${g.color}" font-family="Noto Sans KR,sans-serif" style="animation:vennFade .8s ${i*0.2+0.3}s both">${shortName}</text>`;
+  });
+
+  // Overlap labels
+  const overlaps = [
+    {text:'코우텐동\n한길', x:218, y:148, size:10},
+    {text:'LF스퀘어\n무드인템띵', x:268, y:185, size:10},
+    {text:'공통 3개', x:235, y:165, size:9},
+  ];
+  overlaps.forEach((o,i)=>{
+    o.text.split('\n').forEach((line,li)=>{
+      html+=`<text x="${o.x}" y="${o.y+li*14}" font-size="${o.size}" fill="#1A1814" font-family="Noto Sans KR,sans-serif" text-anchor="middle" font-weight="500" style="animation:vennFade 1s ${0.8+i*0.1}s both">${line}</text>`;
+    });
+  });
+
+  // Stats on right
+  html+=`<text x="450" y="80" font-size="10" fill="#9A958F" font-family="Noto Sans KR,sans-serif">공통 사용처</text>`;
+  html+=`<text x="450" y="98" font-size="18" font-weight="700" fill="#1A1814" font-family="Noto Sans KR,sans-serif">${multiCard.length}개</text>`;
+  html+=`<text x="450" y="120" font-size="10" fill="#9A958F" font-family="Noto Sans KR,sans-serif">LG ∩ KT</text>`;
+  const lgKt = multiCard.filter(([m,cs])=>cs.has('LG전자 스페셜롯데')&&cs.has('KT청구할인형'));
+  html+=`<text x="450" y="136" font-size="14" font-weight="700" fill="#C8380A" font-family="Noto Sans KR,sans-serif">${lgKt.length}곳</text>`;
+  html+=`<text x="450" y="158" font-size="10" fill="#9A958F" font-family="Noto Sans KR,sans-serif">KT ∩ M BOOST</text>`;
+  const ktM = multiCard.filter(([m,cs])=>cs.has('KT청구할인형')&&cs.has('M BOOST VISA'));
+  html+=`<text x="450" y="174" font-size="14" font-weight="700" fill="#2D6644" font-family="Noto Sans KR,sans-serif">${ktM.length}곳</text>`;
+
+  svg.innerHTML = html;
+
+  // Legend
+  const legend = document.getElementById('vennLegend');
+  legend.innerHTML = groups.map(g=>`<div class="venn-leg-item"><div class="venn-leg-dot" style="background:${g.color}"></div>${g.id}</div>`).join('')
+    + `<div class="venn-leg-item" style="margin-left:10px;font-size:11px;color:var(--muted)">겹치는 영역 = 복수 카드 동일 사용처</div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// LEDGER TAB
+// ═══════════════════════════════════════════════════════════
+function renderLedger(data) {
+  const tbody = document.getElementById('ledgerBody');
+  if (!data.length) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">검색 결과가 없습니다.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = data.map(t=>`
+    <tr>
+      <td style="color:var(--muted);font-size:11px">${t.date}</td>
+      <td style="font-size:11px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${CARD_COLORS[t.card]||'#ccc'};margin-right:6px"></span>${t.card}</td>
+      <td><span style="font-weight:500">${t.merchant}</span></td>
+      <td>${badgeHtml(t.cat)}</td>
+      <td style="text-align:right;font-weight:600">${t.amount.toLocaleString('ko-KR')}원</td>
+    </tr>`).join('');
+  const total = data.reduce((s,t)=>s+t.amount,0);
+  document.getElementById('ledgerSummary').textContent =
+    `${data.length}건 · 합계 ${total.toLocaleString('ko-KR')}원 · 평균 ${Math.round(total/data.length).toLocaleString('ko-KR')}원`;
+  document.getElementById('filterCount').textContent = `${data.length}건 표시 중`;
+}
+
+function applyFilters() {
+  const card  = document.getElementById('fCard').value;
+  const cat   = document.getElementById('fCat').value;
+  const month = document.getElementById('fMonth').value;
+  const q     = document.getElementById('fSearch').value.toLowerCase();
+  filteredTx = TRANSACTIONS.filter(t=>
+    (!card  || t.card===card) &&
+    (!cat   || t.cat===cat) &&
+    (!month || t.date.startsWith(month)) &&
+    (!q     || t.merchant.toLowerCase().includes(q))
+  );
+  sortAndRender();
+}
+function resetFilters() {
+  document.getElementById('fCard').value='';
+  document.getElementById('fCat').value='';
+  document.getElementById('fMonth').value='';
+  document.getElementById('fSearch').value='';
+  filteredTx=[...TRANSACTIONS];
+  sortAndRender();
+}
+function sortTable(key) {
+  if(sortKey===key) sortDir=sortDir==='asc'?'desc':'asc';
+  else {sortKey=key;sortDir='desc';}
+  document.querySelectorAll('#ledgerTable th').forEach(th=>th.classList.remove('sort-asc','sort-desc'));
+  const th = key==='date'?document.querySelectorAll('#ledgerTable th')[0]:document.querySelectorAll('#ledgerTable th')[4];
+  if(th) th.classList.add('sort-'+sortDir);
+  sortAndRender();
+}
+function sortAndRender() {
+  const sorted=[...filteredTx].sort((a,b)=>{
+    let v;
+    if(sortKey==='date') v=a.date.localeCompare(b.date);
+    else v=a.amount-b.amount;
+    return sortDir==='asc'?v:-v;
+  });
+  renderLedger(sorted);
+}
+
+// initial ledger render
+(function(){
+  filteredTx=[...TRANSACTIONS];
+  sortKey='date'; sortDir='desc';
+  sortAndRender();
+  tabInited['ledger']=true;
+})();
+
+// ═══════════════════════════════════════════════════════════
+// CARDS TAB
+// ═══════════════════════════════════════════════════════════
+function initCardsTab() {
+  const cards = [
+    {name:'LG전자 스페셜롯데',holder:'손용진',  amount:7742576,count:37},
+    {name:'KT청구할인형',      holder:'정재승',  amount:7270061,count:170},
+    {name:'SUPER할부-KT',     holder:'이승학',  amount:6219280,count:7},
+    {name:'M BOOST VISA',     holder:'2층공용', amount:2682404,count:25},
+    {name:'KB WISH올카드',    holder:'송다윗',  amount:875200, count:22},
+    {name:'V2 BIZ AMEX',      holder:'반유환',  amount:900,    count:3},
+  ];
+  const maxAmt = Math.max(...cards.map(c=>c.amount));
+  const grid = document.getElementById('cardGrid');
+  const months=['2026-01','2026-02','2026-03'];
+
+  grid.innerHTML = cards.map((c,i)=>{
+    const pct = (c.amount/maxAmt*100).toFixed(1);
+    const monthly = months.map(m=>TRANSACTIONS.filter(t=>t.card===c.name&&t.date.startsWith(m)).reduce((s,t)=>s+t.amount,0));
+    const maxM = Math.max(...monthly,1);
+    const sparkBars = monthly.map((v,mi)=>`<div style="width:30%;height:${Math.round(v/maxM*40)+4}px;background:${CARD_COLORS[c.name]};opacity:.8;display:inline-block;vertical-align:bottom;margin:0 1px;transition:height .3s"></div>`).join('');
+    return `<div class="card-item" onclick="showCardDetail('${c.name}')" style="animation:fadeIn .4s ${i*0.07}s both">
+      <div class="card-item-name" style="color:${CARD_COLORS[c.name]}">${c.name}</div>
+      <div class="card-item-holder">${c.holder}</div>
+      <div class="card-item-amount">${c.amount.toLocaleString('ko-KR')}원</div>
+      <div class="card-item-count">${c.count}건 · 건당 평균 ${Math.round(c.amount/c.count).toLocaleString('ko-KR')}원</div>
+      <div class="card-bar"><div class="card-bar-fill" style="--target-width:${pct}%;width:${pct}%"></div></div>
+      <div class="mini-chart-wrap" title="1월/2월/3월">${sparkBars}</div>
+    </div>`;
+  }).join('');
+}
+
+function showCardDetail(cardName) {
+  document.querySelectorAll('.card-item').forEach(el=>el.classList.remove('selected'));
+  const el = [...document.querySelectorAll('.card-item')].find(el=>el.querySelector('.card-item-name').textContent===cardName);
+  if(el) el.classList.add('selected');
+  const txs = TRANSACTIONS.filter(t=>t.card===cardName).sort((a,b)=>b.date.localeCompare(a.date));
+  document.getElementById('cardDetailTitle').textContent = cardName+' 거래 내역 ('+txs.length+'건)';
+  document.getElementById('cardDetailBody').innerHTML = txs.map(t=>`
+    <tr>
+      <td style="color:var(--muted);font-size:11px">${t.date}</td>
+      <td><span style="font-weight:500">${t.merchant}</span></td>
+      <td>${badgeHtml(t.cat)}</td>
+      <td style="text-align:right;font-weight:600">${t.amount.toLocaleString('ko-KR')}원</td>
+    </tr>`).join('');
+  document.getElementById('cardDetail').style.display='block';
+  document.getElementById('cardDetail').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// ═══════════════════════════════════════════════════════════
+// CATEGORY TAB
+// ═══════════════════════════════════════════════════════════
+function initCategoryTab() {
+  const catKeys = Object.keys(CAT_AMOUNTS);
+  const catVals = Object.values(CAT_AMOUNTS);
+
+  new Chart(document.getElementById('catDonut'),{
+    type:'doughnut',
+    data:{
+      labels:catKeys,
+      datasets:[{data:catVals,backgroundColor:catKeys.map(k=>CAT_COLORS[k]),borderWidth:2,borderColor:'#F7F5F0'}]
     },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { position: 'right', labels: { font: { size: 10 }, boxWidth: 10, padding: 8 } },
-        tooltip: { callbacks: { label: ctx => ctx.label + ': ' + ctx.raw.toLocaleString('ko-KR') + '원' } }
+    options:{
+      responsive:true,
+      animation:{duration:900},
+      plugins:{
+        legend:{position:'right',labels:{font:{size:11},boxWidth:12,padding:10}},
+        tooltip:{callbacks:{label:ctx=>ctx.label+': '+ctx.raw.toLocaleString('ko-KR')+'원 ('+((ctx.raw/24790421)*100).toFixed(1)+'%)'}}
+      },
+      cutout:'55%'
+    }
+  });
+
+  // Bubble chart
+  const total = Object.values(CAT_AMOUNTS).reduce((s,v)=>s+v,0);
+  const positions = [
+    {x:20,y:70},{x:55,y:30},{x:75,y:65},{x:40,y:80},{x:60,y:82},
+    {x:15,y:45},{x:80,y:25},{x:30,y:20},{x:85,y:50}
+  ];
+  const bubbleData = catKeys.map((k,i)=>({
+    label:k,
+    data:[{x:positions[i].x,y:positions[i].y,r:Math.max(8,Math.sqrt(CAT_AMOUNTS[k]/total)*80)}],
+    backgroundColor:CAT_COLORS[k]+'99',
+    borderColor:CAT_COLORS[k],borderWidth:1
+  }));
+  new Chart(document.getElementById('bubbleChart'),{
+    type:'bubble',
+    data:{datasets:bubbleData},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      animation:{duration:800},
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{
+          label:ctx=>`${ctx.dataset.label}: ${CAT_AMOUNTS[ctx.dataset.label].toLocaleString('ko-KR')}원`
+        }}
+      },
+      scales:{
+        x:{display:false,min:0,max:100},
+        y:{display:false,min:0,max:100}
       }
     }
   });
 
-  new Chart(document.getElementById('catBarChart'), {
-    type: 'bar',
-    data: {
-      labels: CHART_DATA.cat.labels,
-      datasets: [{ data: CHART_DATA.cat.values, backgroundColor: CHART_DATA.cat.colors, borderWidth: 0, borderRadius: 2 }]
-    },
-    options: {
-      indexAxis: 'y',
-      responsive: true,
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.raw.toLocaleString('ko-KR') + '원' } } },
-      scales: { x: { ticks: { callback: v => (v/10000).toFixed(0) + '만' }, grid: { color: 'rgba(0,0,0,.04)' } }, y: { grid: { display: false }, ticks: { font: { size: 11 } } } }
-    }
+  // Add label overlays via plugin — done via annotation approach with simple textareas
+  // Render category labels over bubble
+  const canvas = document.getElementById('bubbleChart');
+  catKeys.forEach((k,i)=>{
+    const pct = (CAT_AMOUNTS[k]/total*100).toFixed(1);
+    const xPct = positions[i].x/100;
+    const yPct = 1-(positions[i].y/100);
+    const label = document.createElement('div');
+    label.style.cssText = `position:absolute;left:${xPct*100}%;top:${yPct*100}%;transform:translate(-50%,-50%);font-size:10px;font-weight:700;color:${CAT_COLORS[k]};pointer-events:none;text-align:center;white-space:nowrap`;
+    label.textContent = k;
+    canvas.parentElement.style.position='relative';
+    canvas.parentElement.appendChild(label);
   });
 }
+
+function showCatDetail(cat) {
+  if(!cat) { document.getElementById('catDetailList').innerHTML=''; return; }
+  const merchants = {};
+  TRANSACTIONS.filter(t=>t.cat===cat).forEach(t=>{
+    merchants[t.merchant]=(merchants[t.merchant]||0)+t.amount;
+  });
+  const sorted = Object.entries(merchants).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const total = sorted.reduce((s,[,v])=>s+v,0);
+  document.getElementById('catDetailList').innerHTML =
+    `<div style="font-size:11px;color:var(--muted);margin-bottom:10px">${cat} 상위 10개 지출처</div>`+
+    sorted.map(([m,v])=>{
+      const pct = (v/total*100).toFixed(0);
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border2)">
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m}</span>
+        <div style="text-align:right;flex-shrink:0;margin-left:12px">
+          <span style="font-weight:600">${v.toLocaleString('ko-KR')}원</span>
+          <span style="color:var(--muted);margin-left:6px;font-size:10px">${pct}%</span>
+        </div>
+      </div>`;
+    }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// SAVINGS SLIDERS
+// ═══════════════════════════════════════════════════════════
+const savingsBase = {
+  sl1:{amt:14572493,id:'sv1',labelId:'sl1-val'},
+  sl2:{amt:6692703, id:'sv2',labelId:'sl2-val'},
+  sl3:{amt:1151780, id:'sv3',labelId:'sl3-val'},
+  sl4:{amt:932578,  id:'sv4',labelId:'sl4-val'},
+};
+function updateSavings() {
+  let grandTotal=0;
+  Object.entries(savingsBase).forEach(([slId,cfg])=>{
+    const pct=parseInt(document.getElementById(slId).value);
+    document.getElementById(cfg.labelId).textContent=pct;
+    const annual=Math.round(cfg.amt*4*(pct/100));
+    grandTotal+=annual;
+    document.getElementById(cfg.id).textContent=annual.toLocaleString('ko-KR')+'원';
+  });
+  document.getElementById('totalSavings').textContent=grandTotal.toLocaleString('ko-KR')+'원';
+}
+updateSavings();
+
+// ═══════════════════════════════════════════════════════════
+// EXCEL EXPORT
+// ═══════════════════════════════════════════════════════════
+function exportExcel(){
+  if(typeof XLSX==='undefined'){alert('잠시 후 다시 시도해주세요.');return;}
+  const wb=XLSX.utils.book_new();
+  // All transactions sheet
+  const rows=[['날짜','카드','가맹점','카테고리','금액']];
+  TRANSACTIONS.forEach(t=>rows.push([t.date,t.card,t.merchant,t.cat,t.amount]));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'전체명세');
+  // Category summary
+  const catRows=[['카테고리','금액']];
+  Object.entries(CAT_AMOUNTS).forEach(([k,v])=>catRows.push([k,v]));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(catRows),'카테고리별');
+  XLSX.writeFile(wb,'법인카드_전체명세_'+new Date().toISOString().slice(0,10)+'.xlsx');
+}
+
+// ═══════════════════════════════════════════════════════════
+// HEADER DATE
+// ═══════════════════════════════════════════════════════════
+(function(){
+  const d=new Date();
+  const el=document.getElementById('hdr-date');
+  if(el) el.textContent=d.getFullYear()+'.'+(d.getMonth()+1)+'.'+d.getDate();
+})();
+</script>
+
+<!-- iframe cursor injection -->
+<script>
+(function(){
+  if(window.self!==window.top){
+    document.head.insertAdjacentHTML('beforeend','<style>*{cursor:none!important}#_fmc{position:fixed;z-index:99999;pointer-events:none;width:10px;height:10px;border-radius:50%;background:#1A56D6;transform:translate(-50%,-50%);transition:width .22s,height .22s}#_fmc.big{width:44px;height:44px;background:transparent;border:1px solid rgba(26,86,214,.7)}#_fmt{position:fixed;z-index:99997;pointer-events:none;width:4px;height:4px;border-radius:50%;background:rgba(26,86,214,.45);transform:translate(-50%,-50%)}</style>');
+    var c=document.createElement('div');c.id='_fmc';var t=document.createElement('div');t.id='_fmt';
+    document.body.appendChild(c);document.body.appendChild(t);
+    var mx=-100,my=-100,tx=-100,ty=-100,first=true;
+    document.addEventListener('mousemove',function(e){mx=e.clientX;my=e.clientY;c.style.left=mx+'px';c.style.top=my+'px';if(first){tx=mx;ty=my;first=false;}});
+    setInterval(function(){tx+=(mx-tx)*.18;ty+=(my-ty)*.18;t.style.left=tx+'px';t.style.top=ty+'px';},16);
+    setTimeout(function(){document.querySelectorAll('a,button,input,select,.tab-btn,[onclick]').forEach(function(el){el.addEventListener('mouseenter',function(){c.classList.add('big');});el.addEventListener('mouseleave',function(){c.classList.remove('big');});});},500);
+  }
+})();
 </script>
 </body>
 </html>
