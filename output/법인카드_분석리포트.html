@@ -21,15 +21,12 @@
   --ok:      #3D6B4F;
   --ok-bg:   #EBF2EE;
 }
-html { max-width: 100vw; overflow-x: hidden; }
 body {
   font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
   background: var(--bg);
   color: var(--ink);
   font-size: 13px;
   line-height: 1.6;
-  overflow-x: hidden;
-  max-width: 100%;
 }
 
 /* ── Header ─────────────────────────── */
@@ -316,41 +313,6 @@ tr:hover td { background: #F2EFEA !important; }
   body { background: white; }
   .kpi-grid, .charts-grid { break-inside: avoid; }
 }
-
-/* ── MOBILE 768px ── */
-@media (max-width: 768px) {
-  .header { padding: 24px 20px; }
-  .container { padding: 20px 16px; }
-  .kpi-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-  .kpi { padding: 14px 16px; }
-  .charts-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-  .meth-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-  .saving-banner { padding: 24px 20px; gap: 20px; flex-wrap: wrap; }
-  .saving-banner .sb-amount { font-size: 32px; }
-  .modal { width: 95vw !important; }
-  .section { margin-bottom: 32px; }
-  table { min-width: 560px; }
-  .section > table,
-  .section > div > table { overflow-x: auto; display: block; }
-}
-
-/* ── MOBILE 480px ── */
-@media (max-width: 480px) {
-  .header h1 { font-size: 22px; }
-  .header-label { letter-spacing: 2px; }
-  .kpi-grid { grid-template-columns: 1fr; }
-  .kpi { padding: 14px 16px; }
-  .charts-grid { grid-template-columns: 1fr; }
-  .meth-grid { grid-template-columns: 1fr; }
-  .saving-banner .sb-amount { font-size: 26px; }
-  .header-meta { gap: 12px; }
-}
 </style>
 </head>
 <body>
@@ -382,12 +344,12 @@ tr:hover td { background: #F2EFEA !important; }
     </div>
     <div class="kpi">
       <div class="kpi-label">크로스카드 중복</div>
-      <div class="kpi-value accent">6<span style="font-size:16px;font-weight:400">건</span></div>
+      <div class="kpi-value accent">11<span style="font-size:16px;font-weight:400">건</span></div>
       <div class="kpi-sub">동일 서비스 복수 카드</div>
     </div>
     <div class="kpi">
       <div class="kpi-label">월 절감 가능 (추정)</div>
-      <div class="kpi-value accent">16,579,946<span style="font-size:16px;font-weight:400">원</span></div>
+      <div class="kpi-value accent">17,040,564<span style="font-size:16px;font-weight:400">원</span></div>
       <div class="kpi-sub">검토 후 확정 필요</div>
     </div>
   </div>
@@ -1704,6 +1666,98 @@ tr:hover td { background: #F2EFEA !important; }
       </tr></thead>
       <tbody>
       <tr class="dup-row">
+        <td class="td-main">KT통신요금자동납부</td>
+        <td><span class="cat cat-통신비">통신비</span></td>
+        <td class="td-sub">KT청구할인형</td>
+        <td class="td-sub">(수)복지용구 / 정재승</td>
+        <td class="num">3건</td>
+        <td class="num">534,610</td>
+      </tr>
+      <tr class="dup-row">
+        <td class="td-main">KT통신요금자동납부</td>
+        <td><span class="cat cat-통신비">통신비</span></td>
+        <td class="td-sub">LG전자 스페셜롯데</td>
+        <td class="td-sub">순천에덴 / 손용진</td>
+        <td class="num">6건</td>
+        <td class="num">676,420</td>
+      </tr>
+      <tr class="dup-row">
+        <td class="td-main">KT통신요금자동납부</td>
+        <td><span class="cat cat-통신비">통신비</span></td>
+        <td class="td-sub">SUPER할부-KT</td>
+        <td class="td-sub">한솔 / 이승학</td>
+        <td class="num">6건</td>
+        <td class="num">1,178,780</td>
+      </tr>
+      <tr class="dup-sum">
+        <td colspan="4" class="muted" style="font-size:11px;padding-left:16px">소계</td>
+        <td class="num">15건</td>
+        <td class="num td-total">2,389,810</td>
+      </tr>
+      <tr class="dup-row">
+        <td class="td-main">구글페이먼트_구글페이먼트코리아</td>
+        <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+        <td class="td-sub">LG전자 스페셜롯데</td>
+        <td class="td-sub">순천에덴 / 손용진</td>
+        <td class="num">3건</td>
+        <td class="num">6,600</td>
+      </tr>
+      <tr class="dup-row">
+        <td class="td-main">구글페이먼트_구글페이먼트코리아</td>
+        <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+        <td class="td-sub">SUPER할부-KT</td>
+        <td class="td-sub">한솔 / 이승학</td>
+        <td class="num">24건</td>
+        <td class="num">1,014,040</td>
+      </tr>
+      <tr class="dup-sum">
+        <td colspan="4" class="muted" style="font-size:11px;padding-left:16px">소계</td>
+        <td class="num">27건</td>
+        <td class="num td-total">1,020,640</td>
+      </tr>
+      <tr class="dup-row">
+        <td class="td-main">KT스카이라이프</td>
+        <td><span class="cat cat-통신비">통신비</span></td>
+        <td class="td-sub">LG전자 스페셜롯데</td>
+        <td class="td-sub">순천에덴 / 손용진</td>
+        <td class="num">3건</td>
+        <td class="num">297,000</td>
+      </tr>
+      <tr class="dup-row">
+        <td class="td-main">KT스카이라이프</td>
+        <td><span class="cat cat-통신비">통신비</span></td>
+        <td class="td-sub">SUPER할부-KT</td>
+        <td class="td-sub">한솔 / 이승학</td>
+        <td class="num">2건</td>
+        <td class="num">47,478</td>
+      </tr>
+      <tr class="dup-sum">
+        <td colspan="4" class="muted" style="font-size:11px;padding-left:16px">소계</td>
+        <td class="num">5건</td>
+        <td class="num td-total">344,478</td>
+      </tr>
+      <tr class="dup-row">
+        <td class="td-main">쿠쿠홈시스_쿠쿠홈시스주식회사</td>
+        <td><span class="cat cat-렌탈구독">렌탈/구독</span></td>
+        <td class="td-sub">LG전자 스페셜롯데</td>
+        <td class="td-sub">순천에덴 / 손용진</td>
+        <td class="num">6건</td>
+        <td class="num">98,400</td>
+      </tr>
+      <tr class="dup-row">
+        <td class="td-main">쿠쿠홈시스_쿠쿠홈시스주식회사</td>
+        <td><span class="cat cat-렌탈구독">렌탈/구독</span></td>
+        <td class="td-sub">SUPER할부-KT</td>
+        <td class="td-sub">한솔 / 이승학</td>
+        <td class="num">4건</td>
+        <td class="num">129,550</td>
+      </tr>
+      <tr class="dup-sum">
+        <td colspan="4" class="muted" style="font-size:11px;padding-left:16px">소계</td>
+        <td class="num">10건</td>
+        <td class="num td-total">227,950</td>
+      </tr>
+      <tr class="dup-row">
         <td class="td-main">정원장어마을추어탕</td>
         <td><span class="cat cat-식대카페">식대/카페</span></td>
         <td class="td-sub">M BOOST VISA</td>
@@ -1723,6 +1777,27 @@ tr:hover td { background: #F2EFEA !important; }
         <td colspan="4" class="muted" style="font-size:11px;padding-left:16px">소계</td>
         <td class="num">3건</td>
         <td class="num td-total">144,000</td>
+      </tr>
+      <tr class="dup-row">
+        <td class="td-main">OPENAI</td>
+        <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+        <td class="td-sub">M BOOST VISA</td>
+        <td class="td-sub">한솔 / 2층공용(개발팀)</td>
+        <td class="num">1건</td>
+        <td class="num">16,364</td>
+      </tr>
+      <tr class="dup-row">
+        <td class="td-main">OPENAI</td>
+        <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+        <td class="td-sub">SUPER할부-KT</td>
+        <td class="td-sub">한솔 / 이승학</td>
+        <td class="num">4건</td>
+        <td class="num">111,295</td>
+      </tr>
+      <tr class="dup-sum">
+        <td colspan="4" class="muted" style="font-size:11px;padding-left:16px">소계</td>
+        <td class="num">5건</td>
+        <td class="num td-total">127,659</td>
       </tr>
       <tr class="dup-row">
         <td class="td-main">정원장어마을추어탕</td>
@@ -1876,13 +1951,13 @@ tr:hover td { background: #F2EFEA !important; }
   <div class="saving-banner">
     <div>
       <div class="sb-label">Estimated Monthly Savings</div>
-      <div class="sb-amount">16,579,946<span class="sb-won">원</span></div>
+      <div class="sb-amount">17,040,564<span class="sb-won">원</span></div>
       <div class="sb-sub">검토 및 조치 완료 시 기준</div>
     </div>
     <div class="sb-divider"></div>
     <div class="sb-annual">
       <div class="sb-label">연간 절감 추정</div>
-      <div class="sb-annual-num">198,959,352원</div>
+      <div class="sb-annual-num">204,486,768원</div>
     </div>
   </div>
 
@@ -1933,6 +2008,15 @@ tr:hover td { background: #F2EFEA !important; }
       <td class="td-sub">실제 사용자 및 필요성 확인</td>
     </tr>
     <tr class="rec-row rec-high">
+      <td><span class="rec-type rec-type-dup">중복결제</span></td>
+      <td class="center"><span class="rec-priority p-high">높음</span></td>
+      <td class="td-main">KT통신요금자동납부</td>
+      <td><span class="cat cat-통신비">통신비</span></td>
+      <td class="td-sub"><div class="rec-card">— KT청구할인형 <span class="muted">(수)복지용구 / 정재승</span> <span class="card-avg">월평균 178,203원</span></div><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span> <span class="card-avg">월평균 225,473원</span></div><div class="rec-card">— SUPER할부-KT <span class="muted">한솔 / 이승학</span> <span class="card-avg">월평균 392,927원</span></div></td>
+      <td class="num rec-saving">796,603<span class="won">원</span></td>
+      <td class="td-sub">사용자 확인 후 단일 카드로 통합 또는 불필요 계정 해지</td>
+    </tr>
+    <tr class="rec-row rec-high">
       <td><span class="rec-type rec-type-sub">구독확인</span></td>
       <td class="center"><span class="rec-priority p-high">높음</span></td>
       <td class="td-main">NICE_통신판매_주식회사 채널</td>
@@ -1978,6 +2062,15 @@ tr:hover td { background: #F2EFEA !important; }
       <td class="td-sub">실제 사용자 및 필요성 확인</td>
     </tr>
     <tr class="rec-row rec-high">
+      <td><span class="rec-type rec-type-dup">중복결제</span></td>
+      <td class="center"><span class="rec-priority p-high">높음</span></td>
+      <td class="td-main">구글페이먼트_구글페이먼트코리아</td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="td-sub"><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span> <span class="card-avg">월평균 2,200원</span></div><div class="rec-card">— SUPER할부-KT <span class="muted">한솔 / 이승학</span> <span class="card-avg">월평균 338,013원</span></div></td>
+      <td class="num rec-saving">340,213<span class="won">원</span></td>
+      <td class="td-sub">사용자 확인 후 단일 카드로 통합 또는 불필요 계정 해지</td>
+    </tr>
+    <tr class="rec-row rec-high">
       <td><span class="rec-type rec-type-sub">구독확인</span></td>
       <td class="center"><span class="rec-priority p-high">높음</span></td>
       <td class="td-main">네이버페이</td>
@@ -1993,15 +2086,6 @@ tr:hover td { background: #F2EFEA !important; }
       <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
       <td class="td-sub"><div class="rec-card">— M BOOST VISA <span class="muted">한솔 / 2층공용(개발팀)</span></div></td>
       <td class="num rec-saving">207,412<span class="won">원</span></td>
-      <td class="td-sub">실제 사용자 및 필요성 확인</td>
-    </tr>
-    <tr class="rec-row rec-high">
-      <td><span class="rec-type rec-type-sub">구독확인</span></td>
-      <td class="center"><span class="rec-priority p-high">높음</span></td>
-      <td class="td-main">KT통신요금자동납부</td>
-      <td><span class="cat cat-통신비">통신비</span></td>
-      <td class="td-sub"><div class="rec-card">— KT청구할인형 <span class="muted">(수)복지용구 / 정재승</span></div></td>
-      <td class="num rec-saving">178,203<span class="won">원</span></td>
       <td class="td-sub">실제 사용자 및 필요성 확인</td>
     </tr>
     <tr class="rec-row rec-high">
@@ -2034,47 +2118,20 @@ tr:hover td { background: #F2EFEA !important; }
     <tr class="rec-row rec-high">
       <td><span class="rec-type rec-type-sub">구독확인</span></td>
       <td class="center"><span class="rec-priority p-high">높음</span></td>
-      <td class="td-main">KT통신요금 자동납부</td>
-      <td><span class="cat cat-통신비">통신비</span></td>
-      <td class="td-sub"><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span></div></td>
-      <td class="num rec-saving">167,230<span class="won">원</span></td>
-      <td class="td-sub">실제 사용자 및 필요성 확인</td>
-    </tr>
-    <tr class="rec-row rec-high">
-      <td><span class="rec-type rec-type-sub">구독확인</span></td>
-      <td class="center"><span class="rec-priority p-high">높음</span></td>
-      <td class="td-main">구글페이먼트_구글페이먼트코리아</td>
-      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
-      <td class="td-sub"><div class="rec-card">— SUPER할부-KT <span class="muted">한솔 / 이승학</span></div></td>
-      <td class="num rec-saving">150,000<span class="won">원</span></td>
-      <td class="td-sub">실제 사용자 및 필요성 확인</td>
-    </tr>
-    <tr class="rec-row rec-high">
-      <td><span class="rec-type rec-type-sub">구독확인</span></td>
-      <td class="center"><span class="rec-priority p-high">높음</span></td>
       <td class="td-main">CURSOR, AI POWERED IDE</td>
       <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
       <td class="td-sub"><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span></div></td>
       <td class="num rec-saving">119,725<span class="won">원</span></td>
       <td class="td-sub">실제 사용자 및 필요성 확인</td>
     </tr>
-    <tr class="rec-row rec-mid">
-      <td><span class="rec-type rec-type-sub">구독확인</span></td>
-      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+    <tr class="rec-row rec-high">
+      <td><span class="rec-type rec-type-dup">중복결제</span></td>
+      <td class="center"><span class="rec-priority p-high">높음</span></td>
       <td class="td-main">KT스카이라이프</td>
       <td><span class="cat cat-통신비">통신비</span></td>
-      <td class="td-sub"><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span></div></td>
-      <td class="num rec-saving">99,000<span class="won">원</span></td>
-      <td class="td-sub">실제 사용자 및 필요성 확인</td>
-    </tr>
-    <tr class="rec-row rec-mid">
-      <td><span class="rec-type rec-type-sub">구독확인</span></td>
-      <td class="center"><span class="rec-priority p-mid">중간</span></td>
-      <td class="td-main">KT통신요금 자동납부</td>
-      <td><span class="cat cat-통신비">통신비</span></td>
-      <td class="td-sub"><div class="rec-card">— SUPER할부-KT <span class="muted">한솔 / 이승학</span></div></td>
-      <td class="num rec-saving">93,710<span class="won">원</span></td>
-      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+      <td class="td-sub"><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span> <span class="card-avg">월평균 99,000원</span></div><div class="rec-card">— SUPER할부-KT <span class="muted">한솔 / 이승학</span> <span class="card-avg">월평균 23,739원</span></div></td>
+      <td class="num rec-saving">114,826<span class="won">원</span></td>
+      <td class="td-sub">사용자 확인 후 단일 카드로 통합 또는 불필요 계정 해지</td>
     </tr>
     <tr class="rec-row rec-mid">
       <td><span class="rec-type rec-type-sub">구독확인</span></td>
@@ -2093,6 +2150,15 @@ tr:hover td { background: #F2EFEA !important; }
       <td class="td-sub"><div class="rec-card">— KB WISH올카드 <span class="muted">(수)복지용구 / 송다윗</span></div></td>
       <td class="num rec-saving">77,000<span class="won">원</span></td>
       <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-high">
+      <td><span class="rec-type rec-type-dup">중복결제</span></td>
+      <td class="center"><span class="rec-priority p-high">높음</span></td>
+      <td class="td-main">쿠쿠홈시스_쿠쿠홈시스주식회사</td>
+      <td><span class="cat cat-렌탈구독">렌탈/구독</span></td>
+      <td class="td-sub"><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span> <span class="card-avg">월평균 32,800원</span></div><div class="rec-card">— SUPER할부-KT <span class="muted">한솔 / 이승학</span> <span class="card-avg">월평균 64,775원</span></div></td>
+      <td class="num rec-saving">75,983<span class="won">원</span></td>
+      <td class="td-sub">사용자 확인 후 단일 카드로 통합 또는 불필요 계정 해지</td>
     </tr>
     <tr class="rec-row rec-mid">
       <td><span class="rec-type rec-type-sub">구독확인</span></td>
@@ -2115,28 +2181,10 @@ tr:hover td { background: #F2EFEA !important; }
     <tr class="rec-row rec-mid">
       <td><span class="rec-type rec-type-sub">구독확인</span></td>
       <td class="center"><span class="rec-priority p-mid">중간</span></td>
-      <td class="td-main">쿠쿠홈시스_쿠쿠홈시스주식회사</td>
-      <td><span class="cat cat-렌탈구독">렌탈/구독</span></td>
-      <td class="td-sub"><div class="rec-card">— SUPER할부-KT <span class="muted">한솔 / 이승학</span></div></td>
-      <td class="num rec-saving">64,350<span class="won">원</span></td>
-      <td class="td-sub">실제 사용자 및 필요성 확인</td>
-    </tr>
-    <tr class="rec-row rec-mid">
-      <td><span class="rec-type rec-type-sub">구독확인</span></td>
-      <td class="center"><span class="rec-priority p-mid">중간</span></td>
       <td class="td-main">뜰방</td>
       <td><span class="cat cat-기타업무비">기타업무비</span></td>
       <td class="td-sub"><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span></div></td>
       <td class="num rec-saving">63,000<span class="won">원</span></td>
-      <td class="td-sub">실제 사용자 및 필요성 확인</td>
-    </tr>
-    <tr class="rec-row rec-mid">
-      <td><span class="rec-type rec-type-sub">구독확인</span></td>
-      <td class="center"><span class="rec-priority p-mid">중간</span></td>
-      <td class="td-main">OPENAI</td>
-      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
-      <td class="td-sub"><div class="rec-card">— SUPER할부-KT <span class="muted">한솔 / 이승학</span></div></td>
-      <td class="num rec-saving">55,648<span class="won">원</span></td>
       <td class="td-sub">실제 사용자 및 필요성 확인</td>
     </tr>
     <tr class="rec-row rec-mid">
@@ -2165,6 +2213,15 @@ tr:hover td { background: #F2EFEA !important; }
       <td class="td-sub"><div class="rec-card">— SUPER할부-KT <span class="muted">한솔 / 이승학</span></div></td>
       <td class="num rec-saving">45,900<span class="won">원</span></td>
       <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-high">
+      <td><span class="rec-type rec-type-dup">중복결제</span></td>
+      <td class="center"><span class="rec-priority p-high">높음</span></td>
+      <td class="td-main">OPENAI</td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="td-sub"><div class="rec-card">— M BOOST VISA <span class="muted">한솔 / 2층공용(개발팀)</span> <span class="card-avg">월평균 16,364원</span></div><div class="rec-card">— SUPER할부-KT <span class="muted">한솔 / 이승학</span> <span class="card-avg">월평균 55,648원</span></div></td>
+      <td class="num rec-saving">42,553<span class="won">원</span></td>
+      <td class="td-sub">사용자 확인 후 단일 카드로 통합 또는 불필요 계정 해지</td>
     </tr>
     <tr class="rec-row rec-mid">
       <td><span class="rec-type rec-type-sub">구독확인</span></td>
@@ -2241,28 +2298,10 @@ tr:hover td { background: #F2EFEA !important; }
     <tr class="rec-row rec-mid">
       <td><span class="rec-type rec-type-sub">구독확인</span></td>
       <td class="center"><span class="rec-priority p-mid">중간</span></td>
-      <td class="td-main">구글페이먼트_구글페이먼트코리아</td>
-      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
-      <td class="td-sub"><div class="rec-card">— SUPER할부-KT <span class="muted">한솔 / 이승학</span></div></td>
-      <td class="num rec-saving">29,000<span class="won">원</span></td>
-      <td class="td-sub">실제 사용자 및 필요성 확인</td>
-    </tr>
-    <tr class="rec-row rec-mid">
-      <td><span class="rec-type rec-type-sub">구독확인</span></td>
-      <td class="center"><span class="rec-priority p-mid">중간</span></td>
       <td class="td-main">투썸플레이스순천조례점</td>
       <td><span class="cat cat-기타업무비">기타업무비</span></td>
       <td class="td-sub"><div class="rec-card">— KT청구할인형 <span class="muted">(수)복지용구 / 정재승</span></div></td>
       <td class="num rec-saving">26,150<span class="won">원</span></td>
-      <td class="td-sub">실제 사용자 및 필요성 확인</td>
-    </tr>
-    <tr class="rec-row rec-mid">
-      <td><span class="rec-type rec-type-sub">구독확인</span></td>
-      <td class="center"><span class="rec-priority p-mid">중간</span></td>
-      <td class="td-main">KT스카이라이프</td>
-      <td><span class="cat cat-통신비">통신비</span></td>
-      <td class="td-sub"><div class="rec-card">— SUPER할부-KT <span class="muted">한솔 / 이승학</span></div></td>
-      <td class="num rec-saving">23,739<span class="won">원</span></td>
       <td class="td-sub">실제 사용자 및 필요성 확인</td>
     </tr>
     <tr class="rec-row rec-mid">
@@ -2322,15 +2361,6 @@ tr:hover td { background: #F2EFEA !important; }
     <tr class="rec-row rec-mid">
       <td><span class="rec-type rec-type-sub">구독확인</span></td>
       <td class="center"><span class="rec-priority p-mid">중간</span></td>
-      <td class="td-main">쿠쿠홈시스_쿠쿠홈시스주식회사</td>
-      <td><span class="cat cat-렌탈구독">렌탈/구독</span></td>
-      <td class="td-sub"><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span></div></td>
-      <td class="num rec-saving">16,900<span class="won">원</span></td>
-      <td class="td-sub">실제 사용자 및 필요성 확인</td>
-    </tr>
-    <tr class="rec-row rec-mid">
-      <td><span class="rec-type rec-type-sub">구독확인</span></td>
-      <td class="center"><span class="rec-priority p-mid">중간</span></td>
       <td class="td-main">OPENAI</td>
       <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
       <td class="td-sub"><div class="rec-card">— M BOOST VISA <span class="muted">한솔 / 2층공용(개발팀)</span></div></td>
@@ -2343,15 +2373,6 @@ tr:hover td { background: #F2EFEA !important; }
       <td class="td-main">쿠쿠홈시스 - 쿠쿠홈시스</td>
       <td><span class="cat cat-렌탈구독">렌탈/구독</span></td>
       <td class="td-sub"><div class="rec-card">— M BOOST VISA <span class="muted">한솔 / 2층공용(개발팀)</span></div></td>
-      <td class="num rec-saving">15,900<span class="won">원</span></td>
-      <td class="td-sub">실제 사용자 및 필요성 확인</td>
-    </tr>
-    <tr class="rec-row rec-mid">
-      <td><span class="rec-type rec-type-sub">구독확인</span></td>
-      <td class="center"><span class="rec-priority p-mid">중간</span></td>
-      <td class="td-main">쿠쿠홈시스_쿠쿠홈시스주식회사</td>
-      <td><span class="cat cat-렌탈구독">렌탈/구독</span></td>
-      <td class="td-sub"><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span></div></td>
       <td class="num rec-saving">15,900<span class="won">원</span></td>
       <td class="td-sub">실제 사용자 및 필요성 확인</td>
     </tr>
@@ -2421,15 +2442,6 @@ tr:hover td { background: #F2EFEA !important; }
     <tr class="rec-row rec-mid">
       <td><span class="rec-type rec-type-sub">구독확인</span></td>
       <td class="center"><span class="rec-priority p-mid">중간</span></td>
-      <td class="td-main">구글페이먼트_구글페이먼트코리아</td>
-      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
-      <td class="td-sub"><div class="rec-card">— SUPER할부-KT <span class="muted">한솔 / 이승학</span></div></td>
-      <td class="num rec-saving">5,700<span class="won">원</span></td>
-      <td class="td-sub">실제 사용자 및 필요성 확인</td>
-    </tr>
-    <tr class="rec-row rec-mid">
-      <td><span class="rec-type rec-type-sub">구독확인</span></td>
-      <td class="center"><span class="rec-priority p-mid">중간</span></td>
       <td class="td-main">공공요금</td>
       <td><span class="cat cat-기타업무비">기타업무비</span></td>
       <td class="td-sub"><div class="rec-card">— KT청구할인형 <span class="muted">(수)복지용구 / 정재승</span></div></td>
@@ -2443,15 +2455,6 @@ tr:hover td { background: #F2EFEA !important; }
       <td><span class="cat cat-기타업무비">기타업무비</span></td>
       <td class="td-sub"><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span></div></td>
       <td class="num rec-saving">5,200<span class="won">원</span></td>
-      <td class="td-sub">실제 사용자 및 필요성 확인</td>
-    </tr>
-    <tr class="rec-row rec-mid">
-      <td><span class="rec-type rec-type-sub">구독확인</span></td>
-      <td class="center"><span class="rec-priority p-mid">중간</span></td>
-      <td class="td-main">구글페이먼트_구글페이먼트코리아</td>
-      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
-      <td class="td-sub"><div class="rec-card">— SUPER할부-KT <span class="muted">한솔 / 이승학</span></div></td>
-      <td class="num rec-saving">4,990<span class="won">원</span></td>
       <td class="td-sub">실제 사용자 및 필요성 확인</td>
     </tr>
     <tr class="rec-row rec-mid">
@@ -2475,28 +2478,10 @@ tr:hover td { background: #F2EFEA !important; }
     <tr class="rec-row rec-mid">
       <td><span class="rec-type rec-type-sub">구독확인</span></td>
       <td class="center"><span class="rec-priority p-mid">중간</span></td>
-      <td class="td-main">구글페이먼트_구글페이먼트코리아</td>
-      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
-      <td class="td-sub"><div class="rec-card">— SUPER할부-KT <span class="muted">한솔 / 이승학</span></div></td>
-      <td class="num rec-saving">2,990<span class="won">원</span></td>
-      <td class="td-sub">실제 사용자 및 필요성 확인</td>
-    </tr>
-    <tr class="rec-row rec-mid">
-      <td><span class="rec-type rec-type-sub">구독확인</span></td>
-      <td class="center"><span class="rec-priority p-mid">중간</span></td>
       <td class="td-main">모바일_지하철</td>
       <td><span class="cat cat-기타업무비">기타업무비</span></td>
       <td class="td-sub"><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span></div></td>
       <td class="num rec-saving">2,775<span class="won">원</span></td>
-      <td class="td-sub">실제 사용자 및 필요성 확인</td>
-    </tr>
-    <tr class="rec-row rec-mid">
-      <td><span class="rec-type rec-type-sub">구독확인</span></td>
-      <td class="center"><span class="rec-priority p-mid">중간</span></td>
-      <td class="td-main">구글페이먼트_구글페이먼트코리아</td>
-      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
-      <td class="td-sub"><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span></div></td>
-      <td class="num rec-saving">2,200<span class="won">원</span></td>
       <td class="td-sub">실제 사용자 및 필요성 확인</td>
     </tr>
     <tr class="rec-row rec-mid">

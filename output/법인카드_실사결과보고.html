@@ -16,9 +16,9 @@
   --s-transfer-bg: #EBF0FA;--s-transfer-fg: #1A4A8A; --s-transfer-bd: #A8C0E0;
   --s-stop-bg: #FDEEE9;    --s-stop-fg: #C8380A;    --s-stop-bd: #F2C4B4;
 }
-body { font-family: 'Noto Sans KR','Malgun Gothic',sans-serif; background: var(--bg); color: var(--ink); font-size: 13px; line-height: 1.7; }
+html { max-width: 100vw; overflow-x: hidden; } body { font-family: 'Noto Sans KR','Malgun Gothic',sans-serif; background: var(--bg); color: var(--ink); font-size: 13px; line-height: 1.7; overflow-x: hidden; max-width: 100%; }
 
-.header { background: var(--ink); color: #F7F5F0; padding: 48px 64px 40px; display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:16px; }
+.header { background: var(--ink); color: #F7F5F0; padding: 48px 64px 40px; }
 .header-eyebrow { font-size: 10px; letter-spacing: 5px; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
 .header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
 .header-meta { font-size: 12px; color: #9A958F; display: flex; gap: 24px; flex-wrap: wrap; }
@@ -105,6 +105,16 @@ tr:last-child td { border-bottom: none; }
 .rec-type-dup { background: var(--accent); color: white; }
 .rec-type-sub { background: var(--ink); color: white; }
 
+.group-label { padding: 10px 16px 8px; font-size: 12px; font-weight: 700; letter-spacing: .04em; display: flex; align-items: center; gap: 8px; margin-top: 12px; border-top: 2px solid; }
+.group-label:first-child { margin-top: 0; }
+.dup-label { border-color: var(--accent); color: var(--accent); background: #FEF7F4; }
+.sub-label { border-color: var(--ink2); color: var(--ink2); background: #F4F3F1; }
+.group-icon { font-size: 14px; }
+.group-count { font-weight: 400; opacity: .8; }
+.group-desc { font-size: 11px; font-weight: 400; color: var(--muted); margin-left: auto; }
+.hs-stat-dup .hs-num { color: var(--accent); }
+.hs-dup { color: var(--accent) !important; }
+
 .service-name { font-weight: 700; font-size: 14px; }
 .service-name.pending { color: var(--muted); font-weight: 500; }
 .saving-cell { font-size: 13px; font-weight: 600; color: var(--ink2); }
@@ -165,75 +175,30 @@ tr:last-child td { border-bottom: none; }
 .footer-item::before { content: '* '; }
 @media print { .edit-toolbar, .edit-hint { display: none; } .holder-section { break-inside: avoid; } }
 
-/* ── 중복결제 섹션 ── */
-.dup-section {
-  margin-bottom: 40px;
-  border: 1px solid #F2C4B4;
-  background: var(--surface);
-}
-.dup-section-header {
-  display: flex; align-items: center; padding: 20px 28px;
-  border-bottom: 1px solid #F2C4B4; background: #FDF4F1;
-  gap: 12px;
-}
-.dup-section-title { font-size: 18px; font-weight: 700; color: var(--ink); }
-.dup-count-badge {
-  font-size: 11px; font-weight: 700; padding: 3px 10px;
-  background: var(--accent); color: white; letter-spacing: .5px;
-}
-.dup-section-desc { font-size: 12px; color: var(--ink2); margin-left: auto; }
-
-.dup-item { border-bottom: 1px solid var(--border); }
-.dup-item:last-child { border-bottom: none; }
-.dup-item-header {
-  display: flex; align-items: center; gap: 12px;
-  padding: 16px 28px 10px; background: #FFFAF9;
-}
-.dup-merchant { font-size: 15px; font-weight: 700; }
-.dup-cat-badge {
-  font-size: 10px; font-weight: 600; padding: 2px 8px;
-  background: #F2EFEA; color: var(--ink2); border: 1px solid var(--border);
-}
-.dup-item-meta {
-  margin-left: auto; display: flex; align-items: center; gap: 16px; font-size: 12px; color: var(--ink2);
-}
-.dup-total { font-size: 14px; font-weight: 700; color: var(--accent); }
-.dup-item-body { padding: 0 28px 16px; }
-.dup-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-.dup-table th {
-  font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
-  color: var(--muted); font-weight: 500; padding: 8px 12px;
-  text-align: left; border-bottom: 1px solid var(--border); background: var(--surface);
-}
-.dup-table td { padding: 9px 12px; border-bottom: 1px solid var(--bg); font-size: 12px; vertical-align: middle; }
-.dup-table tr:last-child td { border-bottom: none; }
-.dup-table .num { text-align: right; font-weight: 600; color: var(--ink); }
-.dup-card-name { font-weight: 600; color: var(--ink); }
-.dup-card-holder { color: var(--muted); font-size: 11px; }
-.dup-date { color: var(--ink2); font-size: 11px; font-family: 'Courier New', monospace; letter-spacing: -.2px; }
-.dup-item-footer {
-  display: flex; align-items: center; gap: 12px;
-  padding: 10px 28px 14px;
-}
-.dup-advice {
-  font-size: 11px; color: var(--s-transfer-fg); background: var(--s-transfer-bg);
-  border: 1px solid var(--s-transfer-bd); padding: 4px 12px;
-}
-.dup-advice.warn {
-  color: var(--accent); background: var(--s-stop-bg); border-color: var(--s-stop-bd);
+/* ── MOBILE 768px ── */
+@media (max-width: 768px) {
+  .header { padding: 24px 20px; }
+  .edit-toolbar { padding: 10px 20px; }
+  .summary-bar { padding: 0 20px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .legend-bar { padding: 11px 20px; }
+  .filter-info-bar { padding: 10px 20px; }
+  .container { padding: 20px 16px; }
+  .footer { padding: 20px 20px; }
+  .holder-header { flex-wrap: wrap; gap: 12px; padding: 16px 20px; }
+  .holder-stats { flex-wrap: wrap; }
+  .hs-stat { padding-left: 16px; margin-left: 16px; }
+  table { min-width: 560px; display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .section { margin-bottom: 32px; }
 }
 
-/* ── 월별 결제 칼럼 ── */
-.month-cell { min-width: 180px; }
-.month-dots { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.month-dot {
-  display: inline-flex; flex-direction: column; align-items: center;
-  gap: 2px; min-width: 44px;
+/* ── MOBILE 480px ── */
+@media (max-width: 480px) {
+  .header h1 { font-size: 22px; }
+  .header-eyebrow { letter-spacing: 2px; }
+  .header-meta { gap: 10px; flex-direction: column; }
+  .holder-name { font-size: 16px; }
+  .sb-val { font-size: 20px; }
 }
-.month-dot .m-label { font-size: 9px; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; }
-.month-dot .m-amt { font-size: 10px; font-weight: 600; color: var(--ink2); white-space: nowrap; }
-.month-dot .m-amt.paid { color: var(--s-ok-fg); }
-.month-dot .m-amt.none { color: #D0CCC5; }
 </style>
 </head>
 <body>
@@ -246,12 +211,7 @@ tr:last-child td { border-bottom: none; }
   <div class="header-meta">
     <span>분석 기간: 2026년 1월 — 3월</span>
     <span>조사 기준일: 2026년 5월</span>
-    <span>월 절감 추정 합계: 16,579,946원</span>
-  </div>
-  <div class="hdr-right" style="display:flex;align-items:center;gap:8px">
-    <span id="hdr-date" style="font-size:11px;color:var(--ink2,#888);letter-spacing:.05em"></span>
-    <button class="hdr-btn" onclick="window.print()" style="font-size:11px;padding:5px 12px;border:1px solid var(--border,#ddd);background:none;cursor:pointer;color:var(--ink2,#888)">🖨 인쇄</button>
-    <button class="hdr-btn" onclick="exportExcel()" style="font-size:11px;padding:5px 12px;border:1px solid var(--border,#ddd);background:none;cursor:pointer;color:var(--ink2,#888)">↓ Excel</button>
+    <span>월 절감 추정 합계: 17,040,564원</span>
   </div>
 </div>
 
@@ -263,7 +223,7 @@ tr:last-child td { border-bottom: none; }
 <div class="summary-bar">
   <div class="sb-item">
     <div class="sb-label">총 조사 항목</div>
-    <div class="sb-val"><span id="cnt-total">72</span><span class="sb-unit">건</span></div>
+    <div class="sb-val"><span id="cnt-total">68</span><span class="sb-unit">건</span></div>
   </div>
   <div class="sb-item">
     <div class="sb-label">정상 사용</div>
@@ -279,11 +239,7 @@ tr:last-child td { border-bottom: none; }
   </div>
   <div class="sb-item">
     <div class="sb-label">미확인</div>
-    <div class="sb-val c-pending"><span id="cnt-pending">63</span><span class="sb-unit">건</span></div>
-  </div>
-  <div class="sb-item">
-    <div class="sb-label">중복결제 탐지</div>
-    <div class="sb-val" style="color:#C8380A">5<span class="sb-unit">건</span></div>
+    <div class="sb-val c-pending"><span id="cnt-pending">59</span><span class="sb-unit">건</span></div>
   </div>
 </div>
 
@@ -327,230 +283,7 @@ tr:last-child td { border-bottom: none; }
 </div>
 
 <div class="container">
-
-  <!-- ══════════════════════ 중복결제 탐지 섹션 ══════════════════════ -->
-  <div class="dup-section">
-    <div class="dup-section-header">
-      <div class="dup-section-title">중복결제 탐지</div>
-      <span class="dup-count-badge">5건 탐지</span>
-      <span class="dup-section-desc">동일 가맹점에서 2개 이상의 카드로 결제된 내역</span>
-    </div>
-
-    <!-- 1. 코우텐동 -->
-    <div class="dup-item" id="dup-1">
-      <div class="dup-item-header">
-        <span class="dup-merchant">코우텐동</span>
-        <span class="dup-cat-badge">식대/카페</span>
-        <div class="dup-item-meta">
-          <span>3건 · 2개 카드</span>
-          <span class="dup-total">합계 483,500원</span>
-          <span class="status-badge sb-pending" data-status="pending" onclick="toggleDupStatus(this)" style="cursor:pointer"><span class="badge-text">미확인</span></span>
-        </div>
-      </div>
-      <div class="dup-item-body">
-        <table class="dup-table">
-          <thead><tr>
-            <th>결제일</th>
-            <th>카드명</th>
-            <th>카드 담당자</th>
-            <th style="text-align:right">결제금액</th>
-          </tr></thead>
-          <tbody>
-            <tr>
-              <td class="dup-date">2026-03-11</td>
-              <td class="dup-card-name">M BOOST VISA</td>
-              <td class="dup-card-holder">2층공용 / 개발팀</td>
-              <td class="num">330,200원</td>
-            </tr>
-            <tr>
-              <td class="dup-date">2026-02-21</td>
-              <td class="dup-card-name">KT청구할인형</td>
-              <td class="dup-card-holder">정재승</td>
-              <td class="num">109,500원</td>
-            </tr>
-            <tr>
-              <td class="dup-date">2026-03-21</td>
-              <td class="dup-card-name">KT청구할인형</td>
-              <td class="dup-card-holder">정재승</td>
-              <td class="num">43,800원</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="dup-item-footer">
-        <span class="dup-advice">카드 통합 검토 필요</span>
-      </div>
-    </div>
-
-    <!-- 2. 무드인템띵 -->
-    <div class="dup-item" id="dup-2">
-      <div class="dup-item-header">
-        <span class="dup-merchant">무드인템띵</span>
-        <span class="dup-cat-badge">기타업무비</span>
-        <div class="dup-item-meta">
-          <span>2건 · 2개 카드</span>
-          <span class="dup-total">합계 429,000원</span>
-          <span class="status-badge sb-pending" data-status="pending" onclick="toggleDupStatus(this)" style="cursor:pointer"><span class="badge-text">미확인</span></span>
-        </div>
-      </div>
-      <div class="dup-item-body">
-        <table class="dup-table">
-          <thead><tr>
-            <th>결제일</th>
-            <th>카드명</th>
-            <th>카드 담당자</th>
-            <th style="text-align:right">결제금액</th>
-          </tr></thead>
-          <tbody>
-            <tr>
-              <td class="dup-date">2026-03-04</td>
-              <td class="dup-card-name">M BOOST VISA</td>
-              <td class="dup-card-holder">2층공용 / 개발팀</td>
-              <td class="num">402,000원</td>
-            </tr>
-            <tr>
-              <td class="dup-date">2026-03-05</td>
-              <td class="dup-card-name">KT청구할인형</td>
-              <td class="dup-card-holder">정재승</td>
-              <td class="num">27,000원</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="dup-item-footer">
-        <span class="dup-advice">카드 통합 검토 필요</span>
-      </div>
-    </div>
-
-    <!-- 3. 한길 -->
-    <div class="dup-item" id="dup-3">
-      <div class="dup-item-header">
-        <span class="dup-merchant">한길</span>
-        <span class="dup-cat-badge">식대/카페</span>
-        <div class="dup-item-meta">
-          <span>2건 · 2개 카드</span>
-          <span class="dup-total">합계 297,000원</span>
-          <span class="status-badge sb-pending" data-status="pending" onclick="toggleDupStatus(this)" style="cursor:pointer"><span class="badge-text">미확인</span></span>
-        </div>
-      </div>
-      <div class="dup-item-body">
-        <table class="dup-table">
-          <thead><tr>
-            <th>결제일</th>
-            <th>카드명</th>
-            <th>카드 담당자</th>
-            <th style="text-align:right">결제금액</th>
-          </tr></thead>
-          <tbody>
-            <tr>
-              <td class="dup-date">2026-01-19</td>
-              <td class="dup-card-name">M BOOST VISA</td>
-              <td class="dup-card-holder">2층공용 / 개발팀</td>
-              <td class="num">264,000원</td>
-            </tr>
-            <tr>
-              <td class="dup-date">2026-02-09</td>
-              <td class="dup-card-name">KT청구할인형</td>
-              <td class="dup-card-holder">정재승</td>
-              <td class="num">33,000원</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="dup-item-footer">
-        <span class="dup-advice">카드 통합 검토 필요</span>
-      </div>
-    </div>
-
-    <!-- 4. LF스퀘어테라스몰광양점 -->
-    <div class="dup-item" id="dup-4">
-      <div class="dup-item-header">
-        <span class="dup-merchant">LF스퀘어테라스몰광양점</span>
-        <span class="dup-cat-badge">기타업무비</span>
-        <div class="dup-item-meta">
-          <span>6건 · 2개 카드</span>
-          <span class="dup-total">합계 314,500원</span>
-          <span class="status-badge sb-pending" data-status="pending" onclick="toggleDupStatus(this)" style="cursor:pointer"><span class="badge-text">미확인</span></span>
-        </div>
-      </div>
-      <div class="dup-item-body">
-        <table class="dup-table">
-          <thead><tr>
-            <th>결제일</th>
-            <th>카드명</th>
-            <th>카드 담당자</th>
-            <th style="text-align:right">결제금액</th>
-          </tr></thead>
-          <tbody>
-            <tr>
-              <td class="dup-date">2026-02-16</td>
-              <td class="dup-card-name">M BOOST VISA</td>
-              <td class="dup-card-holder">2층공용 / 개발팀</td>
-              <td class="num">89,000원</td>
-            </tr>
-            <tr>
-              <td class="dup-date">2026-03-16</td>
-              <td class="dup-card-name">M BOOST VISA</td>
-              <td class="dup-card-holder">2층공용 / 개발팀</td>
-              <td class="num">91,000원</td>
-            </tr>
-            <tr>
-              <td class="dup-date">2026-01 ~ 03 (6건)</td>
-              <td class="dup-card-name">KT청구할인형</td>
-              <td class="dup-card-holder">정재승</td>
-              <td class="num">134,500원</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="dup-item-footer">
-        <span class="dup-advice">카드 통합 검토 필요</span>
-      </div>
-    </div>
-
-    <!-- 5. 포털_건강보험공단 -->
-    <div class="dup-item" id="dup-5">
-      <div class="dup-item-header">
-        <span class="dup-merchant">포털_건강보험공단</span>
-        <span class="dup-cat-badge">4대보험</span>
-        <div class="dup-item-meta">
-          <span>2건 · 동일 카드 중복</span>
-          <span class="dup-total">합계 403,602원</span>
-          <span class="status-badge sb-pending" data-status="pending" onclick="toggleDupStatus(this)" style="cursor:pointer"><span class="badge-text">미확인</span></span>
-        </div>
-      </div>
-      <div class="dup-item-body">
-        <table class="dup-table">
-          <thead><tr>
-            <th>결제일</th>
-            <th>카드명</th>
-            <th>카드 담당자</th>
-            <th style="text-align:right">결제금액</th>
-          </tr></thead>
-          <tbody>
-            <tr>
-              <td class="dup-date">2026-01-28</td>
-              <td class="dup-card-name">LG전자 스페셜롯데</td>
-              <td class="dup-card-holder">손용진</td>
-              <td class="num">292,047원</td>
-            </tr>
-            <tr>
-              <td class="dup-date">2026-01-28</td>
-              <td class="dup-card-name">LG전자 스페셜롯데</td>
-              <td class="dup-card-holder">손용진</td>
-              <td class="num">111,555원</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="dup-item-footer">
-        <span class="dup-advice warn">동일 카드 동일일 이중 결제 — 환불 또는 취소 확인 필요</span>
-      </div>
-    </div>
-
-  </div>
-  <!-- ══════════════════════ /중복결제 탐지 섹션 ══════════════════════ -->
-
+  
     <div class="holder-section">
       <div class="holder-header">
         <div class="holder-left">
@@ -560,7 +293,11 @@ tr:last-child td { border-bottom: none; }
         <div class="holder-stats">
           <div class="hs-stat">
             <div class="hs-label">조사 항목</div>
-            <div class="hs-num">23<span class="hs-unit">건</span></div>
+            <div class="hs-num">22<span class="hs-unit">건</span></div>
+          </div>
+          <div class="hs-stat hs-stat-dup">
+            <div class="hs-label">중복결제</div>
+            <div class="hs-num hs-dup">4<span class="hs-unit">건</span></div>
           </div>
           <div class="hs-stat">
             <div class="hs-label">확인 완료</div>
@@ -568,182 +305,181 @@ tr:last-child td { border-bottom: none; }
           </div>
           <div class="hs-stat">
             <div class="hs-label">미확인</div>
-            <div class="hs-num c-pending h-pending">19<span class="hs-unit">건</span></div>
+            <div class="hs-num c-pending h-pending">18<span class="hs-unit">건</span></div>
           </div>
         </div>
+      </div>
+      
+      <div class="group-label dup-label">
+        <span class="group-icon">⚠</span> 중복결제 의심 &nbsp;<span class="group-count">4건</span>
+        <span class="group-desc">동일 서비스가 복수 카드에서 동시 결제 — 단일 카드로 통합 필요</span>
       </div>
       <table>
         <thead><tr>
           <th style="width:200px">서비스명</th>
           <th style="width:130px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
-          <th style="width:90px">유형</th>
-          <th style="width:120px;text-align:right">월 절감 추정</th>
-          <th style="width:170px">월별 결제 현황</th>
+          <th>카드별 월평균 결제금액</th>
           <th style="width:120px">조사 결과 <span class="edit-hint">클릭 변경</span></th>
           <th>조치 내용 <span class="edit-hint">클릭 편집</span></th>
           <th style="width:160px">담당자 <span class="edit-hint">클릭 편집</span></th>
         </tr></thead>
         <tbody>
-        <tr class="row-transfer" data-row-id="손용진__0" data-default-status="transfer" data-default-action="개발팀 카드(M BOOST VISA)로 이관" data-default-assignees="" data-default-site="amazon.com">
-          <td><span class="service-name">Amazon_Web Service_아마존웹서비시즈코리아 유한</span><span class="card-tag row-card-tag">LG전자 스페셜롯데</span></td>
-          <td class="site-cell td-editable" data-placeholder="사이트 주소">amazon.com</td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
-          <td class="num saving-cell">3,001,659<span class="won">원</span></td>
-          <td class="month-cell"><div class="month-dots"><div class="month-dot"><span class="m-label">1월</span><span class="m-amt none">-</span></div><div class="month-dot"><span class="m-label">2월</span><span class="m-amt none">-</span></div><div class="month-dot"><span class="m-label">3월</span><span class="m-amt paid">3,001,659</span></div></div></td>
-          <td class="td-status"><span class="status-badge sb-transfer" data-status="transfer"><span class="badge-text">카드 이관</span></span></td>
-          <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요">개발팀 카드(M BOOST VISA)로 이관</td>
+        <tr class="row-pending" data-row-id="손용진__0" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
+          <td><span class="service-name pending">KT통신요금자동납부</span><div class="row-card-tags"><span class="card-tag">KT청구할인형</span><span class="card-tag">LG전자 스페셜롯데</span><span class="card-tag">SUPER할부-KT</span></div></td>
+          <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
+          <td class="saving-cell dup-amounts"><div class="card-amt"><span class="card-tag">KT청구할인형</span>178,203<span class="won">원</span></div><div class="card-amt"><span class="card-tag">LG전자 스페셜롯데</span>225,473<span class="won">원</span></div><div class="card-amt"><span class="card-tag">SUPER할부-KT</span>392,927<span class="won">원</span></div></td>
+          <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
+          <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
           <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
         </tr>
-        <tr class="row-pending" data-row-id="손용진__1" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
-          <td><span class="service-name pending">NICE_통신판매_주식회사 채널</span><span class="card-tag row-card-tag">LG전자 스페셜롯데</span></td>
-          <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
-          <td class="num saving-cell">666,215<span class="won">원</span></td>
+        <tr class="row-pending" data-row-id="손용진__1" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="google.com">
+          <td><span class="service-name pending">구글페이먼트_구글페이먼트코리아</span><div class="row-card-tags"><span class="card-tag">LG전자 스페셜롯데</span><span class="card-tag">SUPER할부-KT</span></div></td>
+          <td class="site-cell td-editable" data-placeholder="사이트 주소">google.com</td>
+          <td class="saving-cell dup-amounts"><div class="card-amt"><span class="card-tag">LG전자 스페셜롯데</span>2,200<span class="won">원</span></div><div class="card-amt"><span class="card-tag">SUPER할부-KT</span>338,013<span class="won">원</span></div></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
           <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
         </tr>
         <tr class="row-pending" data-row-id="손용진__2" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
-          <td><span class="service-name pending">ANYDESK</span><span class="card-tag row-card-tag">LG전자 스페셜롯데</span></td>
+          <td><span class="service-name pending">KT스카이라이프</span><div class="row-card-tags"><span class="card-tag">LG전자 스페셜롯데</span><span class="card-tag">SUPER할부-KT</span></div></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
-          <td class="num saving-cell">663,886<span class="won">원</span></td>
-          <td class="month-cell"><div class="month-dots"><div class="month-dot"><span class="m-label">1월</span><span class="m-amt paid">663,886</span></div><div class="month-dot"><span class="m-label">2월</span><span class="m-amt none">-</span></div><div class="month-dot"><span class="m-label">3월</span><span class="m-amt none">-</span></div></div></td>
+          <td class="saving-cell dup-amounts"><div class="card-amt"><span class="card-tag">LG전자 스페셜롯데</span>99,000<span class="won">원</span></div><div class="card-amt"><span class="card-tag">SUPER할부-KT</span>23,739<span class="won">원</span></div></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
           <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
         </tr>
-        <tr class="row-transfer" data-row-id="손용진__3" data-default-status="transfer" data-default-action="개발팀 카드(M BOOST VISA)로 이관" data-default-assignees="" data-default-site="notion.so">
-          <td><span class="service-name">NOTION LABS, INC.</span><span class="card-tag row-card-tag">LG전자 스페셜롯데</span></td>
-          <td class="site-cell td-editable" data-placeholder="사이트 주소">notion.so</td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
-          <td class="num saving-cell">400,362<span class="won">원</span></td>
-          <td class="td-status"><span class="status-badge sb-transfer" data-status="transfer"><span class="badge-text">카드 이관</span></span></td>
-          <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요">개발팀 카드(M BOOST VISA)로 이관</td>
+        <tr class="row-pending" data-row-id="손용진__3" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
+          <td><span class="service-name pending">쿠쿠홈시스_쿠쿠홈시스주식회사</span><div class="row-card-tags"><span class="card-tag">LG전자 스페셜롯데</span><span class="card-tag">SUPER할부-KT</span></div></td>
+          <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
+          <td class="saving-cell dup-amounts"><div class="card-amt"><span class="card-tag">LG전자 스페셜롯데</span>32,800<span class="won">원</span></div><div class="card-amt"><span class="card-tag">SUPER할부-KT</span>64,775<span class="won">원</span></div></td>
+          <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
+          <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
           <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
-        </tr>
-        <tr class="row-transfer" data-row-id="손용진__4" data-default-status="transfer" data-default-action="개발팀 카드(M BOOST VISA)로 이관" data-default-assignees="" data-default-site="figma.com">
-          <td><span class="service-name">FIGMA</span><span class="card-tag row-card-tag">LG전자 스페셜롯데</span></td>
-          <td class="site-cell td-editable" data-placeholder="사이트 주소">figma.com</td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
-          <td class="num saving-cell">352,480<span class="won">원</span></td>
+        </tr></tbody>
+      </table>
+      
+      <div class="group-label sub-label">
+        <span class="group-icon">↻</span> 반복/구독 결제 &nbsp;<span class="group-count">18건</span>
+        <span class="group-desc">매월 반복 결제 항목 — 사용 현황 및 필요성 점검</span>
+      </div>
+      <table>
+        <thead><tr>
+          <th style="width:200px">서비스명</th>
+          <th style="width:130px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:120px;text-align:right">월평균 결제금액</th>
+          <th style="width:120px">조사 결과 <span class="edit-hint">클릭 변경</span></th>
+          <th>조치 내용 <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:160px">담당자 <span class="edit-hint">클릭 편집</span></th>
+        </tr></thead>
+        <tbody>
+        <tr class="row-transfer" data-row-id="손용진__4" data-default-status="transfer" data-default-action="개발팀 카드(M BOOST VISA)로 이관" data-default-assignees="" data-default-site="amazon.com">
+          <td><span class="service-name">Amazon_Web Service_아마존웹서비시즈코리아 유한</span><span class="card-tag row-card-tag">LG전자 스페셜롯데</span></td>
+          <td class="site-cell td-editable" data-placeholder="사이트 주소">amazon.com</td>
+          <td class="num saving-cell">3,001,659<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-transfer" data-status="transfer"><span class="badge-text">카드 이관</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요">개발팀 카드(M BOOST VISA)로 이관</td>
           <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
         </tr>
         <tr class="row-pending" data-row-id="손용진__5" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
-          <td><span class="service-name pending">네이버페이_네이버파이낸셜 주식회사</span><span class="card-tag row-card-tag">LG전자 스페셜롯데</span></td>
+          <td><span class="service-name pending">NICE_통신판매_주식회사 채널</span><span class="card-tag row-card-tag">LG전자 스페셜롯데</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
-          <td class="num saving-cell">167,495<span class="won">원</span></td>
+          <td class="num saving-cell">666,215<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
           <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
         </tr>
         <tr class="row-pending" data-row-id="손용진__6" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
-          <td><span class="service-name pending">KT통신요금 자동납부</span><span class="card-tag row-card-tag">LG전자 스페셜롯데</span></td>
+          <td><span class="service-name pending">ANYDESK</span><span class="card-tag row-card-tag">LG전자 스페셜롯데</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
-          <td class="num saving-cell">167,230<span class="won">원</span></td>
+          <td class="num saving-cell">663,886<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
           <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
         </tr>
-        <tr class="row-ok" data-row-id="손용진__7" data-default-status="ok" data-default-action="정상 사용" data-default-assignees="손용진" data-default-site="cursor.com">
+        <tr class="row-transfer" data-row-id="손용진__7" data-default-status="transfer" data-default-action="개발팀 카드(M BOOST VISA)로 이관" data-default-assignees="" data-default-site="notion.so">
+          <td><span class="service-name">NOTION LABS, INC.</span><span class="card-tag row-card-tag">LG전자 스페셜롯데</span></td>
+          <td class="site-cell td-editable" data-placeholder="사이트 주소">notion.so</td>
+          <td class="num saving-cell">400,362<span class="won">원</span></td>
+          <td class="td-status"><span class="status-badge sb-transfer" data-status="transfer"><span class="badge-text">카드 이관</span></span></td>
+          <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요">개발팀 카드(M BOOST VISA)로 이관</td>
+          <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
+        </tr>
+        <tr class="row-transfer" data-row-id="손용진__8" data-default-status="transfer" data-default-action="개발팀 카드(M BOOST VISA)로 이관" data-default-assignees="" data-default-site="figma.com">
+          <td><span class="service-name">FIGMA</span><span class="card-tag row-card-tag">LG전자 스페셜롯데</span></td>
+          <td class="site-cell td-editable" data-placeholder="사이트 주소">figma.com</td>
+          <td class="num saving-cell">352,480<span class="won">원</span></td>
+          <td class="td-status"><span class="status-badge sb-transfer" data-status="transfer"><span class="badge-text">카드 이관</span></span></td>
+          <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요">개발팀 카드(M BOOST VISA)로 이관</td>
+          <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
+        </tr>
+        <tr class="row-pending" data-row-id="손용진__9" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
+          <td><span class="service-name pending">네이버페이_네이버파이낸셜 주식회사</span><span class="card-tag row-card-tag">LG전자 스페셜롯데</span></td>
+          <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
+          <td class="num saving-cell">167,495<span class="won">원</span></td>
+          <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
+          <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
+          <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
+        </tr>
+        <tr class="row-ok" data-row-id="손용진__10" data-default-status="ok" data-default-action="정상 사용" data-default-assignees="손용진" data-default-site="cursor.com">
           <td><span class="service-name">CURSOR, AI POWERED IDE</span><span class="card-tag row-card-tag">LG전자 스페셜롯데</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소">cursor.com</td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">119,725<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-ok" data-status="ok"><span class="badge-text">정상 사용</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요">정상 사용</td>
           <td class="assignee-cell td-editable" data-placeholder="담당자">손용진</td>
         </tr>
-        <tr class="row-pending" data-row-id="손용진__8" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
-          <td><span class="service-name pending">KT스카이라이프</span><span class="card-tag row-card-tag">LG전자 스페셜롯데</span></td>
-          <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
-          <td class="num saving-cell">99,000<span class="won">원</span></td>
-          <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
-          <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
-          <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
-        </tr>
-        <tr class="row-pending" data-row-id="손용진__9" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
+        <tr class="row-pending" data-row-id="손용진__11" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
           <td><span class="service-name pending">뜰방</span><span class="card-tag row-card-tag">LG전자 스페셜롯데</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">63,000<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
           <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
         </tr>
-        <tr class="row-pending" data-row-id="손용진__10" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
+        <tr class="row-pending" data-row-id="손용진__12" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
           <td><span class="service-name pending">자동결제_2_실버시트</span><span class="card-tag row-card-tag">LG전자 스페셜롯데</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">33,000<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
           <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
         </tr>
-        <tr class="row-pending" data-row-id="손용진__11" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
+        <tr class="row-pending" data-row-id="손용진__13" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
           <td><span class="service-name pending">네이버페이_네이버</span><span class="card-tag row-card-tag">LG전자 스페셜롯데</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">31,500<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
           <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
         </tr>
-        <tr class="row-pending" data-row-id="손용진__12" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
+        <tr class="row-pending" data-row-id="손용진__14" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
           <td><span class="service-name pending">세정이네 불쭈꾸미</span><span class="card-tag row-card-tag">LG전자 스페셜롯데</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">30,000<span class="won">원</span></td>
-          <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
-          <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
-          <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
-        </tr>
-        <tr class="row-pending" data-row-id="손용진__13" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
-          <td><span class="service-name pending">더드림</span><span class="card-tag row-card-tag">LG전자 스페셜롯데</span></td>
-          <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
-          <td class="num saving-cell">30,000<span class="won">원</span></td>
-          <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
-          <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
-          <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
-        </tr>
-        <tr class="row-pending" data-row-id="손용진__14" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="openai.com">
-          <td><span class="service-name pending">OPENAI *CHATGPT SUBSCR</span><span class="card-tag row-card-tag">LG전자 스페셜롯데</span></td>
-          <td class="site-cell td-editable" data-placeholder="사이트 주소">openai.com</td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
-          <td class="num saving-cell">29,961<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
           <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
         </tr>
         <tr class="row-pending" data-row-id="손용진__15" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
-          <td><span class="service-name pending">자동결제_(주) 가인지캠퍼스</span><span class="card-tag row-card-tag">LG전자 스페셜롯데</span></td>
+          <td><span class="service-name pending">더드림</span><span class="card-tag row-card-tag">LG전자 스페셜롯데</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
-          <td class="num saving-cell">19,000<span class="won">원</span></td>
+          <td class="num saving-cell">30,000<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
           <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
         </tr>
-        <tr class="row-pending" data-row-id="손용진__16" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
-          <td><span class="service-name pending">쿠쿠홈시스_쿠쿠홈시스주식회사 (16,900원/월)</span><span class="card-tag row-card-tag">LG전자 스페셜롯데</span></td>
-          <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
-          <td class="num saving-cell">16,900<span class="won">원</span></td>
+        <tr class="row-pending" data-row-id="손용진__16" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="openai.com">
+          <td><span class="service-name pending">OPENAI *CHATGPT SUBSCR</span><span class="card-tag row-card-tag">LG전자 스페셜롯데</span></td>
+          <td class="site-cell td-editable" data-placeholder="사이트 주소">openai.com</td>
+          <td class="num saving-cell">29,961<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
           <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
         </tr>
         <tr class="row-pending" data-row-id="손용진__17" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
-          <td><span class="service-name pending">쿠쿠홈시스_쿠쿠홈시스주식회사 (15,900원/월)</span><span class="card-tag row-card-tag">LG전자 스페셜롯데</span></td>
+          <td><span class="service-name pending">자동결제_(주) 가인지캠퍼스</span><span class="card-tag row-card-tag">LG전자 스페셜롯데</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
-          <td class="num saving-cell">15,900<span class="won">원</span></td>
+          <td class="num saving-cell">19,000<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
           <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
@@ -751,7 +487,6 @@ tr:last-child td { border-bottom: none; }
         <tr class="row-pending" data-row-id="손용진__18" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
           <td><span class="service-name pending">NICE_통신판매_(주)리멤버앤컴</span><span class="card-tag row-card-tag">LG전자 스페셜롯데</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">10,780<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
@@ -760,7 +495,6 @@ tr:last-child td { border-bottom: none; }
         <tr class="row-pending" data-row-id="손용진__19" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
           <td><span class="service-name pending">네이버페이_네이버클라우드 주식회사</span><span class="card-tag row-card-tag">LG전자 스페셜롯데</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">10,516<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
@@ -769,7 +503,6 @@ tr:last-child td { border-bottom: none; }
         <tr class="row-pending" data-row-id="손용진__20" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
           <td><span class="service-name pending">세븐일레븐 순천해룡상삼점</span><span class="card-tag row-card-tag">LG전자 스페셜롯데</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">5,200<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
@@ -778,17 +511,7 @@ tr:last-child td { border-bottom: none; }
         <tr class="row-pending" data-row-id="손용진__21" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
           <td><span class="service-name pending">모바일_지하철</span><span class="card-tag row-card-tag">LG전자 스페셜롯데</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">2,775<span class="won">원</span></td>
-          <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
-          <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
-          <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
-        </tr>
-        <tr class="row-pending" data-row-id="손용진__22" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="google.com">
-          <td><span class="service-name pending">구글페이먼트_구글페이먼트코리아</span><span class="card-tag row-card-tag">LG전자 스페셜롯데</span></td>
-          <td class="site-cell td-editable" data-placeholder="사이트 주소">google.com</td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
-          <td class="num saving-cell">2,200<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
           <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
@@ -804,7 +527,11 @@ tr:last-child td { border-bottom: none; }
         <div class="holder-stats">
           <div class="hs-stat">
             <div class="hs-label">조사 항목</div>
-            <div class="hs-num">17<span class="hs-unit">건</span></div>
+            <div class="hs-num">13<span class="hs-unit">건</span></div>
+          </div>
+          <div class="hs-stat hs-stat-dup">
+            <div class="hs-label">중복결제</div>
+            <div class="hs-num hs-dup">5<span class="hs-unit">건</span></div>
           </div>
           <div class="hs-stat">
             <div class="hs-label">확인 완료</div>
@@ -812,172 +539,141 @@ tr:last-child td { border-bottom: none; }
           </div>
           <div class="hs-stat">
             <div class="hs-label">미확인</div>
-            <div class="hs-num c-pending h-pending">15<span class="hs-unit">건</span></div>
+            <div class="hs-num c-pending h-pending">11<span class="hs-unit">건</span></div>
           </div>
         </div>
+      </div>
+      
+      <div class="group-label dup-label">
+        <span class="group-icon">⚠</span> 중복결제 의심 &nbsp;<span class="group-count">5건</span>
+        <span class="group-desc">동일 서비스가 복수 카드에서 동시 결제 — 단일 카드로 통합 필요</span>
       </div>
       <table>
         <thead><tr>
           <th style="width:200px">서비스명</th>
           <th style="width:130px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
-          <th style="width:90px">유형</th>
-          <th style="width:120px;text-align:right">월 절감 추정</th>
-          <th style="width:170px">월별 결제 현황</th>
+          <th>카드별 월평균 결제금액</th>
           <th style="width:120px">조사 결과 <span class="edit-hint">클릭 변경</span></th>
           <th>조치 내용 <span class="edit-hint">클릭 편집</span></th>
           <th style="width:160px">담당자 <span class="edit-hint">클릭 편집</span></th>
         </tr></thead>
         <tbody>
         <tr class="row-pending" data-row-id="이승학__0" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
-          <td><span class="service-name pending">세종의료기</span><span class="card-tag row-card-tag">SUPER할부-KT</span></td>
+          <td><span class="service-name pending">KT통신요금자동납부</span><div class="row-card-tags"><span class="card-tag">KT청구할인형</span><span class="card-tag">LG전자 스페셜롯데</span><span class="card-tag">SUPER할부-KT</span></div></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
-          <td class="num saving-cell">6,000,000<span class="won">원</span></td>
+          <td class="saving-cell dup-amounts"><div class="card-amt"><span class="card-tag">KT청구할인형</span>178,203<span class="won">원</span></div><div class="card-amt"><span class="card-tag">LG전자 스페셜롯데</span>225,473<span class="won">원</span></div><div class="card-amt"><span class="card-tag">SUPER할부-KT</span>392,927<span class="won">원</span></div></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
           <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
         </tr>
-        <tr class="row-ok" data-row-id="이승학__1" data-default-status="ok" data-default-action="정상 사용" data-default-assignees="이승학, 조용원" data-default-site="slack.com">
-          <td><span class="service-name">SLACK T09SR71H5L5</span><span class="card-tag row-card-tag">SUPER할부-KT</span></td>
-          <td class="site-cell td-editable" data-placeholder="사이트 주소">slack.com</td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
-          <td class="num saving-cell">173,950<span class="won">원</span></td>
-          <td class="td-status"><span class="status-badge sb-ok" data-status="ok"><span class="badge-text">정상 사용</span></span></td>
-          <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요">정상 사용</td>
-          <td class="assignee-cell td-editable" data-placeholder="담당자">이승학, 조용원</td>
-        </tr>
-        <tr class="row-pending" data-row-id="이승학__2" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="google.com">
-          <td><span class="service-name pending">구글페이먼트_구글페이먼트코리아 (150,000원/월)</span><span class="card-tag row-card-tag">SUPER할부-KT</span></td>
+        <tr class="row-pending" data-row-id="이승학__1" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="google.com">
+          <td><span class="service-name pending">구글페이먼트_구글페이먼트코리아</span><div class="row-card-tags"><span class="card-tag">LG전자 스페셜롯데</span><span class="card-tag">SUPER할부-KT</span></div></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소">google.com</td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
-          <td class="num saving-cell">150,000<span class="won">원</span></td>
+          <td class="saving-cell dup-amounts"><div class="card-amt"><span class="card-tag">LG전자 스페셜롯데</span>2,200<span class="won">원</span></div><div class="card-amt"><span class="card-tag">SUPER할부-KT</span>338,013<span class="won">원</span></div></td>
+          <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
+          <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
+          <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
+        </tr>
+        <tr class="row-pending" data-row-id="이승학__2" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
+          <td><span class="service-name pending">KT스카이라이프</span><div class="row-card-tags"><span class="card-tag">LG전자 스페셜롯데</span><span class="card-tag">SUPER할부-KT</span></div></td>
+          <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
+          <td class="saving-cell dup-amounts"><div class="card-amt"><span class="card-tag">LG전자 스페셜롯데</span>99,000<span class="won">원</span></div><div class="card-amt"><span class="card-tag">SUPER할부-KT</span>23,739<span class="won">원</span></div></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
           <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
         </tr>
         <tr class="row-pending" data-row-id="이승학__3" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
-          <td><span class="service-name pending">KT통신요금 자동납부</span><span class="card-tag row-card-tag">SUPER할부-KT</span></td>
+          <td><span class="service-name pending">쿠쿠홈시스_쿠쿠홈시스주식회사</span><div class="row-card-tags"><span class="card-tag">LG전자 스페셜롯데</span><span class="card-tag">SUPER할부-KT</span></div></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
-          <td class="num saving-cell">93,710<span class="won">원</span></td>
+          <td class="saving-cell dup-amounts"><div class="card-amt"><span class="card-tag">LG전자 스페셜롯데</span>32,800<span class="won">원</span></div><div class="card-amt"><span class="card-tag">SUPER할부-KT</span>64,775<span class="won">원</span></div></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
           <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
         </tr>
-        <tr class="row-pending" data-row-id="이승학__4" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
+        <tr class="row-pending" data-row-id="이승학__4" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="openai.com">
+          <td><span class="service-name pending">OPENAI</span><div class="row-card-tags"><span class="card-tag">M BOOST VISA</span><span class="card-tag">SUPER할부-KT</span></div></td>
+          <td class="site-cell td-editable" data-placeholder="사이트 주소">openai.com</td>
+          <td class="saving-cell dup-amounts"><div class="card-amt"><span class="card-tag">M BOOST VISA</span>16,364<span class="won">원</span></div><div class="card-amt"><span class="card-tag">SUPER할부-KT</span>55,648<span class="won">원</span></div></td>
+          <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
+          <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
+          <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
+        </tr></tbody>
+      </table>
+      
+      <div class="group-label sub-label">
+        <span class="group-icon">↻</span> 반복/구독 결제 &nbsp;<span class="group-count">8건</span>
+        <span class="group-desc">매월 반복 결제 항목 — 사용 현황 및 필요성 점검</span>
+      </div>
+      <table>
+        <thead><tr>
+          <th style="width:200px">서비스명</th>
+          <th style="width:130px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:120px;text-align:right">월평균 결제금액</th>
+          <th style="width:120px">조사 결과 <span class="edit-hint">클릭 변경</span></th>
+          <th>조치 내용 <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:160px">담당자 <span class="edit-hint">클릭 편집</span></th>
+        </tr></thead>
+        <tbody>
+        <tr class="row-pending" data-row-id="이승학__5" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
+          <td><span class="service-name pending">세종의료기</span><span class="card-tag row-card-tag">SUPER할부-KT</span></td>
+          <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
+          <td class="num saving-cell">6,000,000<span class="won">원</span></td>
+          <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
+          <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
+          <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
+        </tr>
+        <tr class="row-ok" data-row-id="이승학__6" data-default-status="ok" data-default-action="정상 사용" data-default-assignees="이승학, 조용원" data-default-site="slack.com">
+          <td><span class="service-name">SLACK T09SR71H5L5</span><span class="card-tag row-card-tag">SUPER할부-KT</span></td>
+          <td class="site-cell td-editable" data-placeholder="사이트 주소">slack.com</td>
+          <td class="num saving-cell">173,950<span class="won">원</span></td>
+          <td class="td-status"><span class="status-badge sb-ok" data-status="ok"><span class="badge-text">정상 사용</span></span></td>
+          <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요">정상 사용</td>
+          <td class="assignee-cell td-editable" data-placeholder="담당자">이승학, 조용원</td>
+        </tr>
+        <tr class="row-pending" data-row-id="이승학__7" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
           <td><span class="service-name pending">케이티텔레캅주식회사호남본부</span><span class="card-tag row-card-tag">SUPER할부-KT</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">64,900<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
           <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
         </tr>
-        <tr class="row-pending" data-row-id="이승학__5" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
-          <td><span class="service-name pending">쿠쿠홈시스_쿠쿠홈시스주식회사</span><span class="card-tag row-card-tag">SUPER할부-KT</span></td>
-          <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
-          <td class="num saving-cell">64,350<span class="won">원</span></td>
-          <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
-          <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
-          <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
-        </tr>
-        <tr class="row-pending" data-row-id="이승학__6" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="openai.com">
-          <td><span class="service-name pending">OPENAI</span><span class="card-tag row-card-tag">SUPER할부-KT</span></td>
-          <td class="site-cell td-editable" data-placeholder="사이트 주소">openai.com</td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
-          <td class="num saving-cell">55,648<span class="won">원</span></td>
-          <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
-          <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
-          <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
-        </tr>
-        <tr class="row-pending" data-row-id="이승학__7" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
+        <tr class="row-pending" data-row-id="이승학__8" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
           <td><span class="service-name pending">DEEVID AI</span><span class="card-tag row-card-tag">SUPER할부-KT</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">52,690<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
           <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
         </tr>
-        <tr class="row-pending" data-row-id="이승학__8" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
+        <tr class="row-pending" data-row-id="이승학__9" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
           <td><span class="service-name pending">(주)세스코</span><span class="card-tag row-card-tag">SUPER할부-KT</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">50,000<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
           <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
         </tr>
-        <tr class="row-pending" data-row-id="이승학__9" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
+        <tr class="row-pending" data-row-id="이승학__10" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
           <td><span class="service-name pending">LG전자 구독료</span><span class="card-tag row-card-tag">SUPER할부-KT</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">45,900<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
           <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
         </tr>
-        <tr class="row-stop" data-row-id="이승학__10" data-default-status="stop" data-default-action="누수비 — 즉시 해지 필요" data-default-assignees="" data-default-site="paddle.com">
+        <tr class="row-stop" data-row-id="이승학__11" data-default-status="stop" data-default-action="누수비 — 즉시 해지 필요" data-default-assignees="" data-default-site="paddle.com">
           <td><span class="service-name">PADDLE.NET* CHATBOTAI</span><span class="card-tag row-card-tag">SUPER할부-KT</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소">paddle.com</td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">30,036<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-stop" data-status="stop"><span class="badge-text">지출 중단</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요">누수비 — 즉시 해지 필요</td>
           <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
         </tr>
-        <tr class="row-pending" data-row-id="이승학__11" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="google.com">
-          <td><span class="service-name pending">구글페이먼트_구글페이먼트코리아 (29,000원/월)</span><span class="card-tag row-card-tag">SUPER할부-KT</span></td>
-          <td class="site-cell td-editable" data-placeholder="사이트 주소">google.com</td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
-          <td class="num saving-cell">29,000<span class="won">원</span></td>
-          <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
-          <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
-          <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
-        </tr>
         <tr class="row-pending" data-row-id="이승학__12" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
-          <td><span class="service-name pending">KT스카이라이프</span><span class="card-tag row-card-tag">SUPER할부-KT</span></td>
-          <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
-          <td class="num saving-cell">23,739<span class="won">원</span></td>
-          <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
-          <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
-          <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
-        </tr>
-        <tr class="row-pending" data-row-id="이승학__13" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
           <td><span class="service-name pending">구글클라우드코리아</span><span class="card-tag row-card-tag">SUPER할부-KT</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">20,000<span class="won">원</span></td>
-          <td class="month-cell"><div class="month-dots"><div class="month-dot"><span class="m-label">1월</span><span class="m-amt none">-</span></div><div class="month-dot"><span class="m-label">2월</span><span class="m-amt none">-</span></div><div class="month-dot"><span class="m-label">3월</span><span class="m-amt paid">20,000</span></div></div></td>
-          <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
-          <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
-          <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
-        </tr>
-        <tr class="row-pending" data-row-id="이승학__14" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="google.com">
-          <td><span class="service-name pending">구글페이먼트_구글페이먼트코리아 (5,700원/월)</span><span class="card-tag row-card-tag">SUPER할부-KT</span></td>
-          <td class="site-cell td-editable" data-placeholder="사이트 주소">google.com</td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
-          <td class="num saving-cell">5,700<span class="won">원</span></td>
-          <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
-          <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
-          <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
-        </tr>
-        <tr class="row-pending" data-row-id="이승학__15" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="google.com">
-          <td><span class="service-name pending">구글페이먼트_구글페이먼트코리아 (4,990원/월)</span><span class="card-tag row-card-tag">SUPER할부-KT</span></td>
-          <td class="site-cell td-editable" data-placeholder="사이트 주소">google.com</td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
-          <td class="num saving-cell">4,990<span class="won">원</span></td>
-          <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
-          <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
-          <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
-        </tr>
-        <tr class="row-pending" data-row-id="이승학__16" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="google.com">
-          <td><span class="service-name pending">구글페이먼트_구글페이먼트코리아 (2,990원/월)</span><span class="card-tag row-card-tag">SUPER할부-KT</span></td>
-          <td class="site-cell td-editable" data-placeholder="사이트 주소">google.com</td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
-          <td class="num saving-cell">2,990<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
           <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
@@ -993,7 +689,11 @@ tr:last-child td { border-bottom: none; }
         <div class="holder-stats">
           <div class="hs-stat">
             <div class="hs-label">조사 항목</div>
-            <div class="hs-num">12<span class="hs-unit">건</span></div>
+            <div class="hs-num">13<span class="hs-unit">건</span></div>
+          </div>
+          <div class="hs-stat hs-stat-dup">
+            <div class="hs-label">중복결제</div>
+            <div class="hs-num hs-dup">1<span class="hs-unit">건</span></div>
           </div>
           <div class="hs-stat">
             <div class="hs-label">확인 완료</div>
@@ -1001,126 +701,140 @@ tr:last-child td { border-bottom: none; }
           </div>
           <div class="hs-stat">
             <div class="hs-label">미확인</div>
-            <div class="hs-num c-pending h-pending">9<span class="hs-unit">건</span></div>
+            <div class="hs-num c-pending h-pending">10<span class="hs-unit">건</span></div>
           </div>
         </div>
+      </div>
+      
+      <div class="group-label dup-label">
+        <span class="group-icon">⚠</span> 중복결제 의심 &nbsp;<span class="group-count">1건</span>
+        <span class="group-desc">동일 서비스가 복수 카드에서 동시 결제 — 단일 카드로 통합 필요</span>
       </div>
       <table>
         <thead><tr>
           <th style="width:200px">서비스명</th>
           <th style="width:130px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
-          <th style="width:90px">유형</th>
-          <th style="width:120px;text-align:right">월 절감 추정</th>
-          <th style="width:170px">월별 결제 현황</th>
+          <th>카드별 월평균 결제금액</th>
           <th style="width:120px">조사 결과 <span class="edit-hint">클릭 변경</span></th>
           <th>조치 내용 <span class="edit-hint">클릭 편집</span></th>
           <th style="width:160px">담당자 <span class="edit-hint">클릭 편집</span></th>
         </tr></thead>
         <tbody>
-        <tr class="row-ok" data-row-id="2층공용_개발팀___0" data-default-status="ok" data-default-action="정상 사용" data-default-assignees="이승학, 조용원" data-default-site="anthropic.com">
+        <tr class="row-pending" data-row-id="2층공용_개발팀___0" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="openai.com">
+          <td><span class="service-name pending">OPENAI (42,553원/월)</span><div class="row-card-tags"><span class="card-tag">M BOOST VISA</span><span class="card-tag">SUPER할부-KT</span></div></td>
+          <td class="site-cell td-editable" data-placeholder="사이트 주소">openai.com</td>
+          <td class="saving-cell dup-amounts"><div class="card-amt"><span class="card-tag">M BOOST VISA</span>16,364<span class="won">원</span></div><div class="card-amt"><span class="card-tag">SUPER할부-KT</span>55,648<span class="won">원</span></div></td>
+          <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
+          <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
+          <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
+        </tr></tbody>
+      </table>
+      
+      <div class="group-label sub-label">
+        <span class="group-icon">↻</span> 반복/구독 결제 &nbsp;<span class="group-count">12건</span>
+        <span class="group-desc">매월 반복 결제 항목 — 사용 현황 및 필요성 점검</span>
+      </div>
+      <table>
+        <thead><tr>
+          <th style="width:200px">서비스명</th>
+          <th style="width:130px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:120px;text-align:right">월평균 결제금액</th>
+          <th style="width:120px">조사 결과 <span class="edit-hint">클릭 변경</span></th>
+          <th>조치 내용 <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:160px">담당자 <span class="edit-hint">클릭 편집</span></th>
+        </tr></thead>
+        <tbody>
+        <tr class="row-ok" data-row-id="2층공용_개발팀___1" data-default-status="ok" data-default-action="정상 사용" data-default-assignees="이승학, 조용원" data-default-site="anthropic.com">
           <td><span class="service-name">ANTHROPIC CLAUDE TEAM</span><span class="card-tag row-card-tag">M BOOST VISA</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소">anthropic.com</td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">830,121<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-ok" data-status="ok"><span class="badge-text">정상 사용</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요">정상 사용</td>
           <td class="assignee-cell td-editable" data-placeholder="담당자">이승학, 조용원</td>
         </tr>
-        <tr class="row-pending" data-row-id="2층공용_개발팀___1" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
+        <tr class="row-pending" data-row-id="2층공용_개발팀___2" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
           <td><span class="service-name pending">네이버페이</span><span class="card-tag row-card-tag">M BOOST VISA</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">459,497<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
           <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
         </tr>
-        <tr class="row-ok" data-row-id="2층공용_개발팀___2" data-default-status="ok" data-default-action="정상 사용" data-default-assignees="이승학, 조용원" data-default-site="ads.google.com">
+        <tr class="row-ok" data-row-id="2층공용_개발팀___3" data-default-status="ok" data-default-action="정상 사용" data-default-assignees="이승학, 조용원" data-default-site="ads.google.com">
           <td><span class="service-name">Google Digital Inc.</span><span class="card-tag row-card-tag">M BOOST VISA</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소">ads.google.com</td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">207,412<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-ok" data-status="ok"><span class="badge-text">정상 사용</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요">정상 사용</td>
           <td class="assignee-cell td-editable" data-placeholder="담당자">이승학, 조용원</td>
         </tr>
-        <tr class="row-pending" data-row-id="2층공용_개발팀___3" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="claude.ai">
+        <tr class="row-pending" data-row-id="2층공용_개발팀___4" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="claude.ai">
           <td><span class="service-name pending">CLAUDE.AI SUBSCRIPTION</span><span class="card-tag row-card-tag">M BOOST VISA</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소">claude.ai</td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">32,375<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
           <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
         </tr>
-        <tr class="row-pending" data-row-id="2층공용_개발팀___4" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="google.com">
+        <tr class="row-pending" data-row-id="2층공용_개발팀___5" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="google.com">
           <td><span class="service-name pending">구글플레이 - 구글페이먼트코리아 유한회사</span><span class="card-tag row-card-tag">M BOOST VISA</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소">google.com</td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">29,000<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
           <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
         </tr>
-        <tr class="row-pending" data-row-id="2층공용_개발팀___5" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="openai.com">
-          <td><span class="service-name pending">OPENAI</span><span class="card-tag row-card-tag">M BOOST VISA</span></td>
+        <tr class="row-pending" data-row-id="2층공용_개발팀___6" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="openai.com">
+          <td><span class="service-name pending">OPENAI (16,364원/월)</span><span class="card-tag row-card-tag">M BOOST VISA</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소">openai.com</td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">16,364<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
           <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
         </tr>
-        <tr class="row-pending" data-row-id="2층공용_개발팀___6" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
+        <tr class="row-pending" data-row-id="2층공용_개발팀___7" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
           <td><span class="service-name pending">쿠쿠홈시스 - 쿠쿠홈시스</span><span class="card-tag row-card-tag">M BOOST VISA</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">15,900<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
           <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
         </tr>
-        <tr class="row-pending" data-row-id="2층공용_개발팀___7" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="youtube.com">
+        <tr class="row-pending" data-row-id="2층공용_개발팀___8" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="youtube.com">
           <td><span class="service-name pending">유튜브프리미엄 - 구글페이먼트코리아 유한회 (14,900원/월)</span><span class="card-tag row-card-tag">M BOOST VISA</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소">youtube.com</td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">14,900<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
           <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
         </tr>
-        <tr class="row-pending" data-row-id="2층공용_개발팀___8" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
+        <tr class="row-pending" data-row-id="2층공용_개발팀___9" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
           <td><span class="service-name pending">네이버페이 - 주식회사 미리디</span><span class="card-tag row-card-tag">M BOOST VISA</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">14,900<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
           <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
         </tr>
-        <tr class="row-pending" data-row-id="2층공용_개발팀___9" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="youtube.com">
+        <tr class="row-pending" data-row-id="2층공용_개발팀___10" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="youtube.com">
           <td><span class="service-name pending">유튜브프리미엄 - 구글페이먼트코리아 유한회 (11,990원/월)</span><span class="card-tag row-card-tag">M BOOST VISA</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소">youtube.com</td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">11,990<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
           <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
         </tr>
-        <tr class="row-pending" data-row-id="2층공용_개발팀___10" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
+        <tr class="row-pending" data-row-id="2층공용_개발팀___11" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
           <td><span class="service-name pending">SQSP* DOMAIN#221759035</span><span class="card-tag row-card-tag">M BOOST VISA</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">7,917<span class="won">원</span></td>
-          <td class="month-cell"><div class="month-dots"><div class="month-dot"><span class="m-label">1월</span><span class="m-amt none">-</span></div><div class="month-dot"><span class="m-label">2월</span><span class="m-amt paid">7,917</span></div><div class="month-dot"><span class="m-label">3월</span><span class="m-amt none">-</span></div></div></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
           <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
         </tr>
-        <tr class="row-ok" data-row-id="2층공용_개발팀___11" data-default-status="ok" data-default-action="정상 사용" data-default-assignees="이승학, 조용원" data-default-site="ads.google.com">
+        <tr class="row-ok" data-row-id="2층공용_개발팀___12" data-default-status="ok" data-default-action="정상 사용" data-default-assignees="이승학, 조용원" data-default-site="ads.google.com">
           <td><span class="service-name">GOOGLE*GOOGLE DIGITAL</span><span class="card-tag row-card-tag">M BOOST VISA</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소">ads.google.com</td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">1,468<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-ok" data-status="ok"><span class="badge-text">정상 사용</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요">정상 사용</td>
@@ -1139,6 +853,10 @@ tr:last-child td { border-bottom: none; }
             <div class="hs-label">조사 항목</div>
             <div class="hs-num">12<span class="hs-unit">건</span></div>
           </div>
+          <div class="hs-stat hs-stat-dup">
+            <div class="hs-label">중복결제</div>
+            <div class="hs-num hs-dup">1<span class="hs-unit">건</span></div>
+          </div>
           <div class="hs-stat">
             <div class="hs-label">확인 완료</div>
             <div class="hs-num c-confirmed h-confirmed">0<span class="hs-unit">건</span></div>
@@ -1149,32 +867,49 @@ tr:last-child td { border-bottom: none; }
           </div>
         </div>
       </div>
+      
+      <div class="group-label dup-label">
+        <span class="group-icon">⚠</span> 중복결제 의심 &nbsp;<span class="group-count">1건</span>
+        <span class="group-desc">동일 서비스가 복수 카드에서 동시 결제 — 단일 카드로 통합 필요</span>
+      </div>
       <table>
         <thead><tr>
           <th style="width:200px">서비스명</th>
           <th style="width:130px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
-          <th style="width:90px">유형</th>
-          <th style="width:120px;text-align:right">월 절감 추정</th>
-          <th style="width:170px">월별 결제 현황</th>
+          <th>카드별 월평균 결제금액</th>
           <th style="width:120px">조사 결과 <span class="edit-hint">클릭 변경</span></th>
           <th>조치 내용 <span class="edit-hint">클릭 편집</span></th>
           <th style="width:160px">담당자 <span class="edit-hint">클릭 편집</span></th>
         </tr></thead>
         <tbody>
         <tr class="row-pending" data-row-id="정재승__0" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
-          <td><span class="service-name pending">네이버페이</span><span class="card-tag row-card-tag">KT청구할인형</span></td>
+          <td><span class="service-name pending">KT통신요금자동납부</span><div class="row-card-tags"><span class="card-tag">KT청구할인형</span><span class="card-tag">LG전자 스페셜롯데</span><span class="card-tag">SUPER할부-KT</span></div></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
-          <td class="num saving-cell">235,000<span class="won">원</span></td>
+          <td class="saving-cell dup-amounts"><div class="card-amt"><span class="card-tag">KT청구할인형</span>178,203<span class="won">원</span></div><div class="card-amt"><span class="card-tag">LG전자 스페셜롯데</span>225,473<span class="won">원</span></div><div class="card-amt"><span class="card-tag">SUPER할부-KT</span>392,927<span class="won">원</span></div></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
           <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
-        </tr>
+        </tr></tbody>
+      </table>
+      
+      <div class="group-label sub-label">
+        <span class="group-icon">↻</span> 반복/구독 결제 &nbsp;<span class="group-count">11건</span>
+        <span class="group-desc">매월 반복 결제 항목 — 사용 현황 및 필요성 점검</span>
+      </div>
+      <table>
+        <thead><tr>
+          <th style="width:200px">서비스명</th>
+          <th style="width:130px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:120px;text-align:right">월평균 결제금액</th>
+          <th style="width:120px">조사 결과 <span class="edit-hint">클릭 변경</span></th>
+          <th>조치 내용 <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:160px">담당자 <span class="edit-hint">클릭 편집</span></th>
+        </tr></thead>
+        <tbody>
         <tr class="row-pending" data-row-id="정재승__1" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
-          <td><span class="service-name pending">KT통신요금자동납부</span><span class="card-tag row-card-tag">KT청구할인형</span></td>
+          <td><span class="service-name pending">네이버페이</span><span class="card-tag row-card-tag">KT청구할인형</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
-          <td class="num saving-cell">178,203<span class="won">원</span></td>
+          <td class="num saving-cell">235,000<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
           <td class="assignee-cell td-editable" data-placeholder="담당자"></td>
@@ -1182,7 +917,6 @@ tr:last-child td { border-bottom: none; }
         <tr class="row-pending" data-row-id="정재승__2" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
           <td><span class="service-name pending">KCP결제 - 엔에이치엔케이씨피(주)</span><span class="card-tag row-card-tag">KT청구할인형</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">176,327<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
@@ -1191,7 +925,6 @@ tr:last-child td { border-bottom: none; }
         <tr class="row-pending" data-row-id="정재승__3" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
           <td><span class="service-name pending">명궁관</span><span class="card-tag row-card-tag">KT청구할인형</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">84,000<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
@@ -1200,7 +933,6 @@ tr:last-child td { border-bottom: none; }
         <tr class="row-pending" data-row-id="정재승__4" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
           <td><span class="service-name pending">지큐룸소주방</span><span class="card-tag row-card-tag">KT청구할인형</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">70,650<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
@@ -1209,7 +941,6 @@ tr:last-child td { border-bottom: none; }
         <tr class="row-pending" data-row-id="정재승__5" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
           <td><span class="service-name pending">투썸플레이스순천조례점</span><span class="card-tag row-card-tag">KT청구할인형</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">26,150<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
@@ -1218,7 +949,6 @@ tr:last-child td { border-bottom: none; }
         <tr class="row-pending" data-row-id="정재승__6" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
           <td><span class="service-name pending">우리홈마트</span><span class="card-tag row-card-tag">KT청구할인형</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">20,655<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
@@ -1227,7 +957,6 @@ tr:last-child td { border-bottom: none; }
         <tr class="row-pending" data-row-id="정재승__7" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
           <td><span class="service-name pending">사회복지법인밀알복지재단</span><span class="card-tag row-card-tag">NH농협 다사로이</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">20,000<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
@@ -1236,7 +965,6 @@ tr:last-child td { border-bottom: none; }
         <tr class="row-pending" data-row-id="정재승__8" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
           <td><span class="service-name pending">포스트텔링크주식회사</span><span class="card-tag row-card-tag">NH농협 다사로이</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">11,000<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
@@ -1245,7 +973,6 @@ tr:last-child td { border-bottom: none; }
         <tr class="row-pending" data-row-id="정재승__9" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
           <td><span class="service-name pending">공공요금</span><span class="card-tag row-card-tag">KT청구할인형</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">5,200<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
@@ -1254,7 +981,6 @@ tr:last-child td { border-bottom: none; }
         <tr class="row-pending" data-row-id="정재승__10" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
           <td><span class="service-name pending">KCP_결제 - 아이파킹 주식회사</span><span class="card-tag row-card-tag">KT청구할인형</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">4,250<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
@@ -1263,7 +989,6 @@ tr:last-child td { border-bottom: none; }
         <tr class="row-pending" data-row-id="정재승__11" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
           <td><span class="service-name pending">주식회사이스트에이드</span><span class="card-tag row-card-tag">NH농협 다사로이</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">990<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
@@ -1282,6 +1007,10 @@ tr:last-child td { border-bottom: none; }
             <div class="hs-label">조사 항목</div>
             <div class="hs-num">5<span class="hs-unit">건</span></div>
           </div>
+          <div class="hs-stat hs-stat-dup">
+            <div class="hs-label">중복결제</div>
+            <div class="hs-num hs-dup">0<span class="hs-unit">건</span></div>
+          </div>
           <div class="hs-stat">
             <div class="hs-label">확인 완료</div>
             <div class="hs-num c-confirmed h-confirmed">0<span class="hs-unit">건</span></div>
@@ -1292,13 +1021,17 @@ tr:last-child td { border-bottom: none; }
           </div>
         </div>
       </div>
+      
+      
+      <div class="group-label sub-label">
+        <span class="group-icon">↻</span> 반복/구독 결제 &nbsp;<span class="group-count">5건</span>
+        <span class="group-desc">매월 반복 결제 항목 — 사용 현황 및 필요성 점검</span>
+      </div>
       <table>
         <thead><tr>
           <th style="width:200px">서비스명</th>
           <th style="width:130px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
-          <th style="width:90px">유형</th>
-          <th style="width:120px;text-align:right">월 절감 추정</th>
-          <th style="width:170px">월별 결제 현황</th>
+          <th style="width:120px;text-align:right">월평균 결제금액</th>
           <th style="width:120px">조사 결과 <span class="edit-hint">클릭 변경</span></th>
           <th>조치 내용 <span class="edit-hint">클릭 편집</span></th>
           <th style="width:160px">담당자 <span class="edit-hint">클릭 편집</span></th>
@@ -1307,7 +1040,6 @@ tr:last-child td { border-bottom: none; }
         <tr class="row-pending" data-row-id="송다윗__0" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
           <td><span class="service-name pending">구구팔팔의료기</span><span class="card-tag row-card-tag">KB WISH올카드</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">1,178,200<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
@@ -1316,7 +1048,6 @@ tr:last-child td { border-bottom: none; }
         <tr class="row-pending" data-row-id="송다윗__1" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
           <td><span class="service-name pending">더풍전주식회사</span><span class="card-tag row-card-tag">KB WISH올카드</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">77,000<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
@@ -1325,7 +1056,6 @@ tr:last-child td { border-bottom: none; }
         <tr class="row-pending" data-row-id="송다윗__2" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
           <td><span class="service-name pending">왕지철물 산업안전</span><span class="card-tag row-card-tag">KB WISH올카드</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">21,500<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
@@ -1334,7 +1064,6 @@ tr:last-child td { border-bottom: none; }
         <tr class="row-pending" data-row-id="송다윗__3" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
           <td><span class="service-name pending">현대볼트종합상사</span><span class="card-tag row-card-tag">KB WISH올카드</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">17,050<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
@@ -1343,7 +1072,6 @@ tr:last-child td { border-bottom: none; }
         <tr class="row-pending" data-row-id="송다윗__4" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
           <td><span class="service-name pending">우정사업본부(우체국)</span><span class="card-tag row-card-tag">KB WISH올카드</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">4,640<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
@@ -1362,6 +1090,10 @@ tr:last-child td { border-bottom: none; }
             <div class="hs-label">조사 항목</div>
             <div class="hs-num">3<span class="hs-unit">건</span></div>
           </div>
+          <div class="hs-stat hs-stat-dup">
+            <div class="hs-label">중복결제</div>
+            <div class="hs-num hs-dup">0<span class="hs-unit">건</span></div>
+          </div>
           <div class="hs-stat">
             <div class="hs-label">확인 완료</div>
             <div class="hs-num c-confirmed h-confirmed">0<span class="hs-unit">건</span></div>
@@ -1372,13 +1104,17 @@ tr:last-child td { border-bottom: none; }
           </div>
         </div>
       </div>
+      
+      
+      <div class="group-label sub-label">
+        <span class="group-icon">↻</span> 반복/구독 결제 &nbsp;<span class="group-count">3건</span>
+        <span class="group-desc">매월 반복 결제 항목 — 사용 현황 및 필요성 점검</span>
+      </div>
       <table>
         <thead><tr>
           <th style="width:200px">서비스명</th>
           <th style="width:130px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
-          <th style="width:90px">유형</th>
-          <th style="width:120px;text-align:right">월 절감 추정</th>
-          <th style="width:170px">월별 결제 현황</th>
+          <th style="width:120px;text-align:right">월평균 결제금액</th>
           <th style="width:120px">조사 결과 <span class="edit-hint">클릭 변경</span></th>
           <th>조치 내용 <span class="edit-hint">클릭 편집</span></th>
           <th style="width:160px">담당자 <span class="edit-hint">클릭 편집</span></th>
@@ -1387,7 +1123,6 @@ tr:last-child td { border-bottom: none; }
         <tr class="row-pending" data-row-id="반유환__0" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
           <td><span class="service-name pending">바로알림서비스 03월이용료</span><span class="card-tag row-card-tag">V2 BIZ AMEX</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">300<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
@@ -1396,7 +1131,6 @@ tr:last-child td { border-bottom: none; }
         <tr class="row-pending" data-row-id="반유환__1" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
           <td><span class="service-name pending">바로알림서비스 02월이용료</span><span class="card-tag row-card-tag">V2 BIZ AMEX</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">300<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
@@ -1405,7 +1139,6 @@ tr:last-child td { border-bottom: none; }
         <tr class="row-pending" data-row-id="반유환__2" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
           <td><span class="service-name pending">바로알림서비스 01월이용료</span><span class="card-tag row-card-tag">V2 BIZ AMEX</span></td>
           <td class="site-cell td-editable" data-placeholder="사이트 주소"></td>
-          <td><span class="rec-type rec-type-sub">구독확인</span></td>
           <td class="num saving-cell">300<span class="won">원</span></td>
           <td class="td-status"><span class="status-badge sb-pending" data-status="pending"><span class="badge-text">미확인</span></span></td>
           <td class="action-cell td-editable" data-placeholder="조치 내용을 입력하세요"></td>
@@ -1507,19 +1240,9 @@ tr:last-child td { border-bottom: none; }
       item.addEventListener('click', e => {
         e.stopPropagation();
         const tr = badge.closest('tr');
-        if (tr) {
-          setStatus(tr, opt.value);
-          persist(tr.dataset.rowId, 'status', opt.value);
-          updateSummary();
-        } else {
-          // dup-section badge (not inside a <tr>)
-          STATUS_OPTIONS.forEach(o => badge.classList.remove(o.bdgCls));
-          badge.classList.add(opt.bdgCls);
-          badge.querySelector('.badge-text').textContent = opt.label;
-          badge.dataset.status = opt.value;
-          const dupId = badge.closest('.dup-item') ? badge.closest('.dup-item').id : 'dup-unknown';
-          persist('dup_' + dupId, 'status', opt.value);
-        }
+        setStatus(tr, opt.value);
+        persist(tr.dataset.rowId, 'status', opt.value);
+        updateSummary();
         closeDropdown();
       });
       dd.appendChild(item);
@@ -1534,11 +1257,6 @@ tr:last-child td { border-bottom: none; }
     if (activeDD) { activeDD.remove(); activeDD = null; }
   }
   document.addEventListener('click', () => closeDropdown());
-
-  // ── 중복결제 섹션 상태 토글 ──────────────────────────────────
-  window.toggleDupStatus = function(badge) {
-    showDropdown(badge);
-  };
 
   // ── 초기화 ──────────────────────────────────
   window.resetAll = async function () {
@@ -1601,78 +1319,10 @@ tr:last-child td { border-bottom: none; }
       });
     });
 
-    // 중복결제 섹션 저장 상태 복원
-    document.querySelectorAll('.dup-item').forEach(dupItem => {
-      const dupId = 'dup_' + dupItem.id;
-      if (saved[dupId] && saved[dupId].status) {
-        const badge = dupItem.querySelector('.status-badge');
-        if (badge) {
-          STATUS_OPTIONS.forEach(o => badge.classList.remove(o.bdgCls));
-          const opt = STATUS_OPTIONS.find(o => o.value === saved[dupId].status);
-          if (opt) {
-            badge.classList.add(opt.bdgCls);
-            badge.querySelector('.badge-text').textContent = opt.label;
-            badge.dataset.status = saved[dupId].status;
-          }
-        }
-      }
-    });
-
     updateSummary();
   }
 
   init();
-
-  // ── 월별 결제 현황 셀 자동 주입 (month-cell 없는 행에 기본값 삽입) ──
-  document.querySelectorAll('tr[data-row-id]').forEach(function(tr) {
-    if (tr.querySelector('.month-cell')) return; // 이미 있으면 skip
-    var tdStatus = tr.querySelector('.td-status');
-    if (!tdStatus) return;
-    var cell = document.createElement('td');
-    cell.className = 'month-cell';
-    // 저장 금액 추출
-    var savingEl = tr.querySelector('.saving-cell');
-    var amtText = savingEl ? savingEl.textContent.replace('원','').trim() : '';
-    // 반복 여부: 기본은 매월 동일 금액
-    var html = '<div class="month-dots">' +
-      '<div class="month-dot"><span class="m-label">1월</span><span class="m-amt paid">' + amtText + '</span></div>' +
-      '<div class="month-dot"><span class="m-label">2월</span><span class="m-amt paid">' + amtText + '</span></div>' +
-      '<div class="month-dot"><span class="m-label">3월</span><span class="m-amt paid">' + amtText + '</span></div>' +
-      '</div>';
-    cell.innerHTML = html;
-    tdStatus.parentNode.insertBefore(cell, tdStatus);
-  });
-})();
-</script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script>
-// Date display
-(function(){var d=new Date();document.getElementById('hdr-date')&&(document.getElementById('hdr-date').textContent=d.getFullYear()+'.'+(d.getMonth()+1)+'.'+d.getDate());})();
-
-// Excel export
-function exportExcel(){
-  if(typeof XLSX==='undefined'){alert('잠시 후 다시 시도해주세요.');return;}
-  var wb=XLSX.utils.book_new();
-  document.querySelectorAll('table').forEach(function(tbl,i){
-    var rows=[];
-    tbl.querySelectorAll('tr').forEach(function(tr){var row=[];tr.querySelectorAll('th,td').forEach(function(td){row.push(td.innerText.trim());});rows.push(row);});
-    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'시트'+(i+1));
-  });
-  var d=new Date();
-  XLSX.writeFile(wb,'실사결과보고_'+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'.xlsx');
-}
-
-// Iframe FM cursor
-(function(){
-  if(window.self!==window.top){
-    document.head.insertAdjacentHTML('beforeend','<style>*{cursor:none!important}#_fmc{position:fixed;z-index:99999;pointer-events:none;width:10px;height:10px;border-radius:50%;background:#1A56D6;transform:translate(-50%,-50%);transition:width .22s,height .22s}#_fmc.big{width:44px;height:44px;background:transparent;border:1px solid rgba(26,86,214,.7)}#_fmt{position:fixed;z-index:99997;pointer-events:none;width:4px;height:4px;border-radius:50%;background:rgba(26,86,214,.45);transform:translate(-50%,-50%);transition:left .16s ease,top .16s ease}</style>');
-    var c=document.createElement('div');c.id='_fmc';var t=document.createElement('div');t.id='_fmt';
-    document.body.appendChild(c);document.body.appendChild(t);
-    var mx=-100,my=-100,tx=-100,ty=-100;
-    document.addEventListener('mousemove',function(e){mx=e.clientX;my=e.clientY;c.style.left=mx+'px';c.style.top=my+'px';});
-    setInterval(function(){tx+=(mx-tx)*.18;ty+=(my-ty)*.18;t.style.left=tx+'px';t.style.top=ty+'px';},16);
-    setTimeout(function(){document.querySelectorAll('a,button,input,select,.tab-btn,[onclick]').forEach(function(el){el.addEventListener('mouseenter',function(){c.classList.add('big');});el.addEventListener('mouseleave',function(){c.classList.remove('big');});});},500);
-  }
 })();
 </script>
 </body>
