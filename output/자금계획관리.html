@@ -52,7 +52,7 @@
 .tab-btn:hover{color:var(--ink2)}
 .tab-btn.active{color:var(--ink);border-bottom-color:var(--accent);font-weight:800}
 .tab-content{display:none}.tab-content.active{display:block}
-.container{padding:36px 60px;max-width:1400px}
+.container{padding:36px 60px;max-width:1400px;margin:0 auto}
 
 /* ── SECTION LABEL ── */
 .section-label{display:flex;align-items:center;gap:12px;margin-bottom:20px;margin-top:32px}
@@ -195,7 +195,22 @@ body{font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:var(
     <a href="/plan" class="app-nav-link active">자금계획</a>
   </div>
 </nav>
-<script>(function(){if(window.self!==window.top){var n=document.querySelector('.app-nav');if(n)n.style.display='none';}})();</script>
+<script>(function(){
+  if(window.self!==window.top){
+    var n=document.querySelector('.app-nav');
+    if(n)n.style.display='none';
+    document.head.insertAdjacentHTML('beforeend','<style>.header{top:0!important}.tab-bar{top:56px!important}</style>');
+    // FM cursor injection
+    document.head.insertAdjacentHTML('beforeend','<style>*{cursor:none!important}#_fmc{position:fixed;z-index:99999;pointer-events:none;width:10px;height:10px;border-radius:50%;background:#1A56D6;transform:translate(-50%,-50%);transition:width .22s,height .22s}#_fmc.big{width:44px;height:44px;background:transparent;border:1px solid rgba(26,86,214,.7)}#_fmt{position:fixed;z-index:99997;pointer-events:none;width:4px;height:4px;border-radius:50%;background:rgba(26,86,214,.45);transform:translate(-50%,-50%);transition:left .16s ease,top .16s ease}</style>');
+    var c=document.createElement('div');c.id='_fmc';
+    var t=document.createElement('div');t.id='_fmt';
+    document.body.appendChild(c);document.body.appendChild(t);
+    var mx=-100,my=-100,tx=-100,ty=-100;
+    document.addEventListener('mousemove',function(e){mx=e.clientX;my=e.clientY;c.style.left=mx+'px';c.style.top=my+'px';});
+    setInterval(function(){tx+=(mx-tx)*.18;ty+=(my-ty)*.18;t.style.left=tx+'px';t.style.top=ty+'px';},16);
+    setTimeout(function(){document.querySelectorAll('a,button,input,select,.tab-btn,[onclick]').forEach(function(el){el.addEventListener('mouseenter',function(){c.classList.add('big');});el.addEventListener('mouseleave',function(){c.classList.remove('big');});});},500);
+  }
+})();</script>
 
 <!-- HEADER -->
 <header class="header">
@@ -209,7 +224,7 @@ body{font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:var(
     <label class="edit-toggle" id="edit-toggle-wrap">
       <input type="checkbox" id="edit-mode-toggle"> [ 계획 편집 ]
     </label>
-    <a class="hdr-btn" href="/api/export-plan-excel" download>↓ Excel</a>
+    <button class="hdr-btn" onclick="exportPlanExcel()">↓ Excel</button>
     <button class="hdr-btn" onclick="window.print()">
       <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="2" y="4" width="8" height="5" rx=".6" stroke="currentColor" stroke-width="1.1"/><path d="M4 4V2h4v2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><rect x="3.5" y="6.5" width="5" height="2.5" rx=".3" stroke="currentColor" stroke-width=".9"/></svg>
       인쇄
@@ -1882,6 +1897,29 @@ function initTicker() {
 
 // ── START ──
 init();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+function exportPlanExcel(){
+  if(typeof XLSX==='undefined'){alert('Excel 라이브러리 로딩 중입니다. 잠시 후 다시 시도해주세요.');return;}
+  var wb = XLSX.utils.book_new();
+  // Gather table data from the DOM
+  var tables = document.querySelectorAll('table');
+  if(tables.length === 0){ alert('내보낼 데이터가 없습니다.'); return; }
+  tables.forEach(function(tbl, i){
+    var rows = [];
+    tbl.querySelectorAll('tr').forEach(function(tr){
+      var row = [];
+      tr.querySelectorAll('th,td').forEach(function(td){ row.push(td.innerText.trim()); });
+      rows.push(row);
+    });
+    var name = (tbl.closest('.tab-content') ? tbl.closest('.tab-content').id.replace('tab-','') : '시트'+(i+1)).substring(0,31);
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), name || ('Sheet'+(i+1)));
+  });
+  var d=new Date();
+  var fname='자금계획관리_'+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'.xlsx';
+  XLSX.writeFile(wb, fname);
+}
 </script>
 </body>
 </html>

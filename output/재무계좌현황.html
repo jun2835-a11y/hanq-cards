@@ -350,7 +350,7 @@ tr:hover .action-btns{opacity:1}
   </div>
   <div style="margin-top:18px;font-family:'Noto Sans KR','Malgun Gothic',sans-serif;font-size:10px;letter-spacing:.35em;color:rgba(255,255,255,.55);text-transform:uppercase;font-weight:400">H A N Q</div>
 </div>
-<script>(function(){var e=document.getElementById('hl-splash');if(window.self!==window.top){e.remove();return;}setTimeout(function(){e.style.opacity='0';setTimeout(function(){e.remove()},700)},1600)})();</script>
+<script>(function(){var e=document.getElementById('hl-splash');if(window.self!==window.top){e.remove();document.head.insertAdjacentHTML('beforeend','<style>*{cursor:none!important}#_fmc{position:fixed;z-index:99999;pointer-events:none;width:10px;height:10px;border-radius:50%;background:#1A56D6;transform:translate(-50%,-50%);transition:width .22s,height .22s}#_fmc.big{width:44px;height:44px;background:transparent;border:1px solid rgba(26,86,214,.7)}#_fmt{position:fixed;z-index:99997;pointer-events:none;width:4px;height:4px;border-radius:50%;background:rgba(26,86,214,.45);transform:translate(-50%,-50%);transition:left .16s ease,top .16s ease}</style>');var c=document.createElement('div');c.id='_fmc';var t=document.createElement('div');t.id='_fmt';document.body.appendChild(c);document.body.appendChild(t);var mx=-100,my=-100,tx=-100,ty=-100;document.addEventListener('mousemove',function(e){mx=e.clientX;my=e.clientY;c.style.left=mx+'px';c.style.top=my+'px';});setInterval(function(){tx+=(mx-tx)*.18;ty+=(my-ty)*.18;t.style.left=tx+'px';t.style.top=ty+'px';},16);setTimeout(function(){document.querySelectorAll('a,button,input,select,th,td[onclick],[onclick],.tab-btn,.filter-select').forEach(function(el){el.addEventListener('mouseenter',function(){c.classList.add('big');});el.addEventListener('mouseleave',function(){c.classList.remove('big');});});},500);return;}setTimeout(function(){e.style.opacity='0';setTimeout(function(){e.remove()},700)},1600)})();</script>
 
 <div id="toast"></div>
 
@@ -520,9 +520,21 @@ tr:hover .action-btns{opacity:1}
     <span class="alert-label">주의</span>
   </div>
   <div class="alert-track">
-    <div class="alert-inner" id="alert-ticker"><span class="alert-chip urgent">대출 만기: 농협 마이너스대출<span class="alert-days urgent">D-8</span></span><span class="ticker-sep">・</span></div>
+    <div class="alert-inner" id="alert-ticker"><span class="alert-chip urgent">대출 만기: 농협 마이너스대출<span class="alert-days urgent" id="loan-dday-ticker"></span></span><span class="ticker-sep">・</span></div>
   </div>
 </div>
+<script>
+(function(){
+  var maturity = new Date(2026, 4, 20); // 농협 마이너스대출 만기 2026.5.20
+  var today = new Date(); today.setHours(0,0,0,0); maturity.setHours(0,0,0,0);
+  var diff = Math.round((maturity - today) / 86400000);
+  var label = diff > 0 ? 'D-' + diff : diff === 0 ? 'D-0' : 'D+' + Math.abs(diff);
+  var el1 = document.getElementById('loan-dday-ticker');
+  var el2 = document.getElementById('loan-dday-table');
+  if(el1) el1.textContent = label;
+  if(el2) el2.textContent = label;
+})();
+</script>
 <script>
 (function(){
   const ticker = document.getElementById('alert-ticker');
@@ -1287,7 +1299,7 @@ tr:hover .action-btns{opacity:1}
           <td class="td-sub" style="color:var(--neg);font-weight:700">
             2026.5.20
           </td>
-          <td class="center"><span class="d-tag d-urgent">D-8</span></td>
+          <td class="center"><span class="d-tag d-urgent" id="loan-dday-table"></span></td>
           <td><div class="note-text" id="lnote-3521990463253" onclick="openNoteModal('L:352-1990-4632-53','마이너스대출')"></div></td>
         </tr>
       </tbody>
