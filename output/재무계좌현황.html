@@ -1,0 +1,2254 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>재무 계좌 관리</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F7F5F0;--surface:#FFF;--border:#E2DED7;--border2:#EDE9E3;
+  --ink:#1A1814;--ink2:#5C5851;--muted:#9A958F;
+  --accent:#C8380A;
+  --pos:#2D6644;--pos-bg:#EBF2EE;--pos-bd:#A8CCBA;
+  --neg:#C8380A;--neg-bg:#FDEEE9;--neg-bd:#F2C4B4;
+  --warn:#8B5E14;--warn-bg:#FDF5E0;--warn-bd:#E8D080;
+  --info:#1A4A8A;--info-bg:#EBF0FA;--info-bd:#A8C0E0;
+  --radius:2px;
+}
+html{max-width:100vw;overflow-x:hidden}
+body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;line-height:1.6;min-height:100vh;overflow-x:hidden;max-width:100%}
+
+/* ── HEADER ── */
+.header{background:var(--ink);color:#F7F5F0;padding:40px 60px 32px;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:nowrap;gap:24px}
+.header-left .eyebrow{font-size:10px;letter-spacing:5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.header-left h1{font-size:24px;font-weight:700;margin-bottom:6px}
+.header-left .sub{font-size:12px;color:#9A958F}
+.header-right{display:flex;flex-direction:column;gap:8px;align-items:stretch}
+.hdr-btns{display:flex;gap:8px}
+.hdr-btns .hdr-btn{flex:1;justify-content:center}
+.hdr-weather{display:flex;align-items:center;justify-content:center;gap:8px;font-size:12px;color:#9A958F;padding:8px 16px;border:1px solid #3A3530;letter-spacing:0.2px;white-space:nowrap}
+.hdr-weather-date{color:#C8C2BA;font-size:12px}
+.hdr-weather-sep{opacity:.35;font-size:12px}
+.hdr-weather-icon{font-size:14px;line-height:1;vertical-align:middle;display:inline-flex;align-items:center}
+.hdr-weather-temp{color:#F7F5F0;font-weight:600;font-size:12px}
+.hdr-weather-desc{color:#9A958F;font-size:12px}
+.hdr-btn{font-size:11px;padding:7px 16px;border:1px solid #3A3530;color:#9A958F;background:transparent;cursor:pointer;font-family:inherit;transition:all .15s;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.hdr-btn:hover{border-color:#9A958F;color:#F7F5F0}
+.hdr-btn.primary{border-color:var(--accent);color:var(--accent)}
+.hdr-btn.primary:hover{background:var(--accent);color:#FFF}
+
+/* ── KPI ── */
+.kpi-bar{background:var(--surface);border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap}
+.kpi{padding:22px 32px;border-right:1px solid var(--border);flex:1;min-width:140px}
+.kpi:last-child{border-right:none}
+.kpi-label{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.kpi-val{font-size:20px;font-weight:700;line-height:1;display:flex;align-items:baseline;gap:3px}
+.kpi-unit{font-size:12px;font-weight:400}
+.kpi-val.pos{color:var(--pos)}
+.kpi-val.neg{color:var(--neg)}
+.kpi-val.warn{color:var(--warn)}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:3px}
+.kpi-updated{font-size:10px;color:var(--muted);margin-top:2px;font-style:italic}
+
+/* ── ALERTS ── */
+@keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(calc(-1 * var(--ticker-one, 2000px)))}}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+.alert-bar{background:#FFFCF5;border-bottom:1px solid var(--warn-bd);display:none;overflow:hidden}
+.alert-bar.has-alerts{display:flex;align-items:center}
+.alert-label-wrap{flex-shrink:0;display:flex;align-items:center;gap:7px;padding:11px 20px 11px 60px;background:#FFFCF5;border-right:1px solid var(--warn-bd);z-index:1}
+.alert-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--warn);font-weight:700}
+.alert-label-dot{width:6px;height:6px;border-radius:50%;background:var(--warn);animation:pulse 1.4s ease-in-out infinite}
+.alert-track{flex:1;overflow:hidden;mask-image:linear-gradient(to right,transparent 0,black 40px,black calc(100% - 40px),transparent 100%)}
+.alert-inner{display:flex;align-items:center;padding:11px 0;width:max-content;animation:ticker var(--ticker-dur,30s) linear infinite}
+.alert-inner:hover{animation-play-state:paused}
+.exchange-inner{display:flex;align-items:center;padding:11px 0;width:max-content;animation:ticker var(--ticker-dur,30s) linear infinite}
+.exchange-inner:hover{animation-play-state:paused}
+.alert-chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;background:var(--warn-bg);border:1px solid var(--warn-bd);color:var(--warn);padding:3px 12px;font-weight:600;white-space:nowrap}
+.alert-chip.urgent{background:var(--neg-bg);border-color:var(--neg-bd);color:var(--neg)}
+.alert-days{font-size:10px;font-weight:700;padding:1px 6px;background:var(--warn);color:white;margin-left:2px}
+.alert-days.urgent{background:var(--neg)}
+.ticker-sep{display:inline-block;color:var(--warn);opacity:.35;font-size:13px;margin:0 18px;line-height:1;font-weight:300}
+
+/* ── EXCHANGE RATE BAR ── */
+.exchange-bar{background:#FFFCF5;border-bottom:1px solid var(--warn-bd);display:flex;align-items:center;min-height:40px}
+.exchange-label-wrap{flex-shrink:0;display:flex;align-items:center;gap:7px;padding:11px 20px 11px 60px;background:#FFFCF5;border-right:1px solid var(--warn-bd);z-index:1}
+.exchange-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--warn);font-weight:700}
+.exchange-label-dot{width:6px;height:6px;border-radius:50%;background:var(--warn);animation:pulse 1.4s ease-in-out infinite}
+.exchange-chips{display:flex;align-items:center;gap:10px;padding:0 24px;flex:1;flex-wrap:wrap}
+.rate-chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;background:var(--warn-bg);border:1px solid var(--warn-bd);color:var(--warn);padding:3px 12px;font-weight:600;white-space:nowrap}
+.rate-currency{font-size:10px;font-weight:700;color:var(--warn)}
+.rate-val{font-size:11px;color:var(--ink2)}
+.rate-unit{font-size:10px;color:var(--muted);font-weight:400;margin-left:1px}
+.rate-sep{color:var(--plan-bd);margin:0 2px}
+.exchange-updated{font-size:10px;color:var(--muted);padding-right:24px;white-space:nowrap}
+
+/* ── TABS ── */
+.tab-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 60px;display:flex;gap:0;position:sticky;top:0;z-index:100;box-shadow:0 1px 4px rgba(0,0,0,0.05)}
+.tab-btn{font-size:12px;font-weight:500;color:var(--muted);padding:13px 20px;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:inherit;transition:all .15s;white-space:nowrap}
+.tab-btn:hover{color:var(--ink2)}
+.tab-btn.active{color:var(--ink);border-bottom-color:var(--accent);font-weight:700}
+.tab-content{display:none}.tab-content.active{display:block}
+
+/* ── TOOLBAR ── */
+.toolbar{display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.search-box{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-bottom:1.5px solid var(--ink2);padding:8px 14px;flex:1;max-width:320px;transition:border-color .2s}
+.search-box:focus-within{border-bottom-color:var(--accent)}
+.search-box input{border:none;outline:none;background:none;font-family:inherit;font-size:12px;letter-spacing:.03em;color:var(--ink);width:100%}
+.search-box input::placeholder{color:var(--muted);font-weight:300}
+.search-icon{flex-shrink:0;opacity:.45;transition:opacity .2s}
+.search-box:focus-within .search-icon{opacity:.8}
+.filter-select{font-family:inherit;font-size:12px;color:var(--ink2);background:var(--surface);border:1px solid var(--border);padding:7px 12px;cursor:pointer;outline:none}
+.tool-btn{font-size:11px;padding:7px 14px;border:1px solid var(--border);color:var(--ink2);background:var(--surface);cursor:pointer;font-family:inherit;transition:all .15s;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.tool-btn:hover{border-color:var(--ink2);color:var(--ink)}
+.tool-btn.primary{border-color:var(--pos);color:var(--pos)}
+.tool-btn.primary:hover{background:var(--pos);color:white}
+.spacer{flex:1}
+
+/* ── CONTAINER ── */
+.container{max-width:1400px;margin:0 auto;padding:36px 60px}
+
+/* ── SECTION ── */
+.section{margin-bottom:44px}
+.section-header{display:flex;align-items:center;gap:12px;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.section-title{font-size:15px;font-weight:700}
+.section-count{font-size:11px;color:var(--muted);padding:2px 8px;background:var(--bg);border:1px solid var(--border)}
+.section-total{margin-left:auto;font-size:13px;font-weight:700;color:var(--pos)}
+
+/* ── TABLE ── */
+.table-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;min-width:600px}
+thead th{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-weight:600;padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);background:#FAFAF7;white-space:nowrap;user-select:none;cursor:pointer;transition:background .1s}
+thead th:hover{background:#F2EFEA}
+thead th.sorted{color:var(--ink);background:#F2EFEA}
+thead th.sorted::after{content:' ↓';font-size:9px}
+thead th.sorted.asc::after{content:' ↑'}
+td{padding:10px 14px;border-bottom:1px solid var(--bg);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+.tfoot-row td{background:#FAFAF7;border-top:1px solid var(--border);font-weight:700;font-size:12px}
+tr.row-hover:hover td{background:#FAFDF9}
+tr.row-inactive td{opacity:.5}
+tr.row-warn td{background:#FFFCF5!important}
+tr.row-urgent td{background:var(--neg-bg)!important}
+tr.hidden{display:none}
+
+/* ── CELL TYPES ── */
+.td-no{color:var(--muted);font-size:11px;width:32px;text-align:center}
+.td-main{font-weight:500}
+.td-sub{color:var(--ink2);font-size:12px}
+.td-mono{font-family:'Courier New',monospace;font-size:11px;color:var(--ink2);letter-spacing:.3px}
+.num{text-align:right;font-weight:600;white-space:nowrap}
+.center{text-align:center}
+.won-sm{font-size:11px;font-weight:400;margin-left:2px}
+
+/* ── BALANCE CELL ── */
+.bal-cell{display:flex;align-items:center;justify-content:flex-end;gap:6px}
+.bal-amount{font-weight:700}
+.bal-pos .bal-amount{color:var(--pos)}
+.bal-neg .bal-amount{color:var(--neg)}
+.bal-zero .bal-amount{color:var(--muted)}
+.bal-updated-dot{width:6px;height:6px;background:var(--info);border-radius:50%;flex-shrink:0;cursor:help}
+.edit-bal-btn{opacity:0;font-size:11px;padding:2px 6px;border:1px solid var(--border);color:var(--muted);background:none;cursor:pointer;transition:all .15s;font-family:inherit}
+tr:hover .edit-bal-btn{opacity:1}
+.edit-bal-btn:hover{border-color:var(--info);color:var(--info)}
+
+/* ── NOTE CELL ── */
+.note-cell{display:flex;align-items:flex-start;gap:6px;min-width:120px}
+.note-text{font-size:11px;color:var(--ink2);flex:1;cursor:pointer;padding:2px 4px;border-radius:2px;line-height:1.4}
+.note-text:empty::before{content:'메모 추가...';color:var(--muted);font-style:italic}
+.note-text:hover{background:var(--bg)}
+
+/* ── ACTION BTNS ── */
+.action-btns{display:flex;gap:4px;justify-content:center;opacity:0;transition:opacity .15s}
+tr:hover .action-btns{opacity:1}
+.act-btn{font-size:10px;padding:3px 8px;border:1px solid var(--border);background:none;cursor:pointer;color:var(--ink2);font-family:inherit;transition:all .12s;white-space:nowrap}
+.act-btn:hover{background:var(--bg);border-color:var(--ink2)}
+.act-btn.txn:hover{border-color:var(--pos);color:var(--pos)}
+.act-btn.hist:hover{border-color:var(--info);color:var(--info)}
+
+/* ── TAGS ── */
+.bank-tag{display:inline-block;font-size:10px;background:var(--bg);border:1px solid var(--border);padding:1px 7px;color:var(--ink2);white-space:nowrap}
+.co-tag{display:inline-block;font-size:10px;padding:2px 7px;font-weight:600;white-space:nowrap}
+.co-수복{background:#EBF0FA;color:#1A4A8A;border:1px solid #A8C0E0}
+.co-순천{background:var(--pos-bg);color:var(--pos);border:1px solid var(--pos-bd)}
+.co-한솔{background:#F4F3F1;color:#5C5851;border:1px solid var(--border)}
+.status-pill{display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;white-space:nowrap}
+.s-on{background:var(--pos-bg);color:var(--pos);border:1px solid var(--pos-bd)}
+.s-off{background:#F4F3F1;color:var(--muted);border:1px solid var(--border)}
+.d-tag{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;white-space:nowrap}
+.d-ok{background:var(--pos-bg);color:var(--pos);border:1px solid var(--pos-bd)}
+.d-warn{background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn-bd)}
+.d-urgent{background:var(--neg-bg);color:var(--neg);border:1px solid var(--neg-bd)}
+
+/* ── USAGE ── */
+.usage-line{margin-bottom:2px;font-size:11px;display:flex;align-items:flex-start;gap:4px;color:var(--ink2)}
+.usage-line:last-child{margin-bottom:0}
+.ub{font-size:9px;font-weight:700;padding:1px 4px;flex-shrink:0;margin-top:1px}
+.ub.out{background:var(--neg-bg);color:var(--neg);border:1px solid var(--neg-bd)}
+.ub.in{background:var(--pos-bg);color:var(--pos);border:1px solid var(--pos-bd)}
+
+/* ── CHART ── */
+.chart-section{display:grid;grid-template-columns:280px 1fr;gap:1px;background:var(--border);margin-bottom:28px;border:1px solid var(--border)}
+.chart-box{background:var(--surface);padding:22px 24px}
+.chart-title{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+.chart-wrap{position:relative;height:160px}
+.balance-summary{background:var(--surface);padding:22px 24px;display:flex;flex-direction:column;gap:10px}
+.bsum-row{display:flex;align-items:center;gap:10px}
+.bsum-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.bsum-bank{font-size:12px;color:var(--ink2);flex:1;font-weight:500}
+.bsum-val{font-size:13px;font-weight:700;color:var(--pos)}
+
+/* ── TXN TAB ── */
+.txn-filters{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.txn-empty{text-align:center;padding:60px 0;color:var(--muted);font-size:13px}
+.txn-empty .txn-empty-icon{font-size:32px;margin-bottom:12px}
+.in-badge{background:var(--pos-bg);color:var(--pos);border:1px solid var(--pos-bd);font-size:10px;font-weight:700;padding:2px 7px}
+.out-badge{background:var(--neg-bg);color:var(--neg);border:1px solid var(--neg-bd);font-size:10px;font-weight:700;padding:2px 7px}
+
+/* ── MODAL ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:2000;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);width:460px;max-width:90vw;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.2);animation:modalIn .18s ease}
+.modal.wide{width:680px}
+@keyframes modalIn{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:none}}
+.modal-header{background:var(--ink);color:#F7F5F0;padding:18px 24px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.modal-close{background:none;border:none;color:#9A958F;font-size:18px;cursor:pointer;line-height:1;padding:0 4px}
+.modal-close:hover{color:#F7F5F0}
+.modal-body{padding:24px;overflow-y:auto;flex:1}
+.modal-account-info{background:var(--bg);border:1px solid var(--border);padding:12px 16px;margin-bottom:20px}
+.mai-bank{font-size:10px;color:var(--muted);margin-bottom:2px}
+.mai-name{font-size:14px;font-weight:700}
+.mai-no{font-size:11px;font-family:monospace;color:var(--muted);margin-top:2px}
+.mai-bal{font-size:18px;font-weight:700;color:var(--pos);margin-top:8px}
+.form-group{margin-bottom:16px}
+.form-label{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;display:block}
+.form-input{width:100%;font-family:inherit;font-size:13px;padding:9px 12px;border:1px solid var(--border);color:var(--ink);background:var(--surface);outline:none;transition:border-color .15s}
+.form-input:focus{border-color:var(--ink2)}
+.form-select{appearance:none;cursor:pointer}
+.form-hint{font-size:11px;color:var(--muted);margin-top:4px}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;flex-shrink:0}
+.modal-btn{font-size:12px;padding:8px 20px;border:1px solid var(--border);background:none;cursor:pointer;font-family:inherit;transition:all .15s}
+.modal-btn:hover{background:var(--bg)}
+.modal-btn.confirm{background:var(--ink);color:#F7F5F0;border-color:var(--ink)}
+.modal-btn.confirm:hover{background:#2C2820}
+.modal-btn.danger{color:var(--neg);border-color:var(--neg-bd)}
+.modal-btn.danger:hover{background:var(--neg-bg)}
+
+/* ── HISTORY ── */
+.history-list{display:flex;flex-direction:column;gap:0}
+.history-item{display:grid;grid-template-columns:120px 1fr auto;gap:12px;padding:14px 0;border-bottom:1px solid var(--bg);align-items:start}
+.history-item:last-child{border-bottom:none}
+.hi-ts{font-size:11px;color:var(--muted)}
+.hi-date{font-weight:600;color:var(--ink2);margin-bottom:2px}
+.hi-time{font-size:10px}
+.hi-diff{font-size:13px;font-weight:700}
+.hi-diff.pos{color:var(--pos)}.hi-diff.neg{color:var(--neg)}.hi-diff.zero{color:var(--muted)}
+.hi-memo{font-size:12px;color:var(--ink2);margin-top:3px}
+.hi-bal{font-size:11px;color:var(--muted);text-align:right;font-family:monospace}
+.hi-bal b{display:block;font-size:13px;font-weight:700;color:var(--ink)}
+.history-empty{text-align:center;padding:40px 0;color:var(--muted)}
+
+/* ── CALENDAR TAB ── */
+.cal-wrap{display:grid;grid-template-columns:1fr 300px;gap:28px;padding:32px 60px 48px}
+@media(max-width:900px){.cal-wrap{grid-template-columns:1fr;padding:20px 16px}}
+.cal-main-box{background:var(--surface);border:1px solid var(--border)}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid var(--border)}
+.cal-month-label{font-size:16px;font-weight:700;color:var(--ink);letter-spacing:-.3px}
+.cal-nav-btn{background:none;border:1px solid var(--border);color:var(--ink2);font-size:14px;width:30px;height:30px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.cal-nav-btn:hover{border-color:var(--ink);color:var(--ink)}
+.cal-dow{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--border)}
+.cal-dow-cell{padding:9px 0;text-align:center;font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+.cal-dow-cell:first-child{color:var(--neg)}
+.cal-dow-cell:last-child{color:var(--accent)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr)}
+.cal-cell{min-height:72px;border-right:1px solid var(--border2);border-bottom:1px solid var(--border2);padding:8px 6px;position:relative;transition:background .1s}
+.cal-cell:nth-child(7n){border-right:none}
+.cal-cell.empty{background:#FAFAF8}
+.cal-cell.today .cal-day-num{background:var(--accent);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:700}
+.cal-cell.has-event{background:#FFFEFB}
+.cal-day-num{font-size:12px;font-weight:500;color:var(--ink2);margin-bottom:4px;line-height:22px;width:22px;text-align:center}
+.cal-cell:nth-child(7n+1) .cal-day-num{color:var(--neg)}
+.cal-cell:nth-child(7n) .cal-day-num{color:var(--accent)}
+.cal-ev{font-size:10px;font-weight:600;padding:2px 5px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.cal-ev.urgent{background:var(--neg-bg);color:var(--neg);border-left:2px solid var(--neg)}
+.cal-ev.warn{background:var(--warn-bg);color:var(--warn);border-left:2px solid var(--warn-bd)}
+.cal-ev.info{background:var(--info-bg);color:var(--info);border-left:2px solid var(--info-bd)}
+.cal-side{display:flex;flex-direction:column;gap:16px}
+.cal-side-box{background:var(--surface);border:1px solid var(--border);padding:20px}
+.cal-side-title{font-size:9px;font-weight:700;letter-spacing:.25em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+.cal-upcoming-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border2)}
+.cal-upcoming-item:last-child{border-bottom:none}
+.cal-upcoming-date{font-size:11px;font-weight:700;color:var(--ink);min-width:44px;line-height:1.3}
+.cal-upcoming-date span{display:block;font-size:9px;font-weight:400;color:var(--muted);letter-spacing:.1em}
+.cal-upcoming-text{font-size:11px;color:var(--ink2);flex:1;line-height:1.5}
+.cal-badge{font-size:9px;font-weight:700;padding:1px 6px;border:1px solid;flex-shrink:0;margin-top:1px}
+.cal-badge.urgent{color:var(--neg);border-color:var(--neg-bd)}
+.cal-badge.warn{color:var(--warn);border-color:var(--warn-bd)}
+.cal-badge.info{color:var(--info);border-color:var(--info-bd)}
+
+/* ── TREND TAB ── */
+.trend-wrap{padding:32px 60px 48px}
+@media(max-width:960px){.trend-wrap{padding:20px 16px}}
+.trend-toolbar{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.trend-legend{display:flex;align-items:center;gap:18px;margin-left:auto;flex-wrap:wrap}
+.trend-leg-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ink2);cursor:pointer;user-select:none}
+.trend-leg-dot{width:10px;height:3px;border-radius:2px;flex-shrink:0}
+.trend-chart-box{background:var(--surface);border:1px solid var(--border);padding:24px 20px;position:relative}
+.trend-title{font-size:9px;font-weight:700;letter-spacing:.25em;text-transform:uppercase;color:var(--muted);margin-bottom:18px}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:28px;right:28px;background:var(--ink);color:#F7F5F0;padding:11px 18px;font-size:12px;z-index:9999;opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;pointer-events:none}
+#toast.show{opacity:1;transform:none}
+#toast.error{background:var(--neg)}
+
+/* ── PRINT ── */
+@media print{
+  .header-right,.tab-bar,.toolbar,.alert-bar,.hdr-btn,.act-btn,.edit-bal-btn,.action-btns{display:none!important}
+  .tab-content{display:block!important}
+  .container{padding:0}
+  .section{break-inside:avoid}
+}
+@media(max-width:960px){.container{padding:24px 16px}.header{padding:24px 16px}.tab-bar{padding:0 16px}.chart-section{grid-template-columns:1fr}}
+
+/* ── MOBILE 768px ── */
+@media(max-width:768px){
+  .header{padding:24px 20px;flex-wrap:wrap;gap:12px}
+  .header-right{flex-direction:column;align-items:stretch;width:100%}
+  .hdr-btns{flex-wrap:wrap}
+  .container{padding:20px 16px}
+  .cal-wrap{padding:20px 16px}
+  .trend-wrap{padding:20px 16px}
+  .tab-bar{padding:0 16px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .tab-bar::-webkit-scrollbar{display:none}
+  .alert-label-wrap{padding:11px 16px}
+  .exchange-label-wrap{padding:11px 16px}
+  .kpi{padding:14px 16px;min-width:calc(50% - 1px)}
+  .chart-section{grid-template-columns:1fr !important}
+  .modal{width:95vw !important}
+  .section{margin-bottom:28px}
+}
+
+/* ── MOBILE 480px ── */
+@media(max-width:480px){
+  .header-left h1{font-size:19px}
+  .kpi{min-width:100%}
+  .hdr-btns{gap:6px}
+  .tab-btn{padding:11px 14px}
+}
+</style>
+</head>
+<body>
+<div id="hl-splash" style="position:fixed;inset:0;z-index:99999;background:#0B0D14;display:flex;align-items:center;justify-content:center;flex-direction:column;opacity:1;transition:opacity .65s ease">
+  <div style="position:relative;width:136px;height:136px;background:#2454C8;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding-bottom:10px;box-shadow:0 0 0 1.5px rgba(255,255,255,0.12) inset">
+    <div style="position:absolute;top:22px;left:15px;right:15px;height:1px;background:rgba(255,255,255,0.45)"></div>
+    <div style="position:absolute;bottom:22px;left:15px;right:15px;height:1px;background:rgba(255,255,255,0.45)"></div>
+    <span style="font-family:'Noto Sans KR','Malgun Gothic',sans-serif;font-weight:900;font-size:36px;color:#fff;line-height:1;letter-spacing:-1px">han</span>
+    <span style="font-family:'Noto Sans KR','Malgun Gothic',sans-serif;font-weight:900;font-size:36px;color:#fff;line-height:1;letter-spacing:-1px">Q</span>
+  </div>
+  <div style="margin-top:18px;font-family:'Noto Sans KR','Malgun Gothic',sans-serif;font-size:10px;letter-spacing:.35em;color:rgba(255,255,255,.55);text-transform:uppercase;font-weight:400">H A N Q</div>
+</div>
+<script>(function(){var e=document.getElementById('hl-splash');if(window.self!==window.top){e.remove();return;}setTimeout(function(){e.style.opacity='0';setTimeout(function(){e.remove()},700)},1600)})();</script>
+
+<div id="toast"></div>
+
+<!-- BALANCE MODAL -->
+<div id="modal-bal" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-bal')">
+  <div class="modal">
+    <div class="modal-header">잔액 수정<button class="modal-close" onclick="closeModal('modal-bal')">✕</button></div>
+    <div class="modal-body">
+      <div class="modal-account-info">
+        <div class="mai-bank" id="mb-bank"></div>
+        <div class="mai-name" id="mb-name"></div>
+        <div class="mai-no" id="mb-no"></div>
+        <div class="mai-bal" id="mb-curbal"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">새 잔액 (원)</label>
+        <input type="number" class="form-input" id="mb-newbal" placeholder="예: 18500000">
+      </div>
+      <div class="form-group">
+        <label class="form-label">변경 사유 (선택)</label>
+        <input type="text" class="form-input" id="mb-memo" placeholder="예: 5월 입금 반영">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn" onclick="closeModal('modal-bal')">취소</button>
+      <button class="modal-btn confirm" onclick="confirmBalance()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORY MODAL -->
+<div id="modal-hist" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-hist')">
+  <div class="modal wide">
+    <div class="modal-header">잔액 변경 이력<button class="modal-close" onclick="closeModal('modal-hist')">✕</button></div>
+    <div class="modal-body">
+      <div class="modal-account-info">
+        <div class="mai-bank" id="mh-bank"></div>
+        <div class="mai-name" id="mh-name"></div>
+        <div class="mai-no" id="mh-no"></div>
+      </div>
+      <div id="mh-list" class="history-list"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn" onclick="closeModal('modal-hist')">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- TRANSACTION MODAL -->
+<div id="modal-txn" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-txn')">
+  <div class="modal">
+    <div class="modal-header">입출금 기록 추가<button class="modal-close" onclick="closeModal('modal-txn')">✕</button></div>
+    <div class="modal-body">
+      <div class="modal-account-info">
+        <div class="mai-bank" id="mt-bank"></div>
+        <div class="mai-name" id="mt-name"></div>
+        <div class="mai-no" id="mt-no"></div>
+        <div class="mai-bal" id="mt-curbal"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">날짜</label>
+        <input type="date" class="form-input" id="mt-date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">유형</label>
+        <select class="form-input form-select" id="mt-type">
+          <option value="in">입금</option>
+          <option value="out">출금</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">금액 (원)</label>
+        <input type="number" class="form-input" id="mt-amount" placeholder="예: 5000000">
+      </div>
+      <div class="form-group">
+        <label class="form-label">내용</label>
+        <input type="text" class="form-input" id="mt-desc" placeholder="예: 공단 5월 지급금">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn" onclick="closeModal('modal-txn')">취소</button>
+      <button class="modal-btn confirm" onclick="confirmTxn()">기록</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOTE MODAL -->
+<div id="modal-note" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-note')">
+  <div class="modal">
+    <div class="modal-header">메모 편집<button class="modal-close" onclick="closeModal('modal-note')">✕</button></div>
+    <div class="modal-body">
+      <div class="modal-account-info">
+        <div class="mai-name" id="mn-name"></div>
+        <div class="mai-no" id="mn-no"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">메모</label>
+        <textarea class="form-input" id="mn-text" rows="4" placeholder="계좌 관련 메모를 입력하세요" style="resize:vertical"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn danger" onclick="clearNote()">삭제</button>
+      <button class="modal-btn" onclick="closeModal('modal-note')">취소</button>
+      <button class="modal-btn confirm" onclick="confirmNote()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ HEADER ============ -->
+<div class="header">
+  <div class="header-left">
+    <div class="eyebrow">Financial Account Management</div>
+    <h1>재무 계좌 관리</h1>
+    <div class="sub">기준일: 2026년 5월 12일 &nbsp;·&nbsp; 예금 24개 &nbsp;·&nbsp; 대출 2건 &nbsp;·&nbsp; 카드 10장</div>
+  </div>
+  <div class="header-right">
+    <div class="hdr-weather" id="hdr-weather">
+      <span class="hdr-weather-date" id="hdr-date">–</span>
+      <span class="hdr-weather-sep">·</span>
+      <span class="hdr-weather-icon" id="hdr-wicon">–</span>
+      <span class="hdr-weather-temp" id="hdr-temp">–</span>
+      <span class="hdr-weather-sep">·</span>
+      <span class="hdr-weather-desc" id="hdr-wdesc">서울</span>
+    </div>
+    <div class="hdr-btns">
+      <a class="hdr-btn" href="/api/export-excel" download>↓ Excel</a>
+      <button class="hdr-btn" onclick="window.print()">⎙ 인쇄 / PDF</button>
+      <button class="hdr-btn primary" onclick="openTxnModal(null)">+ 입출금 기록</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ KPI ============ -->
+<div class="kpi-bar">
+  <div class="kpi">
+    <div class="kpi-label">총 예금잔액</div>
+    <div class="kpi-val pos"><span id="kpi-deposit">57,231,033</span><span class="kpi-unit">원</span></div>
+    <div class="kpi-sub">잔액 기재 계좌 기준</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">총 대출잔액</div>
+    <div class="kpi-val neg"><span id="kpi-loan">321,652,000</span><span class="kpi-unit">원</span></div>
+    <div class="kpi-sub">차입금 2건</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">순 자금</div>
+    <div class="kpi-val neg"><span id="kpi-net">264,420,967</span><span class="kpi-unit">원</span></div>
+    <div class="kpi-sub">예금 − 대출</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">만기 임박</div>
+    <div class="kpi-val warn">1<span class="kpi-unit">건</span></div>
+    <div class="kpi-sub">90일 이내 만기</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">최종 업데이트</div>
+    <div class="kpi-val" style="font-size:14px"><span id="kpi-lastupdated">—</span></div>
+    <div class="kpi-sub">잔액 수동 수정 기준</div>
+  </div>
+</div>
+
+<!-- ============ ALERTS ============ -->
+
+<div class="alert-bar has-alerts">
+  <div class="alert-label-wrap">
+    <span class="alert-label-dot"></span>
+    <span class="alert-label">주의</span>
+  </div>
+  <div class="alert-track">
+    <div class="alert-inner" id="alert-ticker"><span class="alert-chip urgent">대출 만기: 농협 마이너스대출<span class="alert-days urgent">D-8</span></span><span class="ticker-sep">・</span></div>
+  </div>
+</div>
+<script>
+(function(){
+  const ticker = document.getElementById('alert-ticker');
+  if (!ticker) return;
+  const original = ticker.innerHTML;
+  for (let i = 0; i < 11; i++) ticker.innerHTML += original;
+  requestAnimationFrame(function() {
+    const oneW = ticker.scrollWidth / 12;
+    const dur = Math.round(oneW / 38);
+    ticker.style.setProperty('--ticker-one', oneW + 'px');
+    ticker.style.setProperty('--ticker-dur', dur + 's');
+  });
+})();
+</script>
+
+<!-- ============ EXCHANGE RATES ============ -->
+<div class="exchange-bar">
+  <div class="exchange-label-wrap">
+    <span class="exchange-label-dot"></span>
+    <span class="exchange-label">환율</span>
+  </div>
+  <div class="alert-track">
+    <div class="exchange-inner" id="exchange-ticker">
+      <span style="font-size:11px;color:var(--muted);padding:11px 0">불러오는 중…</span>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  var CURRENCIES = [
+    { code:'USD', label:'미 달러', per:1 },
+    { code:'JPY', label:'일본 엔', per:100 },
+    { code:'EUR', label:'유로', per:1 },
+    { code:'CNY', label:'중국 위안', per:1 },
+    { code:'SGD', label:'싱가포르 달러', per:1 },
+  ];
+  fetch('https://open.er-api.com/v6/latest/USD')
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      var krw = d.rates.KRW;
+      var now = new Date();
+      var timeStr = now.getHours() + ':' + String(now.getMinutes()).padStart(2,'0');
+      var chipsHtml = CURRENCIES.map(function(c){
+        var rate = Math.round((krw / d.rates[c.code]) * c.per).toLocaleString('ko-KR');
+        var unitLabel = c.per > 1 ? c.per + ' ' + c.label : c.label;
+        return '<span class="rate-chip"><span class="rate-currency">' + unitLabel + '</span>'
+          + '<span class="rate-val">' + rate + '<span class="rate-unit">원</span></span></span>'
+          + '<span class="ticker-sep" style="color:var(--warn-bd)">・</span>';
+      }).join('');
+      chipsHtml += '<span class="rate-chip" style="background:none;border:none;color:var(--muted);font-weight:400;font-size:10px">기준 ' + timeStr + '</span>'
+        + '<span class="ticker-sep" style="color:var(--warn-bd)">・</span>';
+
+      var ticker = document.getElementById('exchange-ticker');
+      ticker.innerHTML = chipsHtml;
+      var original = ticker.innerHTML;
+      for (var i = 0; i < 11; i++) ticker.innerHTML += original;
+      requestAnimationFrame(function(){
+        var oneW = ticker.scrollWidth / 12;
+        var dur = Math.round(oneW / 38);
+        ticker.style.setProperty('--ticker-one', oneW + 'px');
+        ticker.style.setProperty('--ticker-dur', dur + 's');
+      });
+    })
+    .catch(function(){
+      document.getElementById('exchange-ticker').textContent = '환율 정보를 불러올 수 없습니다';
+    });
+})();
+</script>
+
+<script>
+/* ── DATE & WEATHER ── */
+(function(){
+  var DAYS = ['일','월','화','수','목','금','토'];
+  var WMO = {
+    0:'☀',1:'🌤',2:'⛅',3:'☁',
+    45:'🌫',48:'🌫',
+    51:'🌦',53:'🌦',55:'🌦',
+    61:'🌧',63:'🌧',65:'🌧',
+    71:'🌨',73:'🌨',75:'🌨',
+    77:'🌨',80:'🌦',81:'🌦',82:'🌦',
+    85:'🌨',86:'🌨',
+    95:'⛈',96:'⛈',99:'⛈'
+  };
+  var WMO_DESC = {
+    0:'맑음',1:'대체로 맑음',2:'구름 조금',3:'흐림',
+    45:'안개',48:'안개',
+    51:'이슬비',53:'이슬비',55:'이슬비',
+    61:'비',63:'비',65:'강한 비',
+    71:'눈',73:'눈',75:'강한 눈',
+    77:'눈발',80:'소나기',81:'소나기',82:'강한 소나기',
+    85:'눈소나기',86:'눈소나기',
+    95:'뇌우',96:'뇌우',99:'뇌우'
+  };
+
+  var now = new Date();
+  var y = now.getFullYear();
+  var m = now.getMonth() + 1;
+  var d = now.getDate();
+  var dow = DAYS[now.getDay()];
+  document.getElementById('hdr-date').textContent = y + '년 ' + m + '월 ' + d + '일 ' + dow + '요일';
+
+  fetch('https://api.open-meteo.com/v1/forecast?latitude=37.5665&longitude=126.9780&current=temperature_2m,weather_code&timezone=Asia%2FSeoul')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      var cur = data.current;
+      var code = cur.weather_code;
+      var temp = Math.round(cur.temperature_2m);
+      document.getElementById('hdr-wicon').textContent = WMO[code] || '🌡';
+      document.getElementById('hdr-temp').textContent = temp + '°C';
+      document.getElementById('hdr-wdesc').textContent = (WMO_DESC[code] || '서울') + ' · 서울';
+    })
+    .catch(function(){
+      document.getElementById('hdr-wicon').textContent = '🌡';
+      document.getElementById('hdr-temp').textContent = '';
+      document.getElementById('hdr-wdesc').textContent = '서울';
+    });
+})();
+</script>
+
+<!-- ============ TABS ============ -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('deposit',this)">예금 계좌</button>
+  <button class="tab-btn" onclick="switchTab('loan',this)">대출</button>
+  <button class="tab-btn" onclick="switchTab('card',this)">기업카드</button>
+  <button class="tab-btn" onclick="switchTab('calendar',this)">만기 캘린더</button>
+  <button class="tab-btn" onclick="switchTab('trend',this)">잔액 추이</button>
+  <button class="tab-btn" onclick="switchTab('txn',this)">입출금 기록 <span id="txn-count-badge" style="font-size:10px;background:var(--accent);color:white;padding:1px 5px;margin-left:4px;display:none"></span></button>
+</div>
+
+<!-- ============ 예금 탭 ============ -->
+<div id="tab-deposit" class="tab-content active">
+<div class="container">
+
+  <div class="chart-section">
+    <div class="chart-box">
+      <div class="chart-title">은행별 잔액 분포</div>
+      <div class="chart-wrap"><canvas id="bankChart"></canvas></div>
+    </div>
+    <div class="balance-summary" id="balance-summary">
+      
+        <div class="bsum-row">
+          <div class="bsum-dot" style="background:#2D6644"></div>
+          <div class="bsum-bank">농협</div>
+          <div class="bsum-val">19,903,920<span style="font-size:10px;font-weight:400">원</span></div>
+        </div>
+        <div class="bsum-row">
+          <div class="bsum-dot" style="background:#1A4A8A"></div>
+          <div class="bsum-bank">농축협</div>
+          <div class="bsum-val">3,091<span style="font-size:10px;font-weight:400">원</span></div>
+        </div>
+        <div class="bsum-row">
+          <div class="bsum-dot" style="background:#C8380A"></div>
+          <div class="bsum-bank">KB</div>
+          <div class="bsum-val">7,466,695<span style="font-size:10px;font-weight:400">원</span></div>
+        </div>
+        <div class="bsum-row">
+          <div class="bsum-dot" style="background:#7A6A52"></div>
+          <div class="bsum-bank">신한</div>
+          <div class="bsum-val">29,658,549<span style="font-size:10px;font-weight:400">원</span></div>
+        </div>
+        <div class="bsum-row">
+          <div class="bsum-dot" style="background:#4A7A6A"></div>
+          <div class="bsum-bank">신한주거래</div>
+          <div class="bsum-val">16,802<span style="font-size:10px;font-weight:400">원</span></div>
+        </div>
+        <div class="bsum-row">
+          <div class="bsum-dot" style="background:#8B5E14"></div>
+          <div class="bsum-bank">광주</div>
+          <div class="bsum-val">181,976<span style="font-size:10px;font-weight:400">원</span></div>
+        </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">예금 계좌 목록</div>
+      <span class="section-count">24개</span>
+      <div class="section-total" id="dep-total-label">합계 57,231,033원</div>
+    </div>
+    <div class="toolbar">
+      <div class="search-box">
+        <svg class="search-icon" width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.2"/>
+          <line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+        <input type="text" placeholder="계좌명, 은행, 계좌번호 검색..." oninput="filterDeposits(this.value)">
+      </div>
+      <select class="filter-select" onchange="filterByBank(this.value)" id="bank-filter">
+        <option value="">전체 은행</option>
+        <option value="농협">농협</option><option value="농.축협">농.축협</option><option value="KB-기업">KB-기업</option><option value="KB-개인">KB-개인</option><option value="신한 기업(주거래)">신한 기업(주거래)</option><option value="신한 저축">신한 저축</option><option value="신한주거래-SOHO">신한주거래-SOHO</option><option value="광주-기업">광주-기업</option>
+      </select>
+      <div class="spacer"></div>
+    </div>
+    <div class="table-wrap">
+    <table id="dep-table">
+      <thead><tr>
+        <th class="td-no">No</th>
+        <th onclick="sortTable('dep-table',1,this)">은행</th>
+        <th onclick="sortTable('dep-table',2,this)">계좌관리명</th>
+        <th>계좌번호</th>
+        <th onclick="sortTable('dep-table',4,this)" style="text-align:right">잔액</th>
+        <th>메모</th>
+        <th style="width:100px;text-align:center">관리</th>
+      </tr></thead>
+      <tbody id="dep-tbody">
+      
+        <tr class="row-hover" data-accountno="301-0237-9325-41" data-bank="농협" data-name="복지용구의료기정재승" data-bal="0" data-search="농협복지용구의료기정재승301-0237-9325-41">
+          <td class="td-no">1</td>
+          <td><span class="bank-tag">농협</span></td>
+          <td class="td-main">복지용구의료기정재승<div style="font-size:10px;color:var(--muted);margin-top:1px"><div class="usage-line"><span class="ub out">출</span>-.삼성생명:월3.2 -.SK텔레콤:월2.2만 -.SKT단말기:1.1만 -.루리소프트:9천</div><div class="usage-line"><span class="ub in">입</span>-.케이씨피28건:총82만 카페24 서류 -.김화순:1만/월 -.희망일자리장려금/월50만 </div></div></td>
+          <td class="td-mono">301-0237-9325-41</td>
+          <td class="num">
+            <div class="bal-cell bal-zero">
+              <span class="bal-updated-dot" id="dot-3010237932541" style="display:none" title="수동 업데이트됨"></span>
+              <span class="bal-amount" id="bal-3010237932541">—</span>
+              <span class="won-sm"></span>
+              <button class="edit-bal-btn" onclick="openBalModal('301-0237-9325-41','농협','복지용구의료기정재승',0)">수정</button>
+            </div>
+          </td>
+          <td><div class="note-text" id="note-3010237932541" onclick="openNoteModal('301-0237-9325-41','복지용구의료기정재승')"></div></td>
+          <td class="center">
+            <div class="action-btns">
+              <button class="act-btn txn" onclick="openTxnModal('301-0237-9325-41','농협','복지용구의료기정재승',0)">기록</button>
+              <button class="act-btn hist" onclick="openHistModal('301-0237-9325-41','농협','복지용구의료기정재승')">이력</button>
+            </div>
+          </td>
+        </tr>
+        <tr class="row-hover" data-accountno="301-0240-3659-61" data-bank="농협" data-name="한기협순천지회" data-bal="255800" data-search="농협한기협순천지회정종각301-0240-3659-61">
+          <td class="td-no">2</td>
+          <td><span class="bank-tag">농협</span></td>
+          <td class="td-main">한기협순천지회<div style="font-size:10px;color:var(--muted);margin-top:1px"><div class="usage-line"><span class="ub out">출</span>-.(사)한국재가장기요양 4.4만</div><div class="usage-line"><span class="ub in">입</span>-.폰카카오 전남지부</div></div></td>
+          <td class="td-mono">301-0240-3659-61</td>
+          <td class="num">
+            <div class="bal-cell bal-pos">
+              <span class="bal-updated-dot" id="dot-3010240365961" style="display:none" title="수동 업데이트됨"></span>
+              <span class="bal-amount" id="bal-3010240365961">255,800</span>
+              <span class="won-sm">원</span>
+              <button class="edit-bal-btn" onclick="openBalModal('301-0240-3659-61','농협','한기협순천지회',255800)">수정</button>
+            </div>
+          </td>
+          <td><div class="note-text" id="note-3010240365961" onclick="openNoteModal('301-0240-3659-61','한기협순천지회')"></div></td>
+          <td class="center">
+            <div class="action-btns">
+              <button class="act-btn txn" onclick="openTxnModal('301-0240-3659-61','농협','한기협순천지회',255800)">기록</button>
+              <button class="act-btn hist" onclick="openHistModal('301-0240-3659-61','농협','한기협순천지회')">이력</button>
+            </div>
+          </td>
+        </tr>
+        <tr class="row-hover" data-accountno="302-0410-2086-51" data-bank="농협" data-name="한방에큐ERP" data-bal="18910255" data-search="농협한방에큐erp정종각(수메디복지용구)302-0410-2086-51">
+          <td class="td-no">3</td>
+          <td><span class="bank-tag">농협</span></td>
+          <td class="td-main">한방에큐ERP<div style="font-size:10px;color:var(--muted);margin-top:1px"><div class="usage-line"><span class="ub out">출</span>-.SKT01220851815:1.1만/지로 -.건강보험료 -.더빌관리비 -.네이버페이충전</div><div class="usage-line"><span class="ub in">입</span>-.더빌가상/이체 2.4억 -.NICE정보통신</div></div></td>
+          <td class="td-mono">302-0410-2086-51</td>
+          <td class="num">
+            <div class="bal-cell bal-pos">
+              <span class="bal-updated-dot" id="dot-3020410208651" style="display:none" title="수동 업데이트됨"></span>
+              <span class="bal-amount" id="bal-3020410208651">18,910,255</span>
+              <span class="won-sm">원</span>
+              <button class="edit-bal-btn" onclick="openBalModal('302-0410-2086-51','농협','한방에큐ERP',18910255)">수정</button>
+            </div>
+          </td>
+          <td><div class="note-text" id="note-3020410208651" onclick="openNoteModal('302-0410-2086-51','한방에큐ERP')"></div></td>
+          <td class="center">
+            <div class="action-btns">
+              <button class="act-btn txn" onclick="openTxnModal('302-0410-2086-51','농협','한방에큐ERP',18910255)">기록</button>
+              <button class="act-btn hist" onclick="openHistModal('302-0410-2086-51','농협','한방에큐ERP')">이력</button>
+            </div>
+          </td>
+        </tr>
+        <tr class="row-hover" data-accountno="302-0945-7796-21" data-bank="농협" data-name="방문간호청구비용" data-bal="26" data-search="농협방문간호청구비용정재승302-0945-7796-21">
+          <td class="td-no">4</td>
+          <td><span class="bank-tag">농협</span></td>
+          <td class="td-main">방문간호청구비용<div style="font-size:10px;color:var(--muted);margin-top:1px"><div class="usage-line"><span class="ub in">입</span>-.예금이자만 발생중</div></div></td>
+          <td class="td-mono">302-0945-7796-21</td>
+          <td class="num">
+            <div class="bal-cell bal-pos">
+              <span class="bal-updated-dot" id="dot-3020945779621" style="display:none" title="수동 업데이트됨"></span>
+              <span class="bal-amount" id="bal-3020945779621">26</span>
+              <span class="won-sm">원</span>
+              <button class="edit-bal-btn" onclick="openBalModal('302-0945-7796-21','농협','방문간호청구비용',26)">수정</button>
+            </div>
+          </td>
+          <td><div class="note-text" id="note-3020945779621" onclick="openNoteModal('302-0945-7796-21','방문간호청구비용')"></div></td>
+          <td class="center">
+            <div class="action-btns">
+              <button class="act-btn txn" onclick="openTxnModal('302-0945-7796-21','농협','방문간호청구비용',26)">기록</button>
+              <button class="act-btn hist" onclick="openHistModal('302-0945-7796-21','농협','방문간호청구비용')">이력</button>
+            </div>
+          </td>
+        </tr>
+        <tr class="row-hover" data-accountno="302-0958-9854-31" data-bank="농협" data-name="3번기관후원임시" data-bal="162" data-search="농협3번기관후원임시정재승302-0958-9854-31">
+          <td class="td-no">5</td>
+          <td><span class="bank-tag">농협</span></td>
+          <td class="td-main">3번기관후원임시<div style="font-size:10px;color:var(--muted);margin-top:1px"><div class="usage-line"><span class="ub out">출</span>-.Y25.9자금대체후 거래없음</div><div class="usage-line"><span class="ub in">입</span>-.Y25.7~9월까지 주로노인복지센터</div></div></td>
+          <td class="td-mono">302-0958-9854-31</td>
+          <td class="num">
+            <div class="bal-cell bal-pos">
+              <span class="bal-updated-dot" id="dot-3020958985431" style="display:none" title="수동 업데이트됨"></span>
+              <span class="bal-amount" id="bal-3020958985431">162</span>
+              <span class="won-sm">원</span>
+              <button class="edit-bal-btn" onclick="openBalModal('302-0958-9854-31','농협','3번기관후원임시',162)">수정</button>
+            </div>
+          </td>
+          <td><div class="note-text" id="note-3020958985431" onclick="openNoteModal('302-0958-9854-31','3번기관후원임시')"></div></td>
+          <td class="center">
+            <div class="action-btns">
+              <button class="act-btn txn" onclick="openTxnModal('302-0958-9854-31','농협','3번기관후원임시',162)">기록</button>
+              <button class="act-btn hist" onclick="openHistModal('302-0958-9854-31','농협','3번기관후원임시')">이력</button>
+            </div>
+          </td>
+        </tr>
+        <tr class="row-hover" data-accountno="302-1018-0299-01" data-bank="농협" data-name="간호본인부담금 CMS" data-bal="34158" data-search="농협간호본인부담금 cms정재승302-1018-0299-01">
+          <td class="td-no">6</td>
+          <td><span class="bank-tag">농협</span></td>
+          <td class="td-main">간호본인부담금 CMS<div style="font-size:10px;color:var(--muted);margin-top:1px"><div class="usage-line"><span class="ub out">출</span>-.대체출금만 있음</div><div class="usage-line"><span class="ub in">입</span>-.NICE정보통:월3.5만/월</div></div></td>
+          <td class="td-mono">302-1018-0299-01</td>
+          <td class="num">
+            <div class="bal-cell bal-pos">
+              <span class="bal-updated-dot" id="dot-3021018029901" style="display:none" title="수동 업데이트됨"></span>
+              <span class="bal-amount" id="bal-3021018029901">34,158</span>
+              <span class="won-sm">원</span>
+              <button class="edit-bal-btn" onclick="openBalModal('302-1018-0299-01','농협','간호본인부담금 CMS',34158)">수정</button>
+            </div>
+          </td>
+          <td><div class="note-text" id="note-3021018029901" onclick="openNoteModal('302-1018-0299-01','간호본인부담금 CMS')"></div></td>
+          <td class="center">
+            <div class="action-btns">
+              <button class="act-btn txn" onclick="openTxnModal('302-1018-0299-01','농협','간호본인부담금 CMS',34158)">기록</button>
+              <button class="act-btn hist" onclick="openHistModal('302-1018-0299-01','농협','간호본인부담금 CMS')">이력</button>
+            </div>
+          </td>
+        </tr>
+        <tr class="row-hover" data-accountno="302-1102-7562-71" data-bank="농협" data-name="테크노도연" data-bal="62" data-search="농협테크노도연정재승302-1102-7562-71">
+          <td class="td-no">7</td>
+          <td><span class="bank-tag">농협</span></td>
+          <td class="td-main">테크노도연<div style="font-size:10px;color:var(--muted);margin-top:1px"><div class="usage-line"><span class="ub out">출</span>-.이후 거래내용없음</div><div class="usage-line"><span class="ub in">입</span>-.Y25 1-2월인건비처리 단건</div></div></td>
+          <td class="td-mono">302-1102-7562-71</td>
+          <td class="num">
+            <div class="bal-cell bal-pos">
+              <span class="bal-updated-dot" id="dot-3021102756271" style="display:none" title="수동 업데이트됨"></span>
+              <span class="bal-amount" id="bal-3021102756271">62</span>
+              <span class="won-sm">원</span>
+              <button class="edit-bal-btn" onclick="openBalModal('302-1102-7562-71','농협','테크노도연',62)">수정</button>
+            </div>
+          </td>
+          <td><div class="note-text" id="note-3021102756271" onclick="openNoteModal('302-1102-7562-71','테크노도연')"></div></td>
+          <td class="center">
+            <div class="action-btns">
+              <button class="act-btn txn" onclick="openTxnModal('302-1102-7562-71','농협','테크노도연',62)">기록</button>
+              <button class="act-btn hist" onclick="openHistModal('302-1102-7562-71','농협','테크노도연')">이력</button>
+            </div>
+          </td>
+        </tr>
+        <tr class="row-hover" data-accountno="302-1727-0656-01" data-bank="농협" data-name="(수)복지용구의료기" data-bal="288900" data-search="농협(수)복지용구의료기정재승302-1727-0656-01">
+          <td class="td-no">8</td>
+          <td><span class="bank-tag">농협</span></td>
+          <td class="td-main">(수)복지용구의료기<div style="font-size:10px;color:var(--muted);margin-top:1px"><div class="usage-line"><span class="ub out">출</span>-.UMS수수료 -.건강서현아</div><div class="usage-line"><span class="ub in">입</span>-.순천사복과</div></div></td>
+          <td class="td-mono">302-1727-0656-01</td>
+          <td class="num">
+            <div class="bal-cell bal-pos">
+              <span class="bal-updated-dot" id="dot-3021727065601" style="display:none" title="수동 업데이트됨"></span>
+              <span class="bal-amount" id="bal-3021727065601">288,900</span>
+              <span class="won-sm">원</span>
+              <button class="edit-bal-btn" onclick="openBalModal('302-1727-0656-01','농협','(수)복지용구의료기',288900)">수정</button>
+            </div>
+          </td>
+          <td><div class="note-text" id="note-3021727065601" onclick="openNoteModal('302-1727-0656-01','(수)복지용구의료기')"></div></td>
+          <td class="center">
+            <div class="action-btns">
+              <button class="act-btn txn" onclick="openTxnModal('302-1727-0656-01','농협','(수)복지용구의료기',288900)">기록</button>
+              <button class="act-btn hist" onclick="openHistModal('302-1727-0656-01','농협','(수)복지용구의료기')">이력</button>
+            </div>
+          </td>
+        </tr>
+        <tr class="row-hover" data-accountno="312-0051-7301-21" data-bank="농협" data-name="정재승" data-bal="414557" data-search="농협정재승312-0051-7301-21">
+          <td class="td-no">9</td>
+          <td><span class="bank-tag">농협</span></td>
+          <td class="td-main">정재승<div style="font-size:10px;color:var(--muted);margin-top:1px"><div class="usage-line"><span class="ub out">출</span>-.카카오페이 -.하이브리드샵:월22만</div><div class="usage-line"><span class="ub in">입</span>-.동방케어광주:7백/월 -.또하나의가족;월3.4백/월 -.고혜진, -.곽희동, -. -.</div></div></td>
+          <td class="td-mono">312-0051-7301-21</td>
+          <td class="num">
+            <div class="bal-cell bal-pos">
+              <span class="bal-updated-dot" id="dot-3120051730121" style="display:none" title="수동 업데이트됨"></span>
+              <span class="bal-amount" id="bal-3120051730121">414,557</span>
+              <span class="won-sm">원</span>
+              <button class="edit-bal-btn" onclick="openBalModal('312-0051-7301-21','농협','정재승',414557)">수정</button>
+            </div>
+          </td>
+          <td><div class="note-text" id="note-3120051730121" onclick="openNoteModal('312-0051-7301-21','정재승')"></div></td>
+          <td class="center">
+            <div class="action-btns">
+              <button class="act-btn txn" onclick="openTxnModal('312-0051-7301-21','농협','정재승',414557)">기록</button>
+              <button class="act-btn hist" onclick="openHistModal('312-0051-7301-21','농협','정재승')">이력</button>
+            </div>
+          </td>
+        </tr>
+        <tr class="row-hover" data-accountno="352-1078-0700-13" data-bank="농.축협" data-name="Adco" data-bal="0" data-search="농.축협adco정재승352-1078-0700-13">
+          <td class="td-no">10</td>
+          <td><span class="bank-tag">농.축협</span></td>
+          <td class="td-main">Adco<div style="font-size:10px;color:var(--muted);margin-top:1px"></div></td>
+          <td class="td-mono">352-1078-0700-13</td>
+          <td class="num">
+            <div class="bal-cell bal-zero">
+              <span class="bal-updated-dot" id="dot-3521078070013" style="display:none" title="수동 업데이트됨"></span>
+              <span class="bal-amount" id="bal-3521078070013">—</span>
+              <span class="won-sm"></span>
+              <button class="edit-bal-btn" onclick="openBalModal('352-1078-0700-13','농.축협','Adco',0)">수정</button>
+            </div>
+          </td>
+          <td><div class="note-text" id="note-3521078070013" onclick="openNoteModal('352-1078-0700-13','Adco')"></div></td>
+          <td class="center">
+            <div class="action-btns">
+              <button class="act-btn txn" onclick="openTxnModal('352-1078-0700-13','농.축협','Adco',0)">기록</button>
+              <button class="act-btn hist" onclick="openHistModal('352-1078-0700-13','농.축협','Adco')">이력</button>
+            </div>
+          </td>
+        </tr>
+        <tr class="row-hover" data-accountno="352-1619-4468-83" data-bank="농.축협" data-name="(수)복지용구의료기본인부담금" data-bal="3091" data-search="농.축협(수)복지용구의료기본인부담금정재승352-1619-4468-83">
+          <td class="td-no">11</td>
+          <td><span class="bank-tag">농.축협</span></td>
+          <td class="td-main">(수)복지용구의료기본인부담금<div style="font-size:10px;color:var(--muted);margin-top:1px"><div class="usage-line"><span class="ub in">입</span>-.윤명화:월3.090원</div></div></td>
+          <td class="td-mono">352-1619-4468-83</td>
+          <td class="num">
+            <div class="bal-cell bal-pos">
+              <span class="bal-updated-dot" id="dot-3521619446883" style="display:none" title="수동 업데이트됨"></span>
+              <span class="bal-amount" id="bal-3521619446883">3,091</span>
+              <span class="won-sm">원</span>
+              <button class="edit-bal-btn" onclick="openBalModal('352-1619-4468-83','농.축협','(수)복지용구의료기본인부담금',3091)">수정</button>
+            </div>
+          </td>
+          <td><div class="note-text" id="note-3521619446883" onclick="openNoteModal('352-1619-4468-83','(수)복지용구의료기본인부담금')"></div></td>
+          <td class="center">
+            <div class="action-btns">
+              <button class="act-btn txn" onclick="openTxnModal('352-1619-4468-83','농.축협','(수)복지용구의료기본인부담금',3091)">기록</button>
+              <button class="act-btn hist" onclick="openHistModal('352-1619-4468-83','농.축협','(수)복지용구의료기본인부담금')">이력</button>
+            </div>
+          </td>
+        </tr>
+        <tr class="row-hover" data-accountno="352-1990-4632-53" data-bank="농.축협" data-name="자립예탁마이너스" data-bal="-229762167" data-search="농.축협자립예탁마이너스정재승352-1990-4632-53">
+          <td class="td-no">12</td>
+          <td><span class="bank-tag">농.축협</span></td>
+          <td class="td-main">자립예탁마이너스<div style="font-size:10px;color:var(--muted);margin-top:1px"><div class="usage-line"><span class="ub out">출</span>-.운전자금-대체 -.홍길임(월10만)</div><div class="usage-line"><span class="ub in">입</span>-.운전자금등 자금차입 -.UMS수수료 -.이자비용상환:월 85만</div></div></td>
+          <td class="td-mono">352-1990-4632-53</td>
+          <td class="num">
+            <div class="bal-cell bal-neg">
+              <span class="bal-updated-dot" id="dot-3521990463253" style="display:none" title="수동 업데이트됨"></span>
+              <span class="bal-amount" id="bal-3521990463253">229,762,167</span>
+              <span class="won-sm">원</span>
+              <button class="edit-bal-btn" onclick="openBalModal('352-1990-4632-53','농.축협','자립예탁마이너스',-229762167)">수정</button>
+            </div>
+          </td>
+          <td><div class="note-text" id="note-3521990463253" onclick="openNoteModal('352-1990-4632-53','자립예탁마이너스')"></div></td>
+          <td class="center">
+            <div class="action-btns">
+              <button class="act-btn txn" onclick="openTxnModal('352-1990-4632-53','농.축협','자립예탁마이너스',-229762167)">기록</button>
+              <button class="act-btn hist" onclick="openHistModal('352-1990-4632-53','농.축협','자립예탁마이너스')">이력</button>
+            </div>
+          </td>
+        </tr>
+        <tr class="row-hover" data-accountno="789401-01-862390" data-bank="KB-기업" data-name="ONE KB사업자통장" data-bal="1319063" data-search="kb-기업one kb사업자통장정재승(수)복지용구의료기789401-01-862390">
+          <td class="td-no">13</td>
+          <td><span class="bank-tag">KB-기업</span></td>
+          <td class="td-main">ONE KB사업자통장<div style="font-size:10px;color:var(--muted);margin-top:1px"><div class="usage-line"><span class="ub out">출</span>-.KB카드결재</div><div class="usage-line"><span class="ub in">입</span>-.카드매출/고용노동부</div></div></td>
+          <td class="td-mono">789401-01-862390</td>
+          <td class="num">
+            <div class="bal-cell bal-pos">
+              <span class="bal-updated-dot" id="dot-78940101862390" style="display:none" title="수동 업데이트됨"></span>
+              <span class="bal-amount" id="bal-78940101862390">1,319,063</span>
+              <span class="won-sm">원</span>
+              <button class="edit-bal-btn" onclick="openBalModal('789401-01-862390','KB-기업','ONE KB사업자통장',1319063)">수정</button>
+            </div>
+          </td>
+          <td><div class="note-text" id="note-78940101862390" onclick="openNoteModal('789401-01-862390','ONE KB사업자통장')"></div></td>
+          <td class="center">
+            <div class="action-btns">
+              <button class="act-btn txn" onclick="openTxnModal('789401-01-862390','KB-기업','ONE KB사업자통장',1319063)">기록</button>
+              <button class="act-btn hist" onclick="openHistModal('789401-01-862390','KB-기업','ONE KB사업자통장')">이력</button>
+            </div>
+          </td>
+        </tr>
+        <tr class="row-hover" data-accountno="789402-01-148178" data-bank="KB-개인" data-name="KB PLUSSTAR" data-bal="6147575" data-search="kb-개인kb plusstar정재승789402-01-148178">
+          <td class="td-no">14</td>
+          <td><span class="bank-tag">KB-개인</span></td>
+          <td class="td-main">KB PLUSSTAR<div style="font-size:10px;color:var(--muted);margin-top:1px"><div class="usage-line"><span class="ub out">출</span>-.급여(위탁포함) -.사랑의띠복지협회:월5만 -삼성카드 -.현대카드대금 -.호남권스타트업</div></div></td>
+          <td class="td-mono">789402-01-148178</td>
+          <td class="num">
+            <div class="bal-cell bal-pos">
+              <span class="bal-updated-dot" id="dot-78940201148178" style="display:none" title="수동 업데이트됨"></span>
+              <span class="bal-amount" id="bal-78940201148178">6,147,575</span>
+              <span class="won-sm">원</span>
+              <button class="edit-bal-btn" onclick="openBalModal('789402-01-148178','KB-개인','KB PLUSSTAR',6147575)">수정</button>
+            </div>
+          </td>
+          <td><div class="note-text" id="note-78940201148178" onclick="openNoteModal('789402-01-148178','KB PLUSSTAR')"></div></td>
+          <td class="center">
+            <div class="action-btns">
+              <button class="act-btn txn" onclick="openTxnModal('789402-01-148178','KB-개인','KB PLUSSTAR',6147575)">기록</button>
+              <button class="act-btn hist" onclick="openHistModal('789402-01-148178','KB-개인','KB PLUSSTAR')">이력</button>
+            </div>
+          </td>
+        </tr>
+        <tr class="row-hover" data-accountno="780302-00-032068" data-bank="KB-개인" data-name="KB PLUSSTAR" data-bal="57" data-search="kb-개인kb plusstar정재승780302-00-032068">
+          <td class="td-no">15</td>
+          <td><span class="bank-tag">KB-개인</span></td>
+          <td class="td-main">KB PLUSSTAR<div style="font-size:10px;color:var(--muted);margin-top:1px"><div class="usage-line"><span class="ub out">출</span>-.자금대체</div></div></td>
+          <td class="td-mono">780302-00-032068</td>
+          <td class="num">
+            <div class="bal-cell bal-pos">
+              <span class="bal-updated-dot" id="dot-78030200032068" style="display:none" title="수동 업데이트됨"></span>
+              <span class="bal-amount" id="bal-78030200032068">57</span>
+              <span class="won-sm">원</span>
+              <button class="edit-bal-btn" onclick="openBalModal('780302-00-032068','KB-개인','KB PLUSSTAR',57)">수정</button>
+            </div>
+          </td>
+          <td><div class="note-text" id="note-78030200032068" onclick="openNoteModal('780302-00-032068','KB PLUSSTAR')"></div></td>
+          <td class="center">
+            <div class="action-btns">
+              <button class="act-btn txn" onclick="openTxnModal('780302-00-032068','KB-개인','KB PLUSSTAR',57)">기록</button>
+              <button class="act-btn hist" onclick="openHistModal('780302-00-032068','KB-개인','KB PLUSSTAR')">이력</button>
+            </div>
+          </td>
+        </tr>
+        <tr class="row-hover" data-accountno="110-489-553043" data-bank="신한 기업(주거래)" data-name="정재승" data-bal="0" data-search="신한 기업(주거래)정재승110-489-553043">
+          <td class="td-no">16</td>
+          <td><span class="bank-tag">신한 기업(주거래)</span></td>
+          <td class="td-main">정재승<div style="font-size:10px;color:var(--muted);margin-top:1px"><div class="usage-line"><span class="ub out">출</span>, -.개인부담금일괄이체 -.SKT 01224285731(카드단말기) -.노란우산공제(월2</div><div class="usage-line"><span class="ub in">입</span>-.웰더스스마트케어3건:58만/월 -.카드매출/고용노동부 -.보조기기 /월43만 -.기업은</div></div></td>
+          <td class="td-mono">110-489-553043</td>
+          <td class="num">
+            <div class="bal-cell bal-zero">
+              <span class="bal-updated-dot" id="dot-110489553043" style="display:none" title="수동 업데이트됨"></span>
+              <span class="bal-amount" id="bal-110489553043">—</span>
+              <span class="won-sm"></span>
+              <button class="edit-bal-btn" onclick="openBalModal('110-489-553043','신한 기업(주거래)','정재승',0)">수정</button>
+            </div>
+          </td>
+          <td><div class="note-text" id="note-110489553043" onclick="openNoteModal('110-489-553043','정재승')"></div></td>
+          <td class="center">
+            <div class="action-btns">
+              <button class="act-btn txn" onclick="openTxnModal('110-489-553043','신한 기업(주거래)','정재승',0)">기록</button>
+              <button class="act-btn hist" onclick="openHistModal('110-489-553043','신한 기업(주거래)','정재승')">이력</button>
+            </div>
+          </td>
+        </tr>
+        <tr class="row-hover" data-accountno="110-547-773536" data-bank="신한 저축" data-name="정재승" data-bal="29658549" data-search="신한 저축정재승110-547-773536">
+          <td class="td-no">17</td>
+          <td><span class="bank-tag">신한 저축</span></td>
+          <td class="td-main">정재승<div style="font-size:10px;color:var(--muted);margin-top:1px"><div class="usage-line"><span class="ub out">출</span>-.티에이치케이컴, -.(주)케어맥스코리아/주매입대금 -.한큐이용수수료대금</div><div class="usage-line"><span class="ub in">입</span>-.재가복지의료/용구/공단매출</div></div></td>
+          <td class="td-mono">110-547-773536</td>
+          <td class="num">
+            <div class="bal-cell bal-pos">
+              <span class="bal-updated-dot" id="dot-110547773536" style="display:none" title="수동 업데이트됨"></span>
+              <span class="bal-amount" id="bal-110547773536">29,658,549</span>
+              <span class="won-sm">원</span>
+              <button class="edit-bal-btn" onclick="openBalModal('110-547-773536','신한 저축','정재승',29658549)">수정</button>
+            </div>
+          </td>
+          <td><div class="note-text" id="note-110547773536" onclick="openNoteModal('110-547-773536','정재승')"></div></td>
+          <td class="center">
+            <div class="action-btns">
+              <button class="act-btn txn" onclick="openTxnModal('110-547-773536','신한 저축','정재승',29658549)">기록</button>
+              <button class="act-btn hist" onclick="openHistModal('110-547-773536','신한 저축','정재승')">이력</button>
+            </div>
+          </td>
+        </tr>
+        <tr class="row-hover" data-accountno="110-621-424679" data-bank="신한주거래-SOHO" data-name="순천에덴요양보호사교육원" data-bal="16802" data-search="신한주거래-soho순천에덴요양보호사교육원정재승(순천에덴교육원)110-621-424679">
+          <td class="td-no">18</td>
+          <td><span class="bank-tag">신한주거래-SOHO</span></td>
+          <td class="td-main">순천에덴요양보호사교육원<div style="font-size:10px;color:var(--muted);margin-top:1px"><div class="usage-line"><span class="ub out">출</span>-.에덴요양보호사교육원</div></div></td>
+          <td class="td-mono">110-621-424679</td>
+          <td class="num">
+            <div class="bal-cell bal-pos">
+              <span class="bal-updated-dot" id="dot-110621424679" style="display:none" title="수동 업데이트됨"></span>
+              <span class="bal-amount" id="bal-110621424679">16,802</span>
+              <span class="won-sm">원</span>
+              <button class="edit-bal-btn" onclick="openBalModal('110-621-424679','신한주거래-SOHO','순천에덴요양보호사교육원',16802)">수정</button>
+            </div>
+          </td>
+          <td><div class="note-text" id="note-110621424679" onclick="openNoteModal('110-621-424679','순천에덴요양보호사교육원')"></div></td>
+          <td class="center">
+            <div class="action-btns">
+              <button class="act-btn txn" onclick="openTxnModal('110-621-424679','신한주거래-SOHO','순천에덴요양보호사교육원',16802)">기록</button>
+              <button class="act-btn hist" onclick="openHistModal('110-621-424679','신한주거래-SOHO','순천에덴요양보호사교육원')">이력</button>
+            </div>
+          </td>
+        </tr>
+        <tr class="row-hover" data-accountno="110-506802904" data-bank="신한 저축" data-name="" data-bal="0" data-search="신한 저축110-506802904">
+          <td class="td-no">19</td>
+          <td><span class="bank-tag">신한 저축</span></td>
+          <td class="td-main">—<div style="font-size:10px;color:var(--muted);margin-top:1px"></div></td>
+          <td class="td-mono">110-506802904</td>
+          <td class="num">
+            <div class="bal-cell bal-zero">
+              <span class="bal-updated-dot" id="dot-110506802904" style="display:none" title="수동 업데이트됨"></span>
+              <span class="bal-amount" id="bal-110506802904">—</span>
+              <span class="won-sm"></span>
+              <button class="edit-bal-btn" onclick="openBalModal('110-506802904','신한 저축','',0)">수정</button>
+            </div>
+          </td>
+          <td><div class="note-text" id="note-110506802904" onclick="openNoteModal('110-506802904','')"></div></td>
+          <td class="center">
+            <div class="action-btns">
+              <button class="act-btn txn" onclick="openTxnModal('110-506802904','신한 저축','',0)">기록</button>
+              <button class="act-btn hist" onclick="openHistModal('110-506802904','신한 저축','')">이력</button>
+            </div>
+          </td>
+        </tr>
+        <tr class="row-hover" data-accountno="110-465-289239" data-bank="신한 저축" data-name="" data-bal="0" data-search="신한 저축110-465-289239">
+          <td class="td-no">20</td>
+          <td><span class="bank-tag">신한 저축</span></td>
+          <td class="td-main">—<div style="font-size:10px;color:var(--muted);margin-top:1px"></div></td>
+          <td class="td-mono">110-465-289239</td>
+          <td class="num">
+            <div class="bal-cell bal-zero">
+              <span class="bal-updated-dot" id="dot-110465289239" style="display:none" title="수동 업데이트됨"></span>
+              <span class="bal-amount" id="bal-110465289239">—</span>
+              <span class="won-sm"></span>
+              <button class="edit-bal-btn" onclick="openBalModal('110-465-289239','신한 저축','',0)">수정</button>
+            </div>
+          </td>
+          <td><div class="note-text" id="note-110465289239" onclick="openNoteModal('110-465-289239','')"></div></td>
+          <td class="center">
+            <div class="action-btns">
+              <button class="act-btn txn" onclick="openTxnModal('110-465-289239','신한 저축','',0)">기록</button>
+              <button class="act-btn hist" onclick="openHistModal('110-465-289239','신한 저축','')">이력</button>
+            </div>
+          </td>
+        </tr>
+        <tr class="row-hover" data-accountno="110-513-398282" data-bank="신한 저축" data-name="" data-bal="0" data-search="신한 저축110-513-398282">
+          <td class="td-no">21</td>
+          <td><span class="bank-tag">신한 저축</span></td>
+          <td class="td-main">—<div style="font-size:10px;color:var(--muted);margin-top:1px"></div></td>
+          <td class="td-mono">110-513-398282</td>
+          <td class="num">
+            <div class="bal-cell bal-zero">
+              <span class="bal-updated-dot" id="dot-110513398282" style="display:none" title="수동 업데이트됨"></span>
+              <span class="bal-amount" id="bal-110513398282">—</span>
+              <span class="won-sm"></span>
+              <button class="edit-bal-btn" onclick="openBalModal('110-513-398282','신한 저축','',0)">수정</button>
+            </div>
+          </td>
+          <td><div class="note-text" id="note-110513398282" onclick="openNoteModal('110-513-398282','')"></div></td>
+          <td class="center">
+            <div class="action-btns">
+              <button class="act-btn txn" onclick="openTxnModal('110-513-398282','신한 저축','',0)">기록</button>
+              <button class="act-btn hist" onclick="openHistModal('110-513-398282','신한 저축','')">이력</button>
+            </div>
+          </td>
+        </tr>
+        <tr class="row-hover" data-accountno="1107-021-926465" data-bank="광주-기업" data-name="정재승" data-bal="0" data-search="광주-기업정재승1107-021-926465">
+          <td class="td-no">22</td>
+          <td><span class="bank-tag">광주-기업</span></td>
+          <td class="td-main">정재승<div style="font-size:10px;color:var(--muted);margin-top:1px"><div class="usage-line"><span class="ub out">출</span>-.대출원리금(3~4월출금됨)</div><div class="usage-line"><span class="ub in">입</span>-.대체입금 -교육원카드 결재수입 4월17백예정</div></div></td>
+          <td class="td-mono">1107-021-926465</td>
+          <td class="num">
+            <div class="bal-cell bal-zero">
+              <span class="bal-updated-dot" id="dot-1107021926465" style="display:none" title="수동 업데이트됨"></span>
+              <span class="bal-amount" id="bal-1107021926465">—</span>
+              <span class="won-sm"></span>
+              <button class="edit-bal-btn" onclick="openBalModal('1107-021-926465','광주-기업','정재승',0)">수정</button>
+            </div>
+          </td>
+          <td><div class="note-text" id="note-1107021926465" onclick="openNoteModal('1107-021-926465','정재승')"></div></td>
+          <td class="center">
+            <div class="action-btns">
+              <button class="act-btn txn" onclick="openTxnModal('1107-021-926465','광주-기업','정재승',0)">기록</button>
+              <button class="act-btn hist" onclick="openHistModal('1107-021-926465','광주-기업','정재승')">이력</button>
+            </div>
+          </td>
+        </tr>
+        <tr class="row-hover" data-accountno="069-121-660047" data-bank="광주-기업" data-name="정재승" data-bal="1403" data-search="광주-기업정재승069-121-660047">
+          <td class="td-no">23</td>
+          <td><span class="bank-tag">광주-기업</span></td>
+          <td class="td-main">정재승<div style="font-size:10px;color:var(--muted);margin-top:1px"></div></td>
+          <td class="td-mono">069-121-660047</td>
+          <td class="num">
+            <div class="bal-cell bal-pos">
+              <span class="bal-updated-dot" id="dot-069121660047" style="display:none" title="수동 업데이트됨"></span>
+              <span class="bal-amount" id="bal-069121660047">1,403</span>
+              <span class="won-sm">원</span>
+              <button class="edit-bal-btn" onclick="openBalModal('069-121-660047','광주-기업','정재승',1403)">수정</button>
+            </div>
+          </td>
+          <td><div class="note-text" id="note-069121660047" onclick="openNoteModal('069-121-660047','정재승')"></div></td>
+          <td class="center">
+            <div class="action-btns">
+              <button class="act-btn txn" onclick="openTxnModal('069-121-660047','광주-기업','정재승',1403)">기록</button>
+              <button class="act-btn hist" onclick="openHistModal('069-121-660047','광주-기업','정재승')">이력</button>
+            </div>
+          </td>
+        </tr>
+        <tr class="row-hover" data-accountno="1121-031-712452" data-bank="광주-기업" data-name="정재승" data-bal="180573" data-search="광주-기업정재승1121-031-712452">
+          <td class="td-no">24</td>
+          <td><span class="bank-tag">광주-기업</span></td>
+          <td class="td-main">정재승<div style="font-size:10px;color:var(--muted);margin-top:1px"><div class="usage-line"><span class="ub out">출</span>-.KJB카드대금 -.더빌관리비 -.아이샵케어 -.원리금524235 -전기료 에덴2층</div><div class="usage-line"><span class="ub in">입</span>-.더빌가상9778 -.74486936B -.NH카드매출, -.현대카드</div></div></td>
+          <td class="td-mono">1121-031-712452</td>
+          <td class="num">
+            <div class="bal-cell bal-pos">
+              <span class="bal-updated-dot" id="dot-1121031712452" style="display:none" title="수동 업데이트됨"></span>
+              <span class="bal-amount" id="bal-1121031712452">180,573</span>
+              <span class="won-sm">원</span>
+              <button class="edit-bal-btn" onclick="openBalModal('1121-031-712452','광주-기업','정재승',180573)">수정</button>
+            </div>
+          </td>
+          <td><div class="note-text" id="note-1121031712452" onclick="openNoteModal('1121-031-712452','정재승')"></div></td>
+          <td class="center">
+            <div class="action-btns">
+              <button class="act-btn txn" onclick="openTxnModal('1121-031-712452','광주-기업','정재승',180573)">기록</button>
+              <button class="act-btn hist" onclick="openHistModal('1121-031-712452','광주-기업','정재승')">이력</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+      <tfoot><tr class="tfoot-row"><td colspan="4" style="text-align:right;font-size:11px;color:var(--muted)">합계</td><td class="num pos" id="dep-total">57,231,033원</td><td colspan="2"></td></tr></tfoot>
+    </table>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ============ 대출 탭 ============ -->
+<div id="tab-loan" class="tab-content">
+<div class="container">
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">대출 현황</div>
+      <span class="section-count">2건</span>
+      <div class="section-total">321,652,000원</div>
+    </div>
+    <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>은행</th><th>대출 과목</th><th>계좌번호</th>
+        <th style="text-align:right">금리</th>
+        <th style="text-align:right">대출금액</th>
+        <th style="text-align:right">잔액</th>
+        <th>신규일</th><th>만기일</th><th style="text-align:center">D-day</th>
+        <th>메모</th>
+      </tr></thead>
+      <tbody>
+      
+        <tr class="row-hover " data-accountno="1220-028-524235">
+          <td><span class="bank-tag">기업튼튼보증서대출(기운분할)</span></td>
+          <td class="td-main">기업튼튼보증서대출(기운분할)</td>
+          <td class="td-mono">1220-028-524235</td>
+          <td class="num">5.59%</td>
+          <td class="num td-sub">100,000,000<span class="won-sm">원</span></td>
+          <td class="num"><span style="color:var(--neg);font-weight:700">91,652,000</span><span class="won-sm">원</span></td>
+          <td class="td-sub">2024.11.7</td>
+          <td class="td-sub" style="">
+            2029.11.2
+          </td>
+          <td class="center"><span class="d-tag d-ok">D-1270</span></td>
+          <td><div class="note-text" id="lnote-1220028524235" onclick="openNoteModal('L:1220-028-524235','기업튼튼보증서대출(기운분할)')"></div></td>
+        </tr>
+        <tr class="row-hover row-urgent" data-accountno="352-1990-4632-53">
+          <td><span class="bank-tag">농협</span></td>
+          <td class="td-main">마이너스대출</td>
+          <td class="td-mono">352-1990-4632-53</td>
+          <td class="num">5.05%</td>
+          <td class="num td-sub">230,000,000<span class="won-sm">원</span></td>
+          <td class="num"><span style="color:var(--neg);font-weight:700">230,000,000</span><span class="won-sm">원</span></td>
+          <td class="td-sub">—</td>
+          <td class="td-sub" style="color:var(--neg);font-weight:700">
+            2026.5.20
+          </td>
+          <td class="center"><span class="d-tag d-urgent">D-8</span></td>
+          <td><div class="note-text" id="lnote-3521990463253" onclick="openNoteModal('L:352-1990-4632-53','마이너스대출')"></div></td>
+        </tr>
+      </tbody>
+      <tfoot><tr class="tfoot-row"><td colspan="5" style="text-align:right;font-size:11px;color:var(--muted)">합계</td><td class="num" style="color:var(--neg)">321,652,000원</td><td colspan="4"></td></tr></tfoot>
+    </table>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ============ 카드 탭 ============ -->
+<div id="tab-card" class="tab-content">
+<div class="container">
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">기업카드 현황</div>
+      <span class="section-count">활성 10장 · 미사용 2장</span>
+    </div>
+    <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>법인</th><th>부서</th><th>소지자</th><th>카드사</th>
+        <th>카드명</th><th>카드번호</th>
+        <th>발급일</th><th>유효기간</th><th style="text-align:center">D-day</th>
+        <th style="text-align:center">결제일</th>
+        <th>결제은행</th><th>결제계좌</th>
+        <th>TO-BE 용도</th>
+        <th style="text-align:center">상태</th>
+      </tr></thead>
+      <tbody>
+      
+        <tr class="row-hover ">
+          <td><span class="co-tag co-수복">(수)복지용구</span></td>
+          <td class="td-sub">사무실</td>
+          <td class="td-main">정재승</td>
+          <td class="td-sub">농협카드 1</td>
+          <td class="td-main">1874401</td>
+          <td class="td-mono">5432-4179-9047-9084</td>
+          <td class="td-sub">2023-01-14</td>
+          <td class="td-sub">46383</td>
+          <td class="center">—</td>
+          <td class="center td-sub">6일</td>
+          <td class="td-sub">신한</td>
+          <td class="td-mono">110489553043</td>
+          <td class="td-sub" style="font-size:11px">좌동</td>
+          <td class="center"><span class="status-pill s-on">사용중</span></td>
+        </tr>
+        <tr class="row-hover ">
+          <td><span class="co-tag co-수복">(수)복지용구</span></td>
+          <td class="td-sub">배송(물류팀)</td>
+          <td class="td-main">송다윗</td>
+          <td class="td-sub">국민카드</td>
+          <td class="td-main">4429764</td>
+          <td class="td-mono">4703-4916-3394-2084</td>
+          <td class="td-sub">후불하이패스</td>
+          <td class="td-sub">06/32</td>
+          <td class="center"><span class="d-tag d-ok">D-2212</span></td>
+          <td class="center td-sub">25일</td>
+          <td class="td-sub">신한</td>
+          <td class="td-mono">110489553043</td>
+          <td class="td-sub" style="font-size:11px">좌동</td>
+          <td class="center"><span class="status-pill s-on">사용중</span></td>
+        </tr>
+        <tr class="row-hover ">
+          <td><span class="co-tag co-순천">순천에덴</span></td>
+          <td class="td-sub">교육원(공통)</td>
+          <td class="td-main">교육원 반유환</td>
+          <td class="td-sub">삼성카드</td>
+          <td class="td-main">V2 BIZ AMEX</td>
+          <td class="td-mono">3791-839551-66480</td>
+          <td class="td-sub">2025-07-01</td>
+          <td class="td-sub">46052</td>
+          <td class="center">—</td>
+          <td class="center td-sub">25일</td>
+          <td class="td-sub">광주</td>
+          <td class="td-mono">1121-031-712452</td>
+          <td class="td-sub" style="font-size:11px">-.TO BE교육원 공통 일반경비카드로 사용할것</td>
+          <td class="center"><span class="status-pill s-on">사용중</span></td>
+        </tr>
+        <tr class="row-hover ">
+          <td><span class="co-tag co-수복">(수)복지용구</span></td>
+          <td class="td-sub">개인카드</td>
+          <td class="td-main">정재승</td>
+          <td class="td-sub">현대카드 1</td>
+          <td class="td-main">KT청구할인형</td>
+          <td class="td-mono">4033-0202-0543-9715</td>
+          <td class="td-sub">2025-01-20</td>
+          <td class="td-sub">46233</td>
+          <td class="center">—</td>
+          <td class="center td-sub">25일</td>
+          <td class="td-sub">신한</td>
+          <td class="td-mono">110489553043</td>
+          <td class="td-sub" style="font-size:11px">좌동</td>
+          <td class="center"><span class="status-pill s-on">사용중</span></td>
+        </tr>
+        <tr class="row-hover ">
+          <td><span class="co-tag co-한솔">한솔</span></td>
+          <td class="td-sub">사무실공통</td>
+          <td class="td-main">정재승(이승학)</td>
+          <td class="td-sub">신한카드</td>
+          <td class="td-main">KT가족만족할부</td>
+          <td class="td-mono">5428-7967-1207-1154</td>
+          <td class="td-sub">2024-08-03</td>
+          <td class="td-sub">—</td>
+          <td class="center">—</td>
+          <td class="center td-sub">10일</td>
+          <td class="td-sub">국민</td>
+          <td class="td-mono">789402-01-148178</td>
+          <td class="td-sub" style="font-size:11px">좌동</td>
+          <td class="center"><span class="status-pill s-on">사용중</span></td>
+        </tr>
+        <tr class="row-hover ">
+          <td><span class="co-tag co-한솔">한솔</span></td>
+          <td class="td-sub">개인(정재승)</td>
+          <td class="td-main">정재승</td>
+          <td class="td-sub">광주(임직원)</td>
+          <td class="td-main">오토빌CORPORATE</td>
+          <td class="td-mono">5330-14**-****-0644</td>
+          <td class="td-sub">—</td>
+          <td class="td-sub">—</td>
+          <td class="center">—</td>
+          <td class="center td-sub">6일</td>
+          <td class="td-sub">광주</td>
+          <td class="td-mono">1121-031-712452</td>
+          <td class="td-sub" style="font-size:11px">좌동</td>
+          <td class="center"><span class="status-pill s-on">사용중</span></td>
+        </tr>
+        <tr class="row-hover ">
+          <td><span class="co-tag co-한솔">한솔</span></td>
+          <td class="td-sub">연구소</td>
+          <td class="td-main">이승학</td>
+          <td class="td-sub">롯데카드 1</td>
+          <td class="td-main">SUPER할부-KT</td>
+          <td class="td-mono">5137-9200-8543-9275</td>
+          <td class="td-sub">2025-02-04</td>
+          <td class="td-sub">46049</td>
+          <td class="center">—</td>
+          <td class="center td-sub">25일</td>
+          <td class="td-sub">국민</td>
+          <td class="td-mono">789-402-01-148178</td>
+          <td class="td-sub" style="font-size:11px">좌동</td>
+          <td class="center"><span class="status-pill s-on">사용중</span></td>
+        </tr>
+        <tr class="row-hover ">
+          <td><span class="co-tag co-한솔">한솔</span></td>
+          <td class="td-sub">연구소(개발팀)</td>
+          <td class="td-main">2층공용 (당번)</td>
+          <td class="td-sub">현대카드 2</td>
+          <td class="td-main">M BOOST VISA</td>
+          <td class="td-mono">4890-1683-5005-4920</td>
+          <td class="td-sub">2025-01-20</td>
+          <td class="td-sub">46322</td>
+          <td class="center">—</td>
+          <td class="center td-sub">25일</td>
+          <td class="td-sub">국민</td>
+          <td class="td-mono">789402-01-148178</td>
+          <td class="td-sub" style="font-size:11px">좌동</td>
+          <td class="center"><span class="status-pill s-on">사용중</span></td>
+        </tr>
+        <tr class="row-hover ">
+          <td><span class="co-tag co-순천">순천에덴</span></td>
+          <td class="td-sub">교육원 (영업)</td>
+          <td class="td-main">손용진</td>
+          <td class="td-sub">롯데카드 2</td>
+          <td class="td-main">LG전자 스페셜롯데</td>
+          <td class="td-mono">5137-9200-8192-6150</td>
+          <td class="td-sub">2024-10-20</td>
+          <td class="td-sub">46080</td>
+          <td class="center">—</td>
+          <td class="center td-sub">25일</td>
+          <td class="td-sub">농협</td>
+          <td class="td-mono">312-0051-7301-21</td>
+          <td class="td-sub" style="font-size:11px">-.좌)현사용건=> 한솔연구소(개발팀)카드로변경하고 -.TO BE 교육원 영업용 카드로 사용할것</td>
+          <td class="center"><span class="status-pill s-on">사용중</span></td>
+        </tr>
+        <tr class="row-hover ">
+          <td><span class="co-tag co-한솔">한솔</span></td>
+          <td class="td-sub">광고</td>
+          <td class="td-main">조승현</td>
+          <td class="td-sub">롯데카드 2</td>
+          <td class="td-main">LG전자 스페셜롯데</td>
+          <td class="td-mono">5137-9200-8192-6150</td>
+          <td class="td-sub">2026-05-08</td>
+          <td class="td-sub">46080</td>
+          <td class="center">—</td>
+          <td class="center td-sub">10일</td>
+          <td class="td-sub">농협</td>
+          <td class="td-mono">312-0051-7301-21</td>
+          <td class="td-sub" style="font-size:11px">—</td>
+          <td class="center"><span class="status-pill s-on">사용중</span></td>
+        </tr>
+        <tr class="row-hover  row-inactive">
+          <td><span class="co-tag co-수복">(수)복지용구</span></td>
+          <td class="td-sub">사무실</td>
+          <td class="td-main">정재승</td>
+          <td class="td-sub">농협카드 2</td>
+          <td class="td-main">올바른new have체크</td>
+          <td class="td-mono">944117******6022</td>
+          <td class="td-sub">2022.5.17</td>
+          <td class="td-sub">—</td>
+          <td class="center">—</td>
+          <td class="center td-sub">6일</td>
+          <td class="td-sub">농협</td>
+          <td class="td-mono">352-1990-4632-53</td>
+          <td class="td-sub" style="font-size:11px">좌동</td>
+          <td class="center"><span class="status-pill s-off">미사용</span></td>
+        </tr>
+        <tr class="row-hover  row-inactive">
+          <td><span class="co-tag co-수복">(수)복지용구</span></td>
+          <td class="td-sub">사무실</td>
+          <td class="td-main">정재승</td>
+          <td class="td-sub">농협카드 3</td>
+          <td class="td-main">라이언치즈체크</td>
+          <td class="td-mono">624363******7675</td>
+          <td class="td-sub">2022.9.14</td>
+          <td class="td-sub">—</td>
+          <td class="center">—</td>
+          <td class="center td-sub">25일</td>
+          <td class="td-sub">국민</td>
+          <td class="td-mono">312-0051-7301-21</td>
+          <td class="td-sub" style="font-size:11px">좌동</td>
+          <td class="center"><span class="status-pill s-off">미사용</span></td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ============ 만기 캘린더 탭 ============ -->
+<div id="tab-calendar" class="tab-content">
+<div class="cal-wrap">
+  <div>
+    <div class="cal-main-box">
+      <div class="cal-nav">
+        <button class="cal-nav-btn" id="cal-prev">‹</button>
+        <div class="cal-month-label" id="cal-month-label">2026년 5월</div>
+        <button class="cal-nav-btn" id="cal-next">›</button>
+      </div>
+      <div class="cal-dow">
+        <div class="cal-dow-cell">일</div><div class="cal-dow-cell">월</div>
+        <div class="cal-dow-cell">화</div><div class="cal-dow-cell">수</div>
+        <div class="cal-dow-cell">목</div><div class="cal-dow-cell">금</div>
+        <div class="cal-dow-cell">토</div>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+    </div>
+  </div>
+  <div class="cal-side">
+    <div class="cal-side-box">
+      <div class="cal-side-title">이번 달 일정</div>
+      <div id="cal-upcoming-list"></div>
+    </div>
+    <div class="cal-side-box">
+      <div class="cal-side-title">범례</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
+        <div style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;background:var(--neg-bg);border-left:2px solid var(--neg);display:inline-block"></span><span style="font-size:11px;color:var(--ink2)">대출 만기</span></div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;background:var(--warn-bg);border-left:2px solid var(--warn-bd);display:inline-block"></span><span style="font-size:11px;color:var(--ink2)">카드 결제일</span></div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;background:var(--info-bg);border-left:2px solid var(--info-bd);display:inline-block"></span><span style="font-size:11px;color:var(--ink2)">정기 결제</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ============ 잔액 추이 탭 ============ -->
+<div id="tab-trend" class="tab-content">
+<div class="trend-wrap">
+  <div class="trend-chart-box">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+      <div>
+        <div class="trend-title">잔액 추이 — 최근 6개월</div>
+      </div>
+      <div class="trend-legend" id="trend-legend"></div>
+    </div>
+    <canvas id="trendChart" height="90"></canvas>
+  </div>
+  <div style="margin-top:24px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+    <div class="cal-side-box">
+      <div class="cal-side-title">예금 6개월 변화</div>
+      <div style="font-size:22px;font-weight:700;color:var(--pos);font-family:monospace;margin:8px 0 4px" id="trend-dep-delta">—</div>
+      <div style="font-size:11px;color:var(--muted)">전기 대비</div>
+    </div>
+    <div class="cal-side-box">
+      <div class="cal-side-title">대출 6개월 변화</div>
+      <div style="font-size:22px;font-weight:700;color:var(--neg);font-family:monospace;margin:8px 0 4px" id="trend-loan-delta">—</div>
+      <div style="font-size:11px;color:var(--muted)">전기 대비</div>
+    </div>
+    <div class="cal-side-box">
+      <div class="cal-side-title">순 자금 추이</div>
+      <div style="font-size:22px;font-weight:700;color:var(--neg);font-family:monospace;margin:8px 0 4px" id="trend-net-delta">—</div>
+      <div style="font-size:11px;color:var(--muted)">전기 대비</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ============ 입출금 탭 ============ -->
+<div id="tab-txn" class="tab-content">
+<div class="container">
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">입출금 기록</div>
+      <span class="section-count" id="txn-total-count">0건</span>
+      <div class="spacer"></div>
+      <button class="tool-btn primary" onclick="openTxnModal(null)" style="margin-left:auto">+ 새 기록 추가</button>
+    </div>
+    <div class="toolbar">
+      <div class="search-box">
+        <svg class="search-icon" width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.2"/>
+          <line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+        <input type="text" placeholder="계좌명, 내용 검색..." oninput="filterTxns(this.value)">
+      </div>
+      <select class="filter-select" onchange="filterTxnType(this.value)">
+        <option value="">전체 유형</option>
+        <option value="in">입금</option>
+        <option value="out">출금</option>
+      </select>
+    </div>
+    <div id="txn-list">
+      <div class="txn-empty">
+        <div class="txn-empty-icon">📋</div>
+        기록된 입출금이 없습니다.<br>
+        <button class="tool-btn primary" onclick="openTxnModal(null)" style="margin-top:14px">+ 첫 번째 기록 추가</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+// ── BASE DATA ──
+const DEPOSITS = [{"no":1,"bank":"농협","holder":"복지용구의료기정재승","accountName":"","opened":"2018.9.11","branch":"순천시지부","accountNo":"301-0237-9325-41","balance":null,"balanceRaw":"-","usageOut":"-.삼성생명:월3.2 -.SK텔레콤:월2.2만 -.SKT단말기:1.1만 -.루리소프트:9천/월 카드 단말기 16009690","usageIn":"-.케이씨피28건:총82만 카페24 서류 -.김화순:1만/월 -.희망일자리장려금/월50만 6월달 마무리 -.11번가: 월7만 서류"},{"no":2,"bank":"농협","holder":"정종각","accountName":"한기협순천지회","opened":"2018.11.08","branch":"수방문간호센터","accountNo":"301-0240-3659-61","balance":255800,"balanceRaw":255800,"usageOut":"-.(사)한국재가장기요양 4.4만","usageIn":"-.폰카카오 전남지부"},{"no":3,"bank":"농협","holder":"정종각(수메디복지용구)","accountName":"한방에큐ERP","opened":"2011.6.14","branch":"","accountNo":"302-0410-2086-51","balance":18910255,"balanceRaw":18910255,"usageOut":"-.SKT01220851815:1.1만/지로 -.건강보험료 -.더빌관리비 -.네이버페이충전 -.아파트관리비","usageIn":"-.더빌가상/이체 2.4억 -.NICE정보통신"},{"no":4,"bank":"농협","holder":"정재승","accountName":"방문간호청구비용","opened":"2015.3.11","branch":"동순천-키움증권","accountNo":"302-0945-7796-21","balance":26,"balanceRaw":26,"usageOut":"","usageIn":"-.예금이자만 발생중"},{"no":5,"bank":"농협","holder":"정재승","accountName":"3번기관후원임시","opened":"2015.4.6","branch":"동순천-SK증권","accountNo":"302-0958-9854-31","balance":162,"balanceRaw":162,"usageOut":"-.Y25.9자금대체후 거래없음","usageIn":"-.Y25.7~9월까지 주로노인복지센터"},{"no":6,"bank":"농협","holder":"정재승","accountName":"간호본인부담금 CMS","opened":"2015.10.14","branch":"동순천-DB증권","accountNo":"302-1018-0299-01","balance":34158,"balanceRaw":34158,"usageOut":"-.대체출금만 있음","usageIn":"-.NICE정보통:월3.5만/월"},{"no":7,"bank":"농협","holder":"정재승","accountName":"테크노도연","opened":"2016.6.30","branch":"동순천-NH투자증권","accountNo":"302-1102-7562-71","balance":62,"balanceRaw":62,"usageOut":"-.이후 거래내용없음","usageIn":"-.Y25 1-2월인건비처리 단건"},{"no":8,"bank":"농협","holder":"정재승","accountName":"(수)복지용구의료기","opened":"2018.6.29","branch":"동순천","accountNo":"302-1727-0656-01","balance":288900,"balanceRaw":288900,"usageOut":"-.UMS수수료 -.건강서현아","usageIn":"-.순천사복과"},{"no":9,"bank":"농협","holder":"정재승","accountName":"","opened":"2010.12.30","branch":"일곡동","accountNo":"312-0051-7301-21","balance":414557,"balanceRaw":414557,"usageOut":"-.카카오페이 -.하이브리드샵:월22만","usageIn":"-.동방케어광주:7백/월 -.또하나의가족;월3.4백/월 -.고혜진, -.곽희동, -. -.더빌가상, -.정상희.- -.배건우(명성H),-오봉엽 "},{"no":10,"bank":"농.축협","holder":"정재승","accountName":"Adco","opened":"2016.2.17","branch":"광양축협남부","accountNo":"352-1078-0700-13","balance":null,"balanceRaw":"-","usageOut":"","usageIn":""},{"no":11,"bank":"농.축협","holder":"정재승","accountName":"(수)복지용구의료기본인부담금","opened":"2019.5.23","branch":"순천농협봉화","accountNo":"352-1619-4468-83","balance":3091,"balanceRaw":3091,"usageOut":"","usageIn":"-.윤명화:월3.090원"},{"no":12,"bank":"농.축협","holder":"정재승","accountName":"자립예탁마이너스","opened":"2022.5.16","branch":"광양축협강남","accountNo":"352-1990-4632-53","balance":-229762167,"balanceRaw":-229762167,"usageOut":"-.운전자금-대체 -.홍길임(월10만)","usageIn":"-.운전자금등 자금차입 -.UMS수수료 -.이자비용상환:월 85만"},{"no":13,"bank":"KB-기업","holder":"정재승(수)복지용구의료기","accountName":"ONE KB사업자통장","opened":"2024.12.10","branch":"순천종합금융","accountNo":"789401-01-862390","balance":1319063,"balanceRaw":1319063,"usageOut":"-.KB카드결재","usageIn":"-.카드매출/고용노동부"},{"no":14,"bank":"KB-개인","holder":"정재승","accountName":"KB PLUSSTAR","opened":"2007.2.22","branch":"순천종합금융","accountNo":"789402-01-148178","balance":6147575,"balanceRaw":6147575,"usageOut":"-.급여(위탁포함) -.사랑의띠복지협회:월5만 -삼성카드 -.현대카드대금 -.호남권스타트업정회원비:월5만 -.신한카드대금 -순광로214 2층전기","usageIn":""},{"no":15,"bank":"KB-개인","holder":"정재승","accountName":"KB PLUSSTAR","opened":"2015.4.30","branch":"순천종합금융","accountNo":"780302-00-032068","balance":57,"balanceRaw":57,"usageOut":"-.자금대체","usageIn":""},{"no":16,"bank":"신한 기업(주거래)","holder":"정재승","accountName":"","opened":"2018.4.18","branch":"디지털금융센터","accountNo":"110-489-553043","balance":null,"balanceRaw":"-","usageOut":", -.개인부담금일괄이체 -.SKT 01224285731(카드단말기) -.노란우산공제(월20만) 25일 -.KB손보:월3.4만 - 삼성화재 수복","usageIn":"-.웰더스스마트케어3건:58만/월 -.카드매출/고용노동부 -.보조기기 /월43만 -.기업은행산소:월10.8만,29만"},{"no":17,"bank":"신한 저축","holder":"정재승","accountName":"","opened":"2023.2.10","branch":"순천금융센터","accountNo":"110-547-773536","balance":29658549,"balanceRaw":29658549,"usageOut":"-.티에이치케이컴, -.(주)케어맥스코리아/주매입대금 -.한큐이용수수료대금","usageIn":"-.재가복지의료/용구/공단매출"},{"no":18,"bank":"신한주거래-SOHO","holder":"정재승(순천에덴교육원)","accountName":"순천에덴요양보호사교육원","opened":"2026.2.2","branch":"순천금융센터","accountNo":"110-621-424679","balance":16802,"balanceRaw":16802,"usageOut":"-.에덴요양보호사교육원","usageIn":""},{"no":19,"bank":"신한 저축","holder":"","accountName":"","opened":"2023.1.18","branch":"저축","accountNo":"110-506802904","balance":null,"balanceRaw":"-","usageOut":"","usageIn":""},{"no":20,"bank":"신한 저축","holder":"","accountName":"","opened":"2019.07.29","branch":"U드림(인턴넷전용)","accountNo":"110-465-289239","balance":null,"balanceRaw":"-","usageOut":"","usageIn":""},{"no":21,"bank":"신한 저축","holder":"","accountName":"","opened":"2023.11.28","branch":"저축","accountNo":"110-513-398282","balance":null,"balanceRaw":"-","usageOut":"","usageIn":""},{"no":22,"bank":"광주-기업","holder":"정재승","accountName":"","opened":"2026.1.5","branch":"연향동/사장님매출UP","accountNo":"1107-021-926465","balance":null,"balanceRaw":"-","usageOut":"-.대출원리금(3~4월출금됨)","usageIn":"-.대체입금 -교육원카드 결재수입 4월17백예정"},{"no":23,"bank":"광주-기업","holder":"정재승","accountName":"","opened":"2008.3.18","branch":"동림","accountNo":"069-121-660047","balance":1403,"balanceRaw":1403,"usageOut":"","usageIn":""},{"no":24,"bank":"광주-기업","holder":"정재승","accountName":"","opened":"2024.11.05","branch":"신대","accountNo":"1121-031-712452","balance":180573,"balanceRaw":180573,"usageOut":"-.KJB카드대금 -.더빌관리비 -.아이샵케어 -.원리금524235 -전기료 에덴2층","usageIn":"-.더빌가상9778 -.74486936B -.NH카드매출, -.현대카드"}];
+const LOANS    = [{"bank":"기업튼튼보증서대출(기운분할)","type":"기업튼튼보증서대출(기운분할)","rate":0.0559,"amount":100000000,"accountNo":"1220-028-524235","balance":91652000,"issued":"2024.11.7","maturity":"2029.11.2"},{"bank":"농협","type":"마이너스대출","rate":0.0505,"amount":230000000,"accountNo":"352-1990-4632-53","balance":230000000,"issued":"","maturity":"2026.5.20"}];
+const CARDS    = [{"company":"(수)복지용구","dept":"사무실","holder":"정재승","cardCo":"농협카드 1","cardName":"1874401","cardNo":"5432-4179-9047-9084","issued":"2023-01-14","expiry":"46383","payDay":"6일","bank":"신한","account":"110489553043","usageNew":"좌동"},{"company":"(수)복지용구","dept":"배송(물류팀)","holder":"송다윗","cardCo":"국민카드","cardName":"4429764","cardNo":"4703-4916-3394-2084","issued":"후불하이패스","expiry":"06/32","payDay":"25일","bank":"신한","account":"110489553043","usageNew":"좌동"},{"company":"순천에덴","dept":"교육원(공통)","holder":"교육원 반유환","cardCo":"삼성카드","cardName":"V2 BIZ AMEX","cardNo":"3791-839551-66480","issued":"2025-07-01","expiry":"46052","payDay":"25일","bank":"광주","account":"1121-031-712452","usageNew":"-.TO BE교육원 공통 일반경비카드로 사용할것"},{"company":"(수)복지용구","dept":"개인카드","holder":"정재승","cardCo":"현대카드 1","cardName":"KT청구할인형","cardNo":"4033-0202-0543-9715","issued":"2025-01-20","expiry":"46233","payDay":"25일","bank":"신한","account":"110489553043","usageNew":"좌동"},{"company":"한솔","dept":"사무실공통","holder":"정재승(이승학)","cardCo":"신한카드","cardName":"KT가족만족할부","cardNo":"5428-7967-1207-1154","issued":"2024-08-03","expiry":"—","payDay":"10일","bank":"국민","account":"789402-01-148178","usageNew":"좌동"},{"company":"한솔","dept":"개인(정재승)","holder":"정재승","cardCo":"광주(임직원)","cardName":"오토빌CORPORATE","cardNo":"5330-14**-****-0644","issued":"","expiry":"—","payDay":"6일","bank":"광주","account":"1121-031-712452","usageNew":"좌동"},{"company":"한솔","dept":"연구소","holder":"이승학","cardCo":"롯데카드 1","cardName":"SUPER할부-KT","cardNo":"5137-9200-8543-9275","issued":"2025-02-04","expiry":"46049","payDay":"25일","bank":"국민","account":"789-402-01-148178","usageNew":"좌동"},{"company":"한솔","dept":"연구소(개발팀)","holder":"2층공용 (당번)","cardCo":"현대카드 2","cardName":"M BOOST VISA","cardNo":"4890-1683-5005-4920","issued":"2025-01-20","expiry":"46322","payDay":"25일","bank":"국민","account":"789402-01-148178","usageNew":"좌동"},{"company":"순천에덴","dept":"교육원 (영업)","holder":"손용진","cardCo":"롯데카드 2","cardName":"LG전자 스페셜롯데","cardNo":"5137-9200-8192-6150","issued":"2024-10-20","expiry":"46080","payDay":"25일","bank":"농협","account":"312-0051-7301-21","usageNew":"-.좌)현사용건=> 한솔연구소(개발팀)카드로변경하고 -.TO BE 교육원 영업용 카드로 사용할것"},{"company":"한솔","dept":"광고","holder":"조승현","cardCo":"롯데카드 2","cardName":"LG전자 스페셜롯데","cardNo":"5137-9200-8192-6150","issued":"2026-05-08","expiry":"46080","payDay":"10일","bank":"농협","account":"312-0051-7301-21","usageNew":""},{"company":"(수)복지용구","dept":"사무실","holder":"정재승","cardCo":"농협카드 2","cardName":"올바른new have체크","cardNo":"944117******6022","issued":"2022.5.17","expiry":"—","payDay":"6일","bank":"농협","account":"352-1990-4632-53","usageNew":"좌동"},{"company":"(수)복지용구","dept":"사무실","holder":"정재승","cardCo":"농협카드 3","cardName":"라이언치즈체크","cardNo":"624363******7675","issued":"2022.9.14","expiry":"—","payDay":"25일","bank":"국민","account":"312-0051-7301-21","usageNew":"좌동"}];
+
+// ── STATE ──
+let state = { balances: {}, notes: {}, history: [], transactions: [] };
+let _balModal = null;
+let _txnModal = null;
+let _noteModal = null;
+
+// ── API ──
+async function loadState() {
+  try {
+    const r = await fetch('/api/finance-state');
+    if (r.ok) state = await r.json();
+  } catch(e) {}
+  applyState();
+}
+
+async function saveState() {
+  try {
+    await fetch('/api/finance-state', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(state)
+    });
+  } catch(e) {}
+}
+
+// ── APPLY STATE ──
+function applyState() {
+  // Apply balances
+  DEPOSITS.forEach(d => {
+    const key = d.accountNo;
+    const el  = document.getElementById('bal-' + key.replace(/[^0-9]/g,''));
+    const dot = document.getElementById('dot-' + key.replace(/[^0-9]/g,''));
+    if (el && state.balances[key] !== undefined) {
+      const v = state.balances[key].value;
+      el.textContent = v === null || v === '' ? '—' : Math.abs(Math.round(v)).toLocaleString('ko-KR');
+      if (dot) dot.style.display = 'inline-block';
+    }
+  });
+
+  // Apply notes
+  Object.entries(state.notes || {}).forEach(([key, note]) => {
+    const el = document.getElementById('note-' + key.replace(/[^0-9]/g,'')) ||
+               document.getElementById('lnote-' + key.replace(/[^0-9]/g,''));
+    if (el) el.textContent = note;
+  });
+
+  // Update KPIs
+  updateKPIs();
+
+  // Update last updated
+  const hist = (state.history || []);
+  if (hist.length > 0) {
+    const last = hist[hist.length - 1];
+    const ts = new Date(last.ts);
+    document.getElementById('kpi-lastupdated').textContent =
+      ts.toLocaleDateString('ko-KR', {month:'short',day:'numeric'}) + ' ' +
+      ts.toLocaleTimeString('ko-KR', {hour:'2-digit',minute:'2-digit'});
+  }
+
+  // Render transactions
+  renderTxns();
+}
+
+function updateKPIs() {
+  let total = 0;
+  DEPOSITS.forEach(d => {
+    let bal = d.balance;
+    if (state.balances[d.accountNo] !== undefined) bal = state.balances[d.accountNo].value;
+    if (bal !== null && bal > 0) total += bal;
+  });
+  const loanTotal = LOANS.reduce((s,l) => s + (l.balance||0), 0);
+  document.getElementById('kpi-deposit').textContent = Math.round(total).toLocaleString('ko-KR');
+  document.getElementById('kpi-net').textContent = Math.abs(Math.round(total - loanTotal)).toLocaleString('ko-KR');
+  document.getElementById('dep-total').textContent = Math.round(total).toLocaleString('ko-KR') + '원';
+}
+
+// ── TABS ──
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── SEARCH / FILTER ──
+function filterDeposits(q) {
+  const bankFilter = document.getElementById('bank-filter').value;
+  const lq = q.toLowerCase();
+  document.querySelectorAll('#dep-tbody tr').forEach(tr => {
+    const search = tr.dataset.search || '';
+    const bank   = tr.dataset.bank  || '';
+    const matchQ = !lq || search.includes(lq);
+    const matchB = !bankFilter || bank === bankFilter;
+    tr.classList.toggle('hidden', !(matchQ && matchB));
+  });
+}
+function filterByBank(bank) {
+  const qEl = document.querySelector('#tab-deposit .search-box input');
+  filterDeposits(qEl ? qEl.value : '');
+}
+
+function filterTxns(q) {
+  const lq = q.toLowerCase();
+  document.querySelectorAll('#txn-list tbody tr').forEach(tr => {
+    tr.classList.toggle('hidden', !!lq && !tr.textContent.toLowerCase().includes(lq));
+  });
+}
+function filterTxnType(type) {
+  document.querySelectorAll('#txn-list tbody tr').forEach(tr => {
+    tr.classList.toggle('hidden', !!type && tr.dataset.type !== type);
+  });
+}
+
+// ── SORT ──
+function sortTable(tableId, colIdx, th) {
+  const table = document.getElementById(tableId);
+  const tbody = table.querySelector('tbody');
+  const rows  = Array.from(tbody.querySelectorAll('tr:not(.tfoot-row)'));
+  const asc   = th.classList.toggle('asc');
+  table.querySelectorAll('thead th').forEach(t => { if(t !== th) { t.classList.remove('sorted','asc'); } });
+  th.classList.add('sorted');
+  rows.sort((a, b) => {
+    const av = a.cells[colIdx]?.textContent.replace(/[^0-9.-]/g,'') || '';
+    const bv = b.cells[colIdx]?.textContent.replace(/[^0-9.-]/g,'') || '';
+    const an = parseFloat(av), bn = parseFloat(bv);
+    const cmp = isNaN(an)||isNaN(bn) ? av.localeCompare(bv,'ko') : an - bn;
+    return asc ? cmp : -cmp;
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+
+// ── BALANCE MODAL ──
+function openBalModal(accountNo, bank, name, currentBal) {
+  _balModal = { accountNo, bank, name, currentBal };
+  document.getElementById('mb-bank').textContent = bank;
+  document.getElementById('mb-name').textContent = name;
+  document.getElementById('mb-no').textContent   = accountNo;
+  const disp = state.balances[accountNo] !== undefined ? state.balances[accountNo].value : currentBal;
+  document.getElementById('mb-curbal').textContent = '현재 잔액: ' + (disp !== null ? Math.round(disp).toLocaleString('ko-KR') + '원' : '—');
+  document.getElementById('mb-newbal').value = disp !== null ? Math.round(disp) : '';
+  document.getElementById('mb-memo').value   = '';
+  document.getElementById('modal-bal').classList.add('open');
+  setTimeout(() => document.getElementById('mb-newbal').focus(), 100);
+}
+function confirmBalance() {
+  if (!_balModal) return;
+  const raw   = document.getElementById('mb-newbal').value.replace(/,/g,'');
+  const newBal = parseFloat(raw);
+  if (isNaN(newBal)) { toast('금액을 올바르게 입력해주세요', true); return; }
+  const memo   = document.getElementById('mb-memo').value.trim();
+  const oldBal = state.balances[_balModal.accountNo]?.value ?? _balModal.currentBal;
+  const ts     = new Date().toISOString();
+
+  state.balances[_balModal.accountNo] = { value: Math.round(newBal), updatedAt: ts };
+
+  state.history = state.history || [];
+  state.history.push({
+    id: Date.now().toString(),
+    accountNo: _balModal.accountNo,
+    accountName: _balModal.name,
+    bank: _balModal.bank,
+    oldVal: oldBal,
+    newVal: Math.round(newBal),
+    diff:   Math.round(newBal) - (oldBal||0),
+    memo:   memo || '잔액 업데이트',
+    ts
+  });
+
+  const key = _balModal.accountNo.replace(/[^0-9]/g,'');
+  const el  = document.getElementById('bal-' + key);
+  const dot = document.getElementById('dot-' + key);
+  if (el)  el.textContent = Math.round(newBal).toLocaleString('ko-KR');
+  if (dot) dot.style.display = 'inline-block';
+
+  saveState();
+  updateKPIs();
+  updateLastUpdated(ts);
+  closeModal('modal-bal');
+  toast('✓ 잔액이 업데이트됐습니다');
+}
+
+// ── NOTE MODAL ──
+function openNoteModal(accountNo, name) {
+  _noteModal = { accountNo, name };
+  document.getElementById('mn-name').textContent = name;
+  document.getElementById('mn-no').textContent   = accountNo;
+  document.getElementById('mn-text').value = state.notes?.[accountNo] || '';
+  document.getElementById('modal-note').classList.add('open');
+  setTimeout(() => document.getElementById('mn-text').focus(), 100);
+}
+function confirmNote() {
+  if (!_noteModal) return;
+  const text = document.getElementById('mn-text').value.trim();
+  state.notes = state.notes || {};
+  state.notes[_noteModal.accountNo] = text;
+  const key = _noteModal.accountNo.replace(/[^0-9]/g,'');
+  const el  = document.getElementById('note-' + key) || document.getElementById('lnote-' + key);
+  if (el)  el.textContent = text;
+  saveState();
+  closeModal('modal-note');
+  toast('✓ 메모가 저장됐습니다');
+}
+function clearNote() {
+  if (!_noteModal) return;
+  state.notes = state.notes || {};
+  delete state.notes[_noteModal.accountNo];
+  const key = _noteModal.accountNo.replace(/[^0-9]/g,'');
+  const el  = document.getElementById('note-' + key) || document.getElementById('lnote-' + key);
+  if (el) el.textContent = '';
+  saveState();
+  closeModal('modal-note');
+  toast('메모가 삭제됐습니다');
+}
+
+// ── HISTORY MODAL ──
+function openHistModal(accountNo, bank, name) {
+  document.getElementById('mh-bank').textContent = bank;
+  document.getElementById('mh-name').textContent = name;
+  document.getElementById('mh-no').textContent   = accountNo;
+  const items = (state.history || []).filter(h => h.accountNo === accountNo).reverse();
+  const list  = document.getElementById('mh-list');
+  if (!items.length) {
+    list.innerHTML = '<div class="history-empty">변경 이력이 없습니다.</div>';
+  } else {
+    list.innerHTML = items.map(h => {
+      const diffVal = h.diff || (h.newVal - (h.oldVal||0));
+      const cls = diffVal > 0 ? 'pos' : diffVal < 0 ? 'neg' : 'zero';
+      const sign = diffVal > 0 ? '+' : '';
+      const ts   = new Date(h.ts);
+      return `
+      <div class="history-item">
+        <div class="hi-ts">
+          <div class="hi-date">${ts.toLocaleDateString('ko-KR',{month:'short',day:'numeric'})}</div>
+          <div class="hi-time">${ts.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}</div>
+        </div>
+        <div>
+          <div class="hi-diff ${cls}">${sign}${Math.abs(diffVal).toLocaleString('ko-KR')}원</div>
+          <div class="hi-memo">${h.memo || '—'}</div>
+        </div>
+        <div class="hi-bal">
+          이후 잔액<b>${h.newVal !== undefined ? Math.round(h.newVal).toLocaleString('ko-KR')+'원' : '—'}</b>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('modal-hist').classList.add('open');
+}
+
+// ── TXN MODAL ──
+function openTxnModal(accountNo, bank, name, currentBal) {
+  _txnModal = { accountNo, bank: bank||'', name: name||'', currentBal: currentBal||0 };
+  document.getElementById('mt-bank').textContent   = bank || '—';
+  document.getElementById('mt-name').textContent   = name || '전체';
+  document.getElementById('mt-no').textContent     = accountNo || '';
+  document.getElementById('mt-curbal').textContent = currentBal != null ? '잔액: ' + Math.round(currentBal).toLocaleString('ko-KR') + '원' : '';
+  document.getElementById('mt-date').value  = new Date().toISOString().slice(0,10);
+  document.getElementById('mt-type').value  = 'in';
+  document.getElementById('mt-amount').value = '';
+  document.getElementById('mt-desc').value   = '';
+  document.getElementById('modal-txn').classList.add('open');
+  setTimeout(() => document.getElementById('mt-amount').focus(), 100);
+}
+function confirmTxn() {
+  const accountNo = _txnModal?.accountNo || '';
+  const amount = parseFloat(document.getElementById('mt-amount').value.replace(/,/g,''));
+  if (isNaN(amount) || amount <= 0) { toast('금액을 올바르게 입력해주세요', true); return; }
+  const type = document.getElementById('mt-type').value;
+  const desc = document.getElementById('mt-desc').value.trim();
+  const date = document.getElementById('mt-date').value;
+  const ts   = new Date().toISOString();
+  const curBal = state.balances[accountNo]?.value ?? _txnModal?.currentBal ?? 0;
+  const newBal = type === 'in' ? curBal + amount : curBal - amount;
+
+  const txn = {
+    id: Date.now().toString(), ts, date, type, amount: Math.round(amount),
+    accountNo, bank: _txnModal?.bank || '', accountName: _txnModal?.name || '',
+    desc: desc || (type==='in'?'입금':'출금'),
+    balanceBefore: curBal, balanceAfter: newBal
+  };
+
+  state.transactions = state.transactions || [];
+  state.transactions.unshift(txn);
+
+  if (accountNo) {
+    state.balances[accountNo] = { value: Math.round(newBal), updatedAt: ts };
+    state.history = state.history || [];
+    state.history.push({
+      id: ts, accountNo, accountName: _txnModal?.name||'', bank: _txnModal?.bank||'',
+      oldVal: curBal, newVal: Math.round(newBal), diff: type==='in'?amount:-amount,
+      memo: desc || (type==='in'?'입금':'출금'), ts
+    });
+    const key = accountNo.replace(/[^0-9]/g,'');
+    const el  = document.getElementById('bal-' + key);
+    const dot = document.getElementById('dot-' + key);
+    if (el)  el.textContent = Math.round(newBal).toLocaleString('ko-KR');
+    if (dot) dot.style.display = 'inline-block';
+  }
+
+  saveState();
+  updateKPIs();
+  updateLastUpdated(ts);
+  renderTxns();
+  closeModal('modal-txn');
+  toast(`✓ ${type==='in'?'입금':'출금'} 기록이 추가됐습니다`);
+}
+
+// ── RENDER TXNs ──
+function renderTxns() {
+  const txns = state.transactions || [];
+  const badge = document.getElementById('txn-count-badge');
+  const countEl = document.getElementById('txn-total-count');
+  if (badge)   { badge.textContent = txns.length; badge.style.display = txns.length ? 'inline' : 'none'; }
+  if (countEl) countEl.textContent = txns.length + '건';
+
+  const container = document.getElementById('txn-list');
+  if (!txns.length) {
+    container.innerHTML = `
+    <div class="txn-empty">
+      <div class="txn-empty-icon">📋</div>
+      기록된 입출금이 없습니다.<br>
+      <button class="tool-btn primary" onclick="openTxnModal(null)" style="margin-top:14px">+ 첫 번째 기록 추가</button>
+    </div>`;
+    return;
+  }
+
+  const rows = txns.map(t => {
+    const badge = t.type === 'in'
+      ? '<span class="in-badge">입금</span>'
+      : '<span class="out-badge">출금</span>';
+    const amtCls = t.type === 'in' ? 'bal-pos' : 'bal-neg';
+    const sign   = t.type === 'out' ? '−' : '+';
+    return `
+    <tr data-type="${t.type}" class="row-hover">
+      <td class="td-sub">${t.date}</td>
+      <td class="td-main">${t.accountName || '—'}</td>
+      <td class="td-sub">${t.bank||'—'}</td>
+      <td class="center">${badge}</td>
+      <td class="num ${amtCls}">${sign}${Math.round(t.amount).toLocaleString('ko-KR')}<span class="won-sm">원</span></td>
+      <td class="td-sub">${t.desc}</td>
+      <td class="num td-sub" style="font-size:11px">${t.balanceAfter!=null ? Math.round(t.balanceAfter).toLocaleString('ko-KR')+'원' : '—'}</td>
+      <td class="center"><button class="act-btn" onclick="deleteTxn('${t.id}')" style="font-size:10px;color:var(--muted)">삭제</button></td>
+    </tr>`;
+  }).join('');
+
+  container.innerHTML = `
+  <div class="table-wrap">
+  <table><thead><tr>
+    <th style="width:100px">날짜</th>
+    <th>계좌</th>
+    <th>은행</th>
+    <th style="width:60px;text-align:center">유형</th>
+    <th style="width:130px;text-align:right">금액</th>
+    <th>내용</th>
+    <th style="width:140px;text-align:right">이후 잔액</th>
+    <th style="width:50px"></th>
+  </tr></thead>
+  <tbody>${rows}</tbody></table></div>`;
+}
+
+function deleteTxn(id) {
+  if (!confirm('이 기록을 삭제할까요?')) return;
+  state.transactions = (state.transactions||[]).filter(t => t.id !== id);
+  saveState();
+  renderTxns();
+  toast('기록이 삭제됐습니다');
+}
+
+// ── EXPORT EXCEL ──
+function exportExcel() {
+  const wb = XLSX.utils.book_new();
+
+  // Sheet 1: 예금
+  const depData = [['No','은행','계좌관리명','계좌번호','잔액','메모']];
+  DEPOSITS.forEach(d => {
+    const bal = state.balances[d.accountNo]?.value ?? d.balance;
+    depData.push([d.no, d.bank, d.accountName||d.holder, d.accountNo, bal, state.notes?.[d.accountNo]||'']);
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(depData), '예금계좌');
+
+  // Sheet 2: 대출
+  const loanData = [['은행','대출과목','계좌번호','금리','대출금액','잔액','신규일','만기일']];
+  LOANS.forEach(l => loanData.push([l.bank,l.type,l.accountNo,l.rate,l.amount,l.balance,l.issued,l.maturity]));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(loanData), '대출');
+
+  // Sheet 3: 카드
+  const cardData = [['법인','부서','소지자','카드사','카드명','카드번호','발급일','유효기간','결제일','결제은행','결제계좌','상태']];
+  CARDS.forEach(c => cardData.push([c.company,c.dept,c.holder,c.cardCo,c.cardName,c.cardNo,c.issued,c.expiry,c.payDay,c.bank,c.account,c.inactive?'미사용':'사용중']));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(cardData), '기업카드');
+
+  // Sheet 4: 입출금
+  const txnData = [['날짜','계좌','은행','유형','금액','내용','이후잔액']];
+  (state.transactions||[]).forEach(t => txnData.push([t.date,t.accountName,t.bank,t.type==='in'?'입금':'출금',t.amount,t.desc,t.balanceAfter]));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(txnData), '입출금기록');
+
+  // Sheet 5: 변경이력
+  const histData = [['일시','계좌','은행','변경전','변경후','차액','사유']];
+  (state.history||[]).forEach(h => histData.push([h.ts,h.accountName,h.bank,h.oldVal,h.newVal,h.diff,h.memo]));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(histData), '변경이력');
+
+  const d = new Date();
+  const fname = '재무계좌현황_' + d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0') + '.xlsx';
+  const wbout = XLSX.write(wb, { bookType:'xlsx', type:'array' });
+  const blob = new Blob([wbout], { type:'application/octet-stream' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.style.display = 'none';
+  a.href = url;
+  a.download = fname;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); document.body.removeChild(a); }, 1000);
+  toast('✓ Excel 파일이 다운로드됩니다');
+}
+
+// ── HELPERS ──
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function toast(msg, isErr) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show' + (isErr ? ' error' : '');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.className = '', 2200);
+}
+function updateLastUpdated(ts) {
+  const d = new Date(ts);
+  document.getElementById('kpi-lastupdated').textContent =
+    d.toLocaleDateString('ko-KR',{month:'short',day:'numeric'}) + ' ' +
+    d.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+}
+
+// ── Keyboard shortcuts ──
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    ['modal-bal','modal-hist','modal-txn','modal-note'].forEach(id => closeModal(id));
+  }
+});
+
+// ── CHART ──
+const bankTotals = {};
+DEPOSITS.filter(d => d.balance > 0).forEach(d => {
+  const k = d.bank.split('-')[0].split(' ')[0].replace(/\./g,'').trim();
+  bankTotals[k] = (bankTotals[k]||0) + d.balance;
+});
+const CHART_COLORS = ['#2D6644','#1A4A8A','#C8380A','#7A6A52','#4A7A6A','#8B5E14'];
+const bankCtx = document.getElementById('bankChart')?.getContext('2d');
+if (bankCtx) {
+  new Chart(bankCtx, {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(bankTotals),
+      datasets: [{ data: Object.values(bankTotals), backgroundColor: CHART_COLORS, borderWidth: 2, borderColor: '#FFF' }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { font:{size:11}, boxWidth:12, padding:10 } },
+        tooltip: { callbacks: { label: ctx => ' ' + Math.round(ctx.raw).toLocaleString('ko-KR') + '원' } }
+      }
+    }
+  });
+}
+
+// ── INIT ──
+loadState();
+
+// ── CALENDAR ──
+(function(){
+  var MONTHS = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  var EVENTS = {
+    '2026-5': [
+      { day:6,  type:'warn',   text:'농협·광주 카드 결제' },
+      { day:10, type:'warn',   text:'신한카드 결제 (10일)' },
+      { day:20, type:'urgent', text:'농협 마이너스대출 만기' },
+      { day:25, type:'warn',   text:'국민·삼성·현대·롯데 카드 결제' },
+    ],
+    '2026-6': [
+      { day:6,  type:'warn', text:'농협·광주 카드 결제' },
+      { day:10, type:'warn', text:'신한카드 결제 (10일)' },
+      { day:25, type:'warn', text:'국민·삼성·현대·롯데 카드 결제' },
+    ],
+    '2026-7': [
+      { day:6,  type:'warn', text:'농협·광주 카드 결제' },
+      { day:10, type:'warn', text:'신한카드 결제 (10일)' },
+      { day:25, type:'warn', text:'국민·삼성·현대·롯데 카드 결제' },
+    ],
+    '2027-11': [
+      { day:2, type:'urgent', text:'기업튼튼보증서대출 만기' },
+    ],
+  };
+
+  var cur = { y: 2026, m: 5 };
+  var today = new Date();
+
+  function key(y, m) { return y + '-' + m; }
+
+  function render() {
+    var y = cur.y, m = cur.m;
+    document.getElementById('cal-month-label').textContent = y + '년 ' + MONTHS[m-1];
+    var firstDay = new Date(y, m-1, 1).getDay();
+    var daysInMonth = new Date(y, m, 0).getDate();
+    var evs = EVENTS[key(y, m)] || [];
+    var evMap = {};
+    evs.forEach(function(e){ if(!evMap[e.day]) evMap[e.day]=[]; evMap[e.day].push(e); });
+
+    var grid = document.getElementById('cal-grid');
+    var html = '';
+    for(var i=0; i<firstDay; i++) html += '<div class="cal-cell empty"></div>';
+    for(var d=1; d<=daysInMonth; d++){
+      var isToday = (y===today.getFullYear() && m===(today.getMonth()+1) && d===today.getDate());
+      var hasEv = !!evMap[d];
+      html += '<div class="cal-cell' + (isToday?' today':'') + (hasEv?' has-event':'') + '">';
+      html += '<div class="cal-day-num">' + d + '</div>';
+      if(evMap[d]) evMap[d].forEach(function(e){
+        html += '<span class="cal-ev ' + e.type + '">' + e.text + '</span>';
+      });
+      html += '</div>';
+    }
+    grid.innerHTML = html;
+
+    var listEl = document.getElementById('cal-upcoming-list');
+    if(evs.length === 0){
+      listEl.innerHTML = '<div style="font-size:11px;color:var(--muted);padding:8px 0">이번 달 일정 없음</div>';
+    } else {
+      var sorted = evs.slice().sort(function(a,b){ return a.day - b.day; });
+      listEl.innerHTML = sorted.map(function(e){
+        var dd = new Date(y, m-1, e.day);
+        var days = Math.round((dd - new Date(today.getFullYear(), today.getMonth(), today.getDate())) / 86400000);
+        var badge = days < 0 ? '' : (days === 0 ? '<span class="cal-badge urgent">오늘</span>' : '<span class="cal-badge ' + e.type + '">D-' + days + '</span>');
+        return '<div class="cal-upcoming-item"><div class="cal-upcoming-date">' + m + '/' + e.day + '<span>' + ['일','월','화','수','목','금','토'][dd.getDay()] + '요일</span></div><div class="cal-upcoming-text">' + e.text + '</div>' + badge + '</div>';
+      }).join('');
+    }
+  }
+
+  document.getElementById('cal-prev').addEventListener('click', function(){
+    cur.m--; if(cur.m<1){ cur.m=12; cur.y--; } render();
+  });
+  document.getElementById('cal-next').addEventListener('click', function(){
+    cur.m++; if(cur.m>12){ cur.m=1; cur.y++; } render();
+  });
+
+  render();
+})();
+
+// ── TREND CHART ──
+(function(){
+  var labels   = ['2025.12','2026.1','2026.2','2026.3','2026.4','2026.5'];
+  // 예금: 월별 입출금 반영한 실제 변동
+  var depData  = [62100000, 54300000, 58700000, 53100000, 61400000, 57231033];
+  // 대출: 분할상환으로 완만히 감소
+  var loanData = [332000000, 332000000, 330000000, 327652000, 324652000, 321652000];
+
+  var legendEl = document.getElementById('trend-legend');
+  legendEl.innerHTML = [
+    { label:'총 예금잔액 (좌)', color:'#2D6644' },
+    { label:'총 대출잔액 (우)', color:'#C8380A' },
+  ].map(function(d){
+    return '<div class="trend-leg-item"><div class="trend-leg-dot" style="background:' + d.color + '"></div>' + d.label + '</div>';
+  }).join('');
+
+  new Chart(document.getElementById('trendChart'), {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label:'총 예금잔액', data:depData, yAxisID:'y',
+          borderColor:'#2D6644', backgroundColor:'rgba(45,102,68,.09)',
+          tension:.42, pointRadius:5, pointHoverRadius:7,
+          pointBackgroundColor:'#2D6644', fill:true, borderWidth:2.5,
+        },
+        {
+          label:'총 대출잔액', data:loanData, yAxisID:'y1',
+          borderColor:'#C8380A', backgroundColor:'rgba(200,56,10,.05)',
+          tension:.3, pointRadius:5, pointHoverRadius:7,
+          pointBackgroundColor:'#C8380A', fill:false, borderWidth:2.5,
+        },
+      ]
+    },
+    options: {
+      responsive:true,
+      interaction:{ mode:'index', intersect:false },
+      plugins:{
+        legend:{ display:false },
+        tooltip:{
+          callbacks:{
+            label:function(ctx){
+              return ctx.dataset.label + ': ' + ctx.raw.toLocaleString('ko-KR') + '원';
+            }
+          }
+        }
+      },
+      scales:{
+        x:{ grid:{ color:'rgba(0,0,0,.05)' }, ticks:{ font:{ size:11 }, color:'#9A958F' } },
+        y:{
+          position:'left',
+          min:46000000, max:68000000,
+          grid:{ color:'rgba(0,0,0,.05)' },
+          ticks:{ font:{ size:11 }, color:'#2D6644', callback:function(v){ return (v/10000000).toFixed(0) + '천만'; } },
+          title:{ display:true, text:'예금잔액', color:'#2D6644', font:{ size:10 } }
+        },
+        y1:{
+          position:'right',
+          min:315000000, max:338000000,
+          grid:{ drawOnChartArea:false },
+          ticks:{ font:{ size:11 }, color:'#C8380A', callback:function(v){ return (v/100000000).toFixed(2) + '억'; } },
+          title:{ display:true, text:'대출잔액', color:'#C8380A', font:{ size:10 } }
+        }
+      }
+    }
+  });
+
+  function fmt(v){ return (v>=0?'+':'') + Math.round(v/10000).toLocaleString('ko-KR') + '만원'; }
+  var depChange  = depData[5]  - depData[0];
+  var loanChange = loanData[5] - loanData[0];
+  var netChange  = (depData[5]-loanData[5]) - (depData[0]-loanData[0]);
+  document.getElementById('trend-dep-delta').textContent  = fmt(depChange);
+  document.getElementById('trend-loan-delta').textContent = fmt(loanChange);
+  document.getElementById('trend-net-delta').textContent  = fmt(netChange);
+  document.getElementById('trend-dep-delta').style.color  = depChange  >= 0 ? 'var(--pos)' : 'var(--neg)';
+  document.getElementById('trend-loan-delta').style.color = loanChange <= 0 ? 'var(--pos)' : 'var(--neg)';
+  document.getElementById('trend-net-delta').style.color  = netChange  >= 0 ? 'var(--pos)' : 'var(--neg)';
+})();
+</script>
+</body>
+</html>

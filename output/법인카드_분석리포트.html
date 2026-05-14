@@ -1,0 +1,2606 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>법인카드 지출 분석 리포트 — 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+/* ── Reset & Base ────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:      #F7F5F0;
+  --surface: #FFFFFF;
+  --border:  #E2DED7;
+  --ink:     #1A1814;
+  --ink2:    #5C5851;
+  --muted:   #9A958F;
+  --accent:  #C8380A;
+  --accent2: #D4632A;
+  --ok:      #3D6B4F;
+  --ok-bg:   #EBF2EE;
+}
+html { max-width: 100vw; overflow-x: hidden; }
+body {
+  font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+/* ── Header ─────────────────────────── */
+.header {
+  background: var(--ink);
+  color: #F7F5F0;
+  padding: 48px 60px 40px;
+}
+.header-label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+.header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  margin-bottom: 8px;
+}
+.header-meta {
+  font-size: 12px;
+  color: #9A958F;
+  display: flex;
+  gap: 24px;
+}
+.header-meta span::before { content: '— '; }
+
+/* ── Container ──────────────────────── */
+.container { max-width: 1280px; margin: 0 auto; padding: 40px 60px; }
+
+/* ── Section ────────────────────────── */
+.section { margin-bottom: 48px; }
+.section-label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.section-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.section-title.accent { border-bottom-color: var(--accent); }
+
+/* ── KPI Grid ───────────────────────── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  margin-bottom: 48px;
+}
+.kpi {
+  background: var(--surface);
+  padding: 28px 24px;
+}
+.kpi-label {
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.kpi-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -1px;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.kpi-value.accent { color: var(--accent); }
+.kpi-sub { font-size: 11px; color: var(--muted); }
+
+/* ── Charts ─────────────────────────── */
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  margin-bottom: 48px;
+}
+.chart-box { background: var(--surface); padding: 24px; }
+.chart-label {
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+/* ── Tables ─────────────────────────── */
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 500;
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--bg);
+  background: var(--surface);
+  vertical-align: middle;
+}
+.row-even td { background: #FAFAF7; }
+tr:hover td { background: #F2EFEA !important; }
+.num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 500; }
+.center { text-align: center; }
+.td-main { font-weight: 500; color: var(--ink); }
+.td-sub { color: var(--ink2); font-size: 12px; }
+.td-total { font-weight: 700; color: var(--ink); }
+.muted { color: var(--muted); font-size: 11px; }
+.card-meta { margin-top: 5px; display: flex; flex-wrap: wrap; gap: 2px 0; }
+.card-meta-chip { font-size: 10px; color: var(--muted); background: var(--bg); border: 1px solid var(--border); padding: 1px 7px; margin-right: 4px; margin-bottom: 2px; font-weight: 400; letter-spacing: 0; }
+.card-meta-chip.mono { font-family: 'Courier New', monospace; letter-spacing: 0.5px; }
+
+/* ── Category Tags ──────────────────── */
+.cat {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  color: var(--ink2);
+  background: var(--bg);
+}
+.cat-AISaaS { border-color: #C8D8C0; background: #EFF5EC; color: #2D5A3D; }
+.cat-통신비  { border-color: #C0CCD8; background: #ECF1F5; color: #2A4060; }
+.cat-렌탈구독 { border-color: #D8CCA8; background: #F5F0E0; color: #5A4A1A; }
+.cat-4대보험 { border-color: #B8CCBA; background: #EBF2ED; color: #2D5036; }
+.cat-전기공과금 { border-color: #B8C8D8; background: #EAF0F5; color: #1A3C5A; }
+
+/* ── Pills ──────────────────────────── */
+.pill {
+  display: inline-block;
+  font-size: 10px;
+  letter-spacing: 1px;
+  padding: 2px 10px;
+  font-weight: 500;
+}
+.pill-ok  { background: var(--ok-bg); color: var(--ok); }
+.pill-check { background: #F5F0E0; color: #7A6020; }
+
+/* ── Dup rows ───────────────────────── */
+.dup-row td { background: #FDFCFA; }
+.dup-sum td { background: #F7F5F0 !important; }
+
+/* ── Saving Banner ──────────────────── */
+.saving-banner {
+  background: var(--ink);
+  color: #F7F5F0;
+  padding: 32px 40px;
+  display: flex;
+  align-items: flex-end;
+  gap: 40px;
+  margin-bottom: 2px;
+}
+.saving-banner .sb-label {
+  font-size: 10px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.saving-banner .sb-amount {
+  font-size: 42px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: -2px;
+  line-height: 1;
+}
+.saving-banner .sb-won { font-size: 20px; font-weight: 400; margin-left: 4px; }
+.saving-banner .sb-sub { font-size: 12px; color: var(--muted); margin-top: 6px; }
+.saving-banner .sb-divider { width: 1px; background: #3A3830; align-self: stretch; }
+.saving-banner .sb-annual .sb-label { margin-bottom: 4px; }
+.saving-banner .sb-annual-num { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+
+/* ── Rec Table ──────────────────────── */
+.rec-high td { background: #FEFCFB; }
+.rec-mid td  { background: var(--surface); }
+.rec-row:hover td { background: #FDF5F2 !important; }
+.rec-type {
+  display: inline-block;
+  font-size: 10px;
+  letter-spacing: 1px;
+  font-weight: 600;
+  padding: 3px 8px;
+}
+.rec-type-dup { background: var(--accent); color: white; }
+.rec-type-sub { background: var(--ink); color: white; }
+.rec-priority { font-size: 11px; font-weight: 600; }
+.p-high { color: var(--accent); }
+.p-mid  { color: var(--accent2); }
+.rec-saving {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.won { font-size: 12px; font-weight: 400; margin-left: 1px; color: var(--accent2); }
+.rec-card { font-size: 11px; color: var(--ink2); margin-bottom: 2px; }
+.card-avg { font-size: 11px; font-weight: 600; color: var(--accent); margin-left: 4px; }
+
+/* ── Methodology Box ────────────────── */
+.methodology-box {
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.meth-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+}
+.meth-item {
+  background: var(--surface);
+  padding: 20px 20px 18px;
+}
+.meth-excluded { background: #FAFAF7; }
+.meth-label {
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.meth-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+.meth-desc {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.meth-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+.meth-tag {
+  font-size: 11px;
+  padding: 2px 9px;
+  border: 1px solid var(--border);
+  color: var(--ink2);
+  background: var(--bg);
+}
+.meth-note {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--ink2);
+  background: #FAFAF7;
+}
+.meth-note::before {
+  content: '※ ';
+  color: var(--muted);
+}
+
+@media print {
+  body { background: white; }
+  .kpi-grid, .charts-grid { break-inside: avoid; }
+}
+
+/* ── MOBILE 768px ── */
+@media (max-width: 768px) {
+  .header { padding: 24px 20px; }
+  .container { padding: 20px 16px; }
+  .kpi-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .kpi { padding: 14px 16px; }
+  .charts-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .meth-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .saving-banner { padding: 24px 20px; gap: 20px; flex-wrap: wrap; }
+  .saving-banner .sb-amount { font-size: 32px; }
+  .modal { width: 95vw !important; }
+  .section { margin-bottom: 32px; }
+  table { min-width: 560px; }
+  .section > table,
+  .section > div > table { overflow-x: auto; display: block; }
+}
+
+/* ── MOBILE 480px ── */
+@media (max-width: 480px) {
+  .header h1 { font-size: 22px; }
+  .header-label { letter-spacing: 2px; }
+  .kpi-grid { grid-template-columns: 1fr; }
+  .kpi { padding: 14px 16px; }
+  .charts-grid { grid-template-columns: 1fr; }
+  .meth-grid { grid-template-columns: 1fr; }
+  .saving-banner .sb-amount { font-size: 26px; }
+  .header-meta { gap: 12px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-label">Corporate Card Analysis Report</div>
+  <h1>법인카드 지출 분석</h1>
+  <div class="header-meta">
+    <span>2026년 1월 — 3월</span>
+    <span>분석 카드 7장</span>
+    <span>총 거래 994건</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- KPI -->
+  <div class="kpi-grid">
+    <div class="kpi">
+      <div class="kpi-label">3개월 총 지출</div>
+      <div class="kpi-value">103,528,268<span style="font-size:16px;font-weight:400">원</span></div>
+      <div class="kpi-sub">월평균 34,509,423원</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">구독 · 정기결제</div>
+      <div class="kpi-value accent">114<span style="font-size:16px;font-weight:400">건</span></div>
+      <div class="kpi-sub">3개월 이상 반복</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">크로스카드 중복</div>
+      <div class="kpi-value accent">6<span style="font-size:16px;font-weight:400">건</span></div>
+      <div class="kpi-sub">동일 서비스 복수 카드</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">월 절감 가능 (추정)</div>
+      <div class="kpi-value accent">16,579,946<span style="font-size:16px;font-weight:400">원</span></div>
+      <div class="kpi-sub">검토 후 확정 필요</div>
+    </div>
+  </div>
+
+  <!-- 차트 -->
+  <div class="charts-grid">
+    <div class="chart-box">
+      <div class="chart-label">Card Spending — Total</div>
+      <canvas id="cardChart" height="200"></canvas>
+    </div>
+    <div class="chart-box">
+      <div class="chart-label">Category Breakdown</div>
+      <canvas id="catChart" height="200"></canvas>
+    </div>
+    <div class="chart-box">
+      <div class="chart-label">Monthly Trend</div>
+      <canvas id="monthChart" height="200"></canvas>
+    </div>
+  </div>
+
+  <!-- 카드별 요약 -->
+  <div class="section">
+    <div class="section-label">Card Summary</div>
+    <div class="section-title">카드별 지출 요약</div>
+    <table>
+      <thead><tr>
+        <th>카드명</th><th>회사</th><th>소지자</th>
+        <th style="text-align:right">1월</th><th style="text-align:right">2월</th><th style="text-align:right">3월</th><th style="text-align:right">합계</th>
+      </tr></thead>
+      <tbody>
+    <tr class="row-even">
+      <td class="td-main">LG전자 스페셜롯데
+      <div class="card-meta">
+        <span class="card-meta-chip mono">5137-9200-8192-6150</span>
+        <span class="card-meta-chip">발급 2024-10-20</span>
+        <span class="card-meta-chip">유효 02/27</span>
+        <span class="card-meta-chip">결제 매월 25일</span>
+        <span class="card-meta-chip">농협은행</span>
+        <span class="card-meta-chip mono">312-0051-7301-21</span>
+      </div></td>
+      <td class="td-sub">순천에덴</td>
+      <td class="td-sub">손용진</td>
+      <td class="num">14,088,825</td>
+      <td class="num">9,218,561</td>
+      <td class="num">12,683,433</td>
+      <td class="num td-total">35,990,819</td>
+    </tr>
+    <tr class="">
+      <td class="td-main">M BOOST VISA
+      <div class="card-meta">
+        <span class="card-meta-chip mono">4890-1683-5005-4920</span>
+        <span class="card-meta-chip">발급 2025-01-20</span>
+        <span class="card-meta-chip">유효 10/27</span>
+        <span class="card-meta-chip">결제 매월 25일</span>
+        <span class="card-meta-chip">국민은행</span>
+        <span class="card-meta-chip mono">789402-01-148178</span>
+      </div></td>
+      <td class="td-sub">한솔</td>
+      <td class="td-sub">2층공용(개발팀)</td>
+      <td class="num">5,184,290</td>
+      <td class="num">5,899,625</td>
+      <td class="num">7,055,949</td>
+      <td class="num td-total">18,139,864</td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">NH농협 다사로이
+      <div class="card-meta">
+        <span class="card-meta-chip mono">5432-4179-9047-9084</span>
+        <span class="card-meta-chip">발급 2023-01-14</span>
+        <span class="card-meta-chip">유효 12/27</span>
+        <span class="card-meta-chip">결제 매월 6일</span>
+        <span class="card-meta-chip">신한은행</span>
+        <span class="card-meta-chip mono">110489553043</span>
+      </div></td>
+      <td class="td-sub">(수)복지용구</td>
+      <td class="td-sub">정재승</td>
+      <td class="num">5,894,374</td>
+      <td class="num">7,501,332</td>
+      <td class="num">4,712,267</td>
+      <td class="num td-total">18,107,973</td>
+    </tr>
+    <tr class="">
+      <td class="td-main">KT청구할인형
+      <div class="card-meta">
+        <span class="card-meta-chip mono">4033-0202-0543-9715</span>
+        <span class="card-meta-chip">발급 2025-01-20</span>
+        <span class="card-meta-chip">유효 07/30</span>
+        <span class="card-meta-chip">결제 매월 25일</span>
+        <span class="card-meta-chip">신한은행</span>
+        <span class="card-meta-chip mono">110489553043</span>
+      </div></td>
+      <td class="td-sub">(수)복지용구</td>
+      <td class="td-sub">정재승</td>
+      <td class="num">5,190,424</td>
+      <td class="num">5,525,005</td>
+      <td class="num">6,182,258</td>
+      <td class="num td-total">16,897,687</td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">SUPER할부-KT
+      <div class="card-meta">
+        <span class="card-meta-chip mono">5137-9200-8543-9275</span>
+        <span class="card-meta-chip">발급 2025-02-04</span>
+        <span class="card-meta-chip">유효 01/27</span>
+        <span class="card-meta-chip">결제 매월 25일</span>
+        <span class="card-meta-chip">국민은행</span>
+        <span class="card-meta-chip mono">789-402-01-148178</span>
+      </div></td>
+      <td class="td-sub">한솔</td>
+      <td class="td-sub">이승학</td>
+      <td class="num">7,405,128</td>
+      <td class="num">1,140,024</td>
+      <td class="num">1,407,701</td>
+      <td class="num td-total">9,952,853</td>
+    </tr>
+    <tr class="">
+      <td class="td-main">KB WISH올카드
+      <div class="card-meta">
+        <span class="card-meta-chip mono">4703-4916-3394-2084</span>
+        <span class="card-meta-chip">발급 —</span>
+        <span class="card-meta-chip">유효 06/32</span>
+        <span class="card-meta-chip">결제 매월 25일</span>
+        <span class="card-meta-chip">신한은행</span>
+        <span class="card-meta-chip mono">110489553043</span>
+      </div></td>
+      <td class="td-sub">(수)복지용구</td>
+      <td class="td-sub">송다윗</td>
+      <td class="num">944,125</td>
+      <td class="num">552,109</td>
+      <td class="num">2,941,938</td>
+      <td class="num td-total">4,438,172</td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">V2 BIZ AMEX
+      <div class="card-meta">
+        <span class="card-meta-chip mono">3791-839551-66480</span>
+        <span class="card-meta-chip">발급 2025-07-01</span>
+        <span class="card-meta-chip">유효 01/30</span>
+        <span class="card-meta-chip">결제 매월 25일</span>
+        <span class="card-meta-chip">광주은행</span>
+        <span class="card-meta-chip mono">1121-031-712452</span>
+      </div></td>
+      <td class="td-sub">순천에덴</td>
+      <td class="td-sub">반유환</td>
+      <td class="num">300</td>
+      <td class="num">300</td>
+      <td class="num">300</td>
+      <td class="num td-total">900</td>
+    </tr></tbody>
+    </table>
+  </div>
+
+  <!-- 구독/정기결제 -->
+  <div class="section">
+    <div class="section-label">Recurring Charges</div>
+    <div class="section-title">3개월 이상 반복 결제 — 구독 · 정기결제 의심 항목</div>
+    <table>
+      <thead><tr>
+        <th>가맹점명</th><th>카드 / 소지자</th><th>카테고리</th>
+        <th style="text-align:right">1월</th><th style="text-align:right">2월</th><th style="text-align:right">3월</th>
+        <th style="text-align:right">월평균</th><th style="text-align:center">판정</th>
+      </tr></thead>
+      <tbody>
+    <tr class="row-even">
+      <td class="td-main">Amazon_Web Service_아마존웹서비시즈코리아 유한</td>
+      <td class="td-sub">LG전자 스페셜롯데<br><span class="muted">순천에덴 / 손용진</span></td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="num">3,045,666</td>
+      <td class="num">3,115,184</td>
+      <td class="num">2,844,127</td>
+      <td class="num td-total">3,001,659</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">직장건강자동이체_건강보험공단</td>
+      <td class="td-sub">NH농협 다사로이<br><span class="muted">(수)복지용구 / 정재승</span></td>
+      <td><span class="cat cat-대보험">4대보험</span></td>
+      <td class="num">2,534,132</td>
+      <td class="num">2,926,647</td>
+      <td class="num">2,951,282</td>
+      <td class="num td-total">2,804,020</td>
+      <td class="center"><span class="pill pill-ok">필수</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">직장연금자동이체_건강보험공단</td>
+      <td class="td-sub">NH농협 다사로이<br><span class="muted">(수)복지용구 / 정재승</span></td>
+      <td><span class="cat cat-대보험">4대보험</span></td>
+      <td class="num">2,605,458</td>
+      <td class="num">2,904,572</td>
+      <td class="num">0</td>
+      <td class="num td-total">2,755,015</td>
+      <td class="center"><span class="pill pill-ok">필수</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">구구팔팔의료기</td>
+      <td class="td-sub">KB WISH올카드<br><span class="muted">(수)복지용구 / 송다윗</span></td>
+      <td><span class="cat cat-렌탈구독">렌탈/구독</span></td>
+      <td class="num">242,000</td>
+      <td class="num">0</td>
+      <td class="num">2,114,400</td>
+      <td class="num td-total">1,178,200</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">배민페이_배민원 - 주식회사 우아한형제들</td>
+      <td class="td-sub">M BOOST VISA<br><span class="muted">한솔 / 2층공용(개발팀)</span></td>
+      <td><span class="cat cat-식대카페">식대/카페</span></td>
+      <td class="num">0</td>
+      <td class="num">1,396,000</td>
+      <td class="num">610,400</td>
+      <td class="num td-total">1,003,200</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">ANTHROPIC CLAUDE TEAM</td>
+      <td class="td-sub">M BOOST VISA<br><span class="muted">한솔 / 2층공용(개발팀)</span></td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="num">430,323</td>
+      <td class="num">807,180</td>
+      <td class="num">1,252,860</td>
+      <td class="num td-total">830,121</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">우아한형제들 - ㈜우아한형제들</td>
+      <td class="td-sub">M BOOST VISA<br><span class="muted">한솔 / 2층공용(개발팀)</span></td>
+      <td><span class="cat cat-식대카페">식대/카페</span></td>
+      <td class="num">1,335,200</td>
+      <td class="num">216,500</td>
+      <td class="num">456,900</td>
+      <td class="num td-total">669,533</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">NICE_통신판매_주식회사 채널</td>
+      <td class="td-sub">LG전자 스페셜롯데<br><span class="muted">순천에덴 / 손용진</span></td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="num">558,499</td>
+      <td class="num">684,355</td>
+      <td class="num">755,791</td>
+      <td class="num td-total">666,215</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">직장고용자동이체_건강보험공단</td>
+      <td class="td-sub">NH농협 다사로이<br><span class="muted">(수)복지용구 / 정재승</span></td>
+      <td><span class="cat cat-대보험">4대보험</span></td>
+      <td class="num">512,799</td>
+      <td class="num">693,907</td>
+      <td class="num">700,116</td>
+      <td class="num td-total">635,607</td>
+      <td class="center"><span class="pill pill-ok">필수</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">전기요금/자동이체</td>
+      <td class="td-sub">NH농협 다사로이<br><span class="muted">(수)복지용구 / 정재승</span></td>
+      <td><span class="cat cat-전기공과금">전기/공과금</span></td>
+      <td class="num">0</td>
+      <td class="num">560,380</td>
+      <td class="num">642,160</td>
+      <td class="num td-total">601,270</td>
+      <td class="center"><span class="pill pill-ok">필수</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">주_우아한형제들 - (주)우아한형제들</td>
+      <td class="td-sub">M BOOST VISA<br><span class="muted">한솔 / 2층공용(개발팀)</span></td>
+      <td><span class="cat cat-식대카페">식대/카페</span></td>
+      <td class="num">1,000,800</td>
+      <td class="num">185,600</td>
+      <td class="num">0</td>
+      <td class="num td-total">593,200</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">쿠팡_주 - 쿠팡</td>
+      <td class="td-sub">KT청구할인형<br><span class="muted">(수)복지용구 / 정재승</span></td>
+      <td><span class="cat cat-생활잡화">생활/잡화</span></td>
+      <td class="num">941,460</td>
+      <td class="num">0</td>
+      <td class="num">154,530</td>
+      <td class="num td-total">547,995</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">네이버페이</td>
+      <td class="td-sub">M BOOST VISA<br><span class="muted">한솔 / 2층공용(개발팀)</span></td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="num">451,940</td>
+      <td class="num">365,470</td>
+      <td class="num">561,080</td>
+      <td class="num td-total">459,497</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">NOTION LABS, INC.</td>
+      <td class="td-sub">LG전자 스페셜롯데<br><span class="muted">순천에덴 / 손용진</span></td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="num">430,118</td>
+      <td class="num">391,575</td>
+      <td class="num">379,392</td>
+      <td class="num td-total">400,362</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">우아한형제들 - 주식회사 우아한형제들</td>
+      <td class="td-sub">M BOOST VISA<br><span class="muted">한솔 / 2층공용(개발팀)</span></td>
+      <td><span class="cat cat-식대카페">식대/카페</span></td>
+      <td class="num">0</td>
+      <td class="num">13,900</td>
+      <td class="num">708,200</td>
+      <td class="num td-total">361,050</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">FIGMA</td>
+      <td class="td-sub">LG전자 스페셜롯데<br><span class="muted">순천에덴 / 손용진</span></td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="num">204,778</td>
+      <td class="num">269,893</td>
+      <td class="num">582,769</td>
+      <td class="num td-total">352,480</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">직장산재자동이체_건강보험공단</td>
+      <td class="td-sub">NH농협 다사로이<br><span class="muted">(수)복지용구 / 정재승</span></td>
+      <td><span class="cat cat-대보험">4대보험</span></td>
+      <td class="num">229,995</td>
+      <td class="num">383,836</td>
+      <td class="num">386,719</td>
+      <td class="num td-total">333,517</td>
+      <td class="center"><span class="pill pill-ok">필수</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">네이버페이</td>
+      <td class="td-sub">KT청구할인형<br><span class="muted">(수)복지용구 / 정재승</span></td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="num">235,000</td>
+      <td class="num">235,000</td>
+      <td class="num">235,000</td>
+      <td class="num td-total">235,000</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">네이버페이_주식회사 놀유니버스</td>
+      <td class="td-sub">LG전자 스페셜롯데<br><span class="muted">순천에덴 / 손용진</span></td>
+      <td><span class="cat cat-교통주유">교통/주유</span></td>
+      <td class="num">284,200</td>
+      <td class="num">0</td>
+      <td class="num">150,000</td>
+      <td class="num td-total">217,100</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">Google Digital Inc.</td>
+      <td class="td-sub">M BOOST VISA<br><span class="muted">한솔 / 2층공용(개발팀)</span></td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="num">17,805</td>
+      <td class="num">149,403</td>
+      <td class="num">455,029</td>
+      <td class="num td-total">207,412</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">KT통신요금자동납부</td>
+      <td class="td-sub">KT청구할인형<br><span class="muted">(수)복지용구 / 정재승</span></td>
+      <td><span class="cat cat-통신비">통신비</span></td>
+      <td class="num">177,130</td>
+      <td class="num">177,510</td>
+      <td class="num">179,970</td>
+      <td class="num td-total">178,203</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">KCP결제 - 엔에이치엔케이씨피(주)</td>
+      <td class="td-sub">KT청구할인형<br><span class="muted">(수)복지용구 / 정재승</span></td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="num">0</td>
+      <td class="num">297,779</td>
+      <td class="num">54,874</td>
+      <td class="num td-total">176,327</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">SLACK T09SR71H5L5</td>
+      <td class="td-sub">SUPER할부-KT<br><span class="muted">한솔 / 이승학</span></td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="num">210,067</td>
+      <td class="num">184,369</td>
+      <td class="num">127,415</td>
+      <td class="num td-total">173,950</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">네이버페이_네이버파이낸셜 주식회사</td>
+      <td class="td-sub">LG전자 스페셜롯데<br><span class="muted">순천에덴 / 손용진</span></td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="num">10,690</td>
+      <td class="num">0</td>
+      <td class="num">324,300</td>
+      <td class="num td-total">167,495</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">KT통신요금 자동납부</td>
+      <td class="td-sub">LG전자 스페셜롯데<br><span class="muted">순천에덴 / 손용진</span></td>
+      <td><span class="cat cat-통신비">통신비</span></td>
+      <td class="num">167,230</td>
+      <td class="num">167,230</td>
+      <td class="num">0</td>
+      <td class="num td-total">167,230</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">구글페이먼트_구글페이먼트코리아</td>
+      <td class="td-sub">SUPER할부-KT<br><span class="muted">한솔 / 이승학</span></td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="num">60,000</td>
+      <td class="num">240,000</td>
+      <td class="num">0</td>
+      <td class="num td-total">150,000</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">우아한형제들</td>
+      <td class="td-sub">KT청구할인형<br><span class="muted">(수)복지용구 / 정재승</span></td>
+      <td><span class="cat cat-식대카페">식대/카페</span></td>
+      <td class="num">99,816</td>
+      <td class="num">222,024</td>
+      <td class="num">101,292</td>
+      <td class="num td-total">141,044</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">우아한형제들 - (주)우아한형제들</td>
+      <td class="td-sub">M BOOST VISA<br><span class="muted">한솔 / 2층공용(개발팀)</span></td>
+      <td><span class="cat cat-식대카페">식대/카페</span></td>
+      <td class="num">0</td>
+      <td class="num">140,900</td>
+      <td class="num">140,900</td>
+      <td class="num td-total">140,900</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">청보석</td>
+      <td class="td-sub">M BOOST VISA<br><span class="muted">한솔 / 2층공용(개발팀)</span></td>
+      <td><span class="cat cat-식대카페">식대/카페</span></td>
+      <td class="num">145,000</td>
+      <td class="num">125,000</td>
+      <td class="num">128,500</td>
+      <td class="num td-total">132,833</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">우아한형제들 - (주)우아한형제들</td>
+      <td class="td-sub">M BOOST VISA<br><span class="muted">한솔 / 2층공용(개발팀)</span></td>
+      <td><span class="cat cat-식대카페">식대/카페</span></td>
+      <td class="num">0</td>
+      <td class="num">128,000</td>
+      <td class="num">128,000</td>
+      <td class="num td-total">128,000</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">전기차충전(자동결제)</td>
+      <td class="td-sub">KB WISH올카드<br><span class="muted">(수)복지용구 / 송다윗</span></td>
+      <td><span class="cat cat-전기공과금">전기/공과금</span></td>
+      <td class="num">143,619</td>
+      <td class="num">142,688</td>
+      <td class="num">86,622</td>
+      <td class="num td-total">124,310</td>
+      <td class="center"><span class="pill pill-ok">필수</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">티맵모빌리티_KBPay빌링</td>
+      <td class="td-sub">KB WISH올카드<br><span class="muted">(수)복지용구 / 송다윗</span></td>
+      <td><span class="cat cat-교통주유">교통/주유</span></td>
+      <td class="num">33,206</td>
+      <td class="num">165,741</td>
+      <td class="num">165,111</td>
+      <td class="num td-total">121,353</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">CURSOR, AI POWERED IDE</td>
+      <td class="td-sub">LG전자 스페셜롯데<br><span class="muted">순천에덴 / 손용진</span></td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="num">118,972</td>
+      <td class="num">118,750</td>
+      <td class="num">121,453</td>
+      <td class="num td-total">119,725</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">전남도시가스(주)_자동이체</td>
+      <td class="td-sub">LG전자 스페셜롯데<br><span class="muted">순천에덴 / 손용진</span></td>
+      <td><span class="cat cat-전기공과금">전기/공과금</span></td>
+      <td class="num">87,250</td>
+      <td class="num">149,600</td>
+      <td class="num">101,290</td>
+      <td class="num td-total">112,713</td>
+      <td class="center"><span class="pill pill-ok">필수</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">KT스카이라이프</td>
+      <td class="td-sub">LG전자 스페셜롯데<br><span class="muted">순천에덴 / 손용진</span></td>
+      <td><span class="cat cat-통신비">통신비</span></td>
+      <td class="num">99,000</td>
+      <td class="num">99,000</td>
+      <td class="num">99,000</td>
+      <td class="num td-total">99,000</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">KT통신요금 자동납부</td>
+      <td class="td-sub">SUPER할부-KT<br><span class="muted">한솔 / 이승학</span></td>
+      <td><span class="cat cat-통신비">통신비</span></td>
+      <td class="num">93,710</td>
+      <td class="num">93,710</td>
+      <td class="num">93,710</td>
+      <td class="num td-total">93,710</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">명궁관</td>
+      <td class="td-sub">KT청구할인형<br><span class="muted">(수)복지용구 / 정재승</span></td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="num">140,000</td>
+      <td class="num">0</td>
+      <td class="num">28,000</td>
+      <td class="num td-total">84,000</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">다이소아성산업</td>
+      <td class="td-sub">KT청구할인형<br><span class="muted">(수)복지용구 / 정재승</span></td>
+      <td><span class="cat cat-생활잡화">생활/잡화</span></td>
+      <td class="num">3,000</td>
+      <td class="num">74,200</td>
+      <td class="num">162,100</td>
+      <td class="num td-total">79,767</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">더풍전주식회사</td>
+      <td class="td-sub">KB WISH올카드<br><span class="muted">(수)복지용구 / 송다윗</span></td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="num">78,000</td>
+      <td class="num">76,000</td>
+      <td class="num">0</td>
+      <td class="num td-total">77,000</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">(주)우아한형제들</td>
+      <td class="td-sub">LG전자 스페셜롯데<br><span class="muted">순천에덴 / 손용진</span></td>
+      <td><span class="cat cat-식대카페">식대/카페</span></td>
+      <td class="num">112,274</td>
+      <td class="num">0</td>
+      <td class="num">35,780</td>
+      <td class="num td-total">74,027</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">지큐룸소주방</td>
+      <td class="td-sub">KT청구할인형<br><span class="muted">(수)복지용구 / 정재승</span></td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="num">76,500</td>
+      <td class="num">0</td>
+      <td class="num">64,800</td>
+      <td class="num td-total">70,650</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">케이티텔레캅주식회사호남본부</td>
+      <td class="td-sub">SUPER할부-KT<br><span class="muted">한솔 / 이승학</span></td>
+      <td><span class="cat cat-통신비">통신비</span></td>
+      <td class="num">64,900</td>
+      <td class="num">64,900</td>
+      <td class="num">64,900</td>
+      <td class="num td-total">64,900</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">쿠쿠홈시스_쿠쿠홈시스주식회사</td>
+      <td class="td-sub">SUPER할부-KT<br><span class="muted">한솔 / 이승학</span></td>
+      <td><span class="cat cat-렌탈구독">렌탈/구독</span></td>
+      <td class="num">42,900</td>
+      <td class="num">0</td>
+      <td class="num">85,800</td>
+      <td class="num td-total">64,350</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">뜰방</td>
+      <td class="td-sub">LG전자 스페셜롯데<br><span class="muted">순천에덴 / 손용진</span></td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="num">84,000</td>
+      <td class="num">0</td>
+      <td class="num">42,000</td>
+      <td class="num td-total">63,000</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">상무초밥순천점</td>
+      <td class="td-sub">KT청구할인형<br><span class="muted">(수)복지용구 / 정재승</span></td>
+      <td><span class="cat cat-식대카페">식대/카페</span></td>
+      <td class="num">54,200</td>
+      <td class="num">56,800</td>
+      <td class="num">68,900</td>
+      <td class="num td-total">59,967</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">울림식당</td>
+      <td class="td-sub">LG전자 스페셜롯데<br><span class="muted">순천에덴 / 손용진</span></td>
+      <td><span class="cat cat-식대카페">식대/카페</span></td>
+      <td class="num">67,000</td>
+      <td class="num">50,000</td>
+      <td class="num">0</td>
+      <td class="num td-total">58,500</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">OPENAI</td>
+      <td class="td-sub">SUPER할부-KT<br><span class="muted">한솔 / 이승학</span></td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="num">0</td>
+      <td class="num">16,409</td>
+      <td class="num">94,886</td>
+      <td class="num td-total">55,648</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">쿠팡 - 쿠팡</td>
+      <td class="td-sub">KT청구할인형<br><span class="muted">(수)복지용구 / 정재승</span></td>
+      <td><span class="cat cat-생활잡화">생활/잡화</span></td>
+      <td class="num">34,960</td>
+      <td class="num">75,040</td>
+      <td class="num">0</td>
+      <td class="num td-total">55,000</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">DEEVID AI</td>
+      <td class="td-sub">SUPER할부-KT<br><span class="muted">한솔 / 이승학</span></td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="num">52,463</td>
+      <td class="num">51,748</td>
+      <td class="num">53,859</td>
+      <td class="num td-total">52,690</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">(주)세스코</td>
+      <td class="td-sub">SUPER할부-KT<br><span class="muted">한솔 / 이승학</span></td>
+      <td><span class="cat cat-렌탈구독">렌탈/구독</span></td>
+      <td class="num">50,000</td>
+      <td class="num">50,000</td>
+      <td class="num">50,000</td>
+      <td class="num td-total">50,000</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">LG전자 구독료</td>
+      <td class="td-sub">SUPER할부-KT<br><span class="muted">한솔 / 이승학</span></td>
+      <td><span class="cat cat-렌탈구독">렌탈/구독</span></td>
+      <td class="num">45,900</td>
+      <td class="num">45,900</td>
+      <td class="num">45,900</td>
+      <td class="num td-total">45,900</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">메가엠지씨커피순천성가롤로대로점</td>
+      <td class="td-sub">M BOOST VISA<br><span class="muted">한솔 / 2층공용(개발팀)</span></td>
+      <td><span class="cat cat-식대카페">식대/카페</span></td>
+      <td class="num">27,700</td>
+      <td class="num">0</td>
+      <td class="num">55,400</td>
+      <td class="num td-total">41,550</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">전기차충전</td>
+      <td class="td-sub">KB WISH올카드<br><span class="muted">(수)복지용구 / 송다윗</span></td>
+      <td><span class="cat cat-전기공과금">전기/공과금</span></td>
+      <td class="num">40,000</td>
+      <td class="num">0</td>
+      <td class="num">40,000</td>
+      <td class="num td-total">40,000</td>
+      <td class="center"><span class="pill pill-ok">필수</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">대박닭갈비</td>
+      <td class="td-sub">LG전자 스페셜롯데<br><span class="muted">순천에덴 / 손용진</span></td>
+      <td><span class="cat cat-식대카페">식대/카페</span></td>
+      <td class="num">52,000</td>
+      <td class="num">26,000</td>
+      <td class="num">0</td>
+      <td class="num td-total">39,000</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">팔복식당</td>
+      <td class="td-sub">LG전자 스페셜롯데<br><span class="muted">순천에덴 / 손용진</span></td>
+      <td><span class="cat cat-식대카페">식대/카페</span></td>
+      <td class="num">30,000</td>
+      <td class="num">44,000</td>
+      <td class="num">40,000</td>
+      <td class="num td-total">38,000</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">정원장어마을추어탕</td>
+      <td class="td-sub">M BOOST VISA<br><span class="muted">한솔 / 2층공용(개발팀)</span></td>
+      <td><span class="cat cat-식대카페">식대/카페</span></td>
+      <td class="num">36,000</td>
+      <td class="num">36,000</td>
+      <td class="num">0</td>
+      <td class="num td-total">36,000</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">메가엠지씨커피순천성가롤로대로점</td>
+      <td class="td-sub">M BOOST VISA<br><span class="muted">한솔 / 2층공용(개발팀)</span></td>
+      <td><span class="cat cat-식대카페">식대/카페</span></td>
+      <td class="num">34,100</td>
+      <td class="num">0</td>
+      <td class="num">34,100</td>
+      <td class="num td-total">34,100</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">자동결제_2_실버시트</td>
+      <td class="td-sub">LG전자 스페셜롯데<br><span class="muted">순천에덴 / 손용진</span></td>
+      <td><span class="cat cat-렌탈구독">렌탈/구독</span></td>
+      <td class="num">33,000</td>
+      <td class="num">33,000</td>
+      <td class="num">33,000</td>
+      <td class="num td-total">33,000</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">프레전트</td>
+      <td class="td-sub">LG전자 스페셜롯데<br><span class="muted">순천에덴 / 손용진</span></td>
+      <td><span class="cat cat-식대카페">식대/카페</span></td>
+      <td class="num">24,000</td>
+      <td class="num">48,000</td>
+      <td class="num">24,000</td>
+      <td class="num td-total">32,000</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">메가엠지씨커피순천성가롤로대로점</td>
+      <td class="td-sub">M BOOST VISA<br><span class="muted">한솔 / 2층공용(개발팀)</span></td>
+      <td><span class="cat cat-식대카페">식대/카페</span></td>
+      <td class="num">31,600</td>
+      <td class="num">31,600</td>
+      <td class="num">0</td>
+      <td class="num td-total">31,600</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">네이버페이_네이버</td>
+      <td class="td-sub">LG전자 스페셜롯데<br><span class="muted">순천에덴 / 손용진</span></td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="num">31,500</td>
+      <td class="num">0</td>
+      <td class="num">31,500</td>
+      <td class="num td-total">31,500</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">메가엠지씨커피순천성가롤로대로점</td>
+      <td class="td-sub">M BOOST VISA<br><span class="muted">한솔 / 2층공용(개발팀)</span></td>
+      <td><span class="cat cat-식대카페">식대/카페</span></td>
+      <td class="num">31,300</td>
+      <td class="num">31,300</td>
+      <td class="num">0</td>
+      <td class="num td-total">31,300</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">메가엠지씨커피순천성가롤로대로점</td>
+      <td class="td-sub">M BOOST VISA<br><span class="muted">한솔 / 2층공용(개발팀)</span></td>
+      <td><span class="cat cat-식대카페">식대/카페</span></td>
+      <td class="num">0</td>
+      <td class="num">30,200</td>
+      <td class="num">30,200</td>
+      <td class="num td-total">30,200</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">PADDLE.NET* CHATBOTAI</td>
+      <td class="td-sub">SUPER할부-KT<br><span class="muted">한솔 / 이승학</span></td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="num">30,038</td>
+      <td class="num">30,000</td>
+      <td class="num">30,071</td>
+      <td class="num td-total">30,036</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">전기차충전_3</td>
+      <td class="td-sub">KB WISH올카드<br><span class="muted">(수)복지용구 / 송다윗</span></td>
+      <td><span class="cat cat-전기공과금">전기/공과금</span></td>
+      <td class="num">0</td>
+      <td class="num">10,000</td>
+      <td class="num">50,000</td>
+      <td class="num td-total">30,000</td>
+      <td class="center"><span class="pill pill-ok">필수</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">세정이네 불쭈꾸미</td>
+      <td class="td-sub">LG전자 스페셜롯데<br><span class="muted">순천에덴 / 손용진</span></td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="num">36,000</td>
+      <td class="num">0</td>
+      <td class="num">24,000</td>
+      <td class="num td-total">30,000</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">더드림</td>
+      <td class="td-sub">LG전자 스페셜롯데<br><span class="muted">순천에덴 / 손용진</span></td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="num">36,000</td>
+      <td class="num">24,000</td>
+      <td class="num">0</td>
+      <td class="num td-total">30,000</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">OPENAI *CHATGPT SUBSCR</td>
+      <td class="td-sub">LG전자 스페셜롯데<br><span class="muted">순천에덴 / 손용진</span></td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="num">29,600</td>
+      <td class="num">29,959</td>
+      <td class="num">30,324</td>
+      <td class="num td-total">29,961</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">구글플레이 - 구글페이먼트코리아 유한회사</td>
+      <td class="td-sub">M BOOST VISA<br><span class="muted">한솔 / 2층공용(개발팀)</span></td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="num">0</td>
+      <td class="num">29,000</td>
+      <td class="num">29,000</td>
+      <td class="num td-total">29,000</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">구글페이먼트_구글페이먼트코리아</td>
+      <td class="td-sub">SUPER할부-KT<br><span class="muted">한솔 / 이승학</span></td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="num">29,000</td>
+      <td class="num">29,000</td>
+      <td class="num">29,000</td>
+      <td class="num td-total">29,000</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">정원장어마을추어탕</td>
+      <td class="td-sub">KB WISH올카드<br><span class="muted">(수)복지용구 / 송다윗</span></td>
+      <td><span class="cat cat-식대카페">식대/카페</span></td>
+      <td class="num">44,000</td>
+      <td class="num">0</td>
+      <td class="num">12,000</td>
+      <td class="num td-total">28,000</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">성심약국</td>
+      <td class="td-sub">KT청구할인형<br><span class="muted">(수)복지용구 / 정재승</span></td>
+      <td><span class="cat cat-의료약국">의료/약국</span></td>
+      <td class="num">35,000</td>
+      <td class="num">14,000</td>
+      <td class="num">29,500</td>
+      <td class="num td-total">26,167</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">투썸플레이스순천조례점</td>
+      <td class="td-sub">KT청구할인형<br><span class="muted">(수)복지용구 / 정재승</span></td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="num">17,100</td>
+      <td class="num">0</td>
+      <td class="num">35,200</td>
+      <td class="num td-total">26,150</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">다이소</td>
+      <td class="td-sub">KT청구할인형<br><span class="muted">(수)복지용구 / 정재승</span></td>
+      <td><span class="cat cat-생활잡화">생활/잡화</span></td>
+      <td class="num">36,200</td>
+      <td class="num">30,000</td>
+      <td class="num">9,000</td>
+      <td class="num td-total">25,067</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">프레전트</td>
+      <td class="td-sub">LG전자 스페셜롯데<br><span class="muted">순천에덴 / 손용진</span></td>
+      <td><span class="cat cat-식대카페">식대/카페</span></td>
+      <td class="num">24,500</td>
+      <td class="num">24,500</td>
+      <td class="num">0</td>
+      <td class="num td-total">24,500</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">다래성</td>
+      <td class="td-sub">LG전자 스페셜롯데<br><span class="muted">순천에덴 / 손용진</span></td>
+      <td><span class="cat cat-식대카페">식대/카페</span></td>
+      <td class="num">24,000</td>
+      <td class="num">0</td>
+      <td class="num">24,000</td>
+      <td class="num td-total">24,000</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">KT스카이라이프</td>
+      <td class="td-sub">SUPER할부-KT<br><span class="muted">한솔 / 이승학</span></td>
+      <td><span class="cat cat-통신비">통신비</span></td>
+      <td class="num">0</td>
+      <td class="num">19,978</td>
+      <td class="num">27,500</td>
+      <td class="num td-total">23,739</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">왕지철물 산업안전</td>
+      <td class="td-sub">KB WISH올카드<br><span class="muted">(수)복지용구 / 송다윗</span></td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="num">25,000</td>
+      <td class="num">0</td>
+      <td class="num">18,000</td>
+      <td class="num td-total">21,500</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">반반국수</td>
+      <td class="td-sub">LG전자 스페셜롯데<br><span class="muted">순천에덴 / 손용진</span></td>
+      <td><span class="cat cat-식대카페">식대/카페</span></td>
+      <td class="num">17,400</td>
+      <td class="num">25,900</td>
+      <td class="num">20,800</td>
+      <td class="num td-total">21,367</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">우리홈마트</td>
+      <td class="td-sub">KT청구할인형<br><span class="muted">(수)복지용구 / 정재승</span></td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="num">0</td>
+      <td class="num">22,580</td>
+      <td class="num">18,730</td>
+      <td class="num td-total">20,655</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">사회복지법인밀알복지재단</td>
+      <td class="td-sub">NH농협 다사로이<br><span class="muted">(수)복지용구 / 정재승</span></td>
+      <td><span class="cat cat-복지기부">복지/기부</span></td>
+      <td class="num">0</td>
+      <td class="num">20,000</td>
+      <td class="num">20,000</td>
+      <td class="num td-total">20,000</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">스타벅스코리아</td>
+      <td class="td-sub">KT청구할인형<br><span class="muted">(수)복지용구 / 정재승</span></td>
+      <td><span class="cat cat-식대카페">식대/카페</span></td>
+      <td class="num">20,300</td>
+      <td class="num">18,300</td>
+      <td class="num">20,000</td>
+      <td class="num td-total">19,533</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">자동결제_(주) 가인지캠퍼스</td>
+      <td class="td-sub">LG전자 스페셜롯데<br><span class="muted">순천에덴 / 손용진</span></td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="num">19,000</td>
+      <td class="num">19,000</td>
+      <td class="num">19,000</td>
+      <td class="num td-total">19,000</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">현대볼트종합상사</td>
+      <td class="td-sub">KB WISH올카드<br><span class="muted">(수)복지용구 / 송다윗</span></td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="num">14,300</td>
+      <td class="num">19,800</td>
+      <td class="num">0</td>
+      <td class="num td-total">17,050</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">쿠쿠홈시스_쿠쿠홈시스주식회사</td>
+      <td class="td-sub">LG전자 스페셜롯데<br><span class="muted">순천에덴 / 손용진</span></td>
+      <td><span class="cat cat-렌탈구독">렌탈/구독</span></td>
+      <td class="num">16,900</td>
+      <td class="num">16,900</td>
+      <td class="num">16,900</td>
+      <td class="num td-total">16,900</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">쿠쿠홈시스 - 쿠쿠홈시스</td>
+      <td class="td-sub">M BOOST VISA<br><span class="muted">한솔 / 2층공용(개발팀)</span></td>
+      <td><span class="cat cat-렌탈구독">렌탈/구독</span></td>
+      <td class="num">15,900</td>
+      <td class="num">15,900</td>
+      <td class="num">15,900</td>
+      <td class="num td-total">15,900</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">쿠쿠홈시스_쿠쿠홈시스주식회사</td>
+      <td class="td-sub">LG전자 스페셜롯데<br><span class="muted">순천에덴 / 손용진</span></td>
+      <td><span class="cat cat-렌탈구독">렌탈/구독</span></td>
+      <td class="num">15,900</td>
+      <td class="num">15,900</td>
+      <td class="num">15,900</td>
+      <td class="num td-total">15,900</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">유튜브프리미엄 - 구글페이먼트코리아 유한회</td>
+      <td class="td-sub">M BOOST VISA<br><span class="muted">한솔 / 2층공용(개발팀)</span></td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="num">14,900</td>
+      <td class="num">14,900</td>
+      <td class="num">14,900</td>
+      <td class="num td-total">14,900</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">네이버페이 - 주식회사 미리디</td>
+      <td class="td-sub">M BOOST VISA<br><span class="muted">한솔 / 2층공용(개발팀)</span></td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="num">0</td>
+      <td class="num">14,900</td>
+      <td class="num">14,900</td>
+      <td class="num td-total">14,900</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">GS25광양영신점</td>
+      <td class="td-sub">KT청구할인형<br><span class="muted">(수)복지용구 / 정재승</span></td>
+      <td><span class="cat cat-식대카페">식대/카페</span></td>
+      <td class="num">14,400</td>
+      <td class="num">14,400</td>
+      <td class="num">0</td>
+      <td class="num td-total">14,400</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">GS25광양영신점</td>
+      <td class="td-sub">KT청구할인형<br><span class="muted">(수)복지용구 / 정재승</span></td>
+      <td><span class="cat cat-식대카페">식대/카페</span></td>
+      <td class="num">0</td>
+      <td class="num">14,400</td>
+      <td class="num">9,600</td>
+      <td class="num td-total">12,000</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">유튜브프리미엄 - 구글페이먼트코리아 유한회</td>
+      <td class="td-sub">M BOOST VISA<br><span class="muted">한솔 / 2층공용(개발팀)</span></td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="num">11,990</td>
+      <td class="num">11,990</td>
+      <td class="num">11,990</td>
+      <td class="num td-total">11,990</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">포스트텔링크주식회사</td>
+      <td class="td-sub">NH농협 다사로이<br><span class="muted">(수)복지용구 / 정재승</span></td>
+      <td><span class="cat cat-복지기부">복지/기부</span></td>
+      <td class="num">11,000</td>
+      <td class="num">11,000</td>
+      <td class="num">11,000</td>
+      <td class="num td-total">11,000</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">NICE_통신판매_(주)리멤버앤컴</td>
+      <td class="td-sub">LG전자 스페셜롯데<br><span class="muted">순천에덴 / 손용진</span></td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="num">10,780</td>
+      <td class="num">10,780</td>
+      <td class="num">10,780</td>
+      <td class="num td-total">10,780</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">네이버페이_네이버클라우드 주식회사</td>
+      <td class="td-sub">LG전자 스페셜롯데<br><span class="muted">순천에덴 / 손용진</span></td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="num">9,838</td>
+      <td class="num">10,711</td>
+      <td class="num">11,000</td>
+      <td class="num td-total">10,516</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">이동의즐거움_택시_0</td>
+      <td class="td-sub">KT청구할인형<br><span class="muted">(수)복지용구 / 정재승</span></td>
+      <td><span class="cat cat-교통주유">교통/주유</span></td>
+      <td class="num">12,440</td>
+      <td class="num">0</td>
+      <td class="num">7,700</td>
+      <td class="num td-total">10,070</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">GS25광양영신점</td>
+      <td class="td-sub">KT청구할인형<br><span class="muted">(수)복지용구 / 정재승</span></td>
+      <td><span class="cat cat-식대카페">식대/카페</span></td>
+      <td class="num">9,600</td>
+      <td class="num">9,600</td>
+      <td class="num">9,600</td>
+      <td class="num td-total">9,600</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">성모약국</td>
+      <td class="td-sub">KT청구할인형<br><span class="muted">(수)복지용구 / 정재승</span></td>
+      <td><span class="cat cat-의료약국">의료/약국</span></td>
+      <td class="num">0</td>
+      <td class="num">7,000</td>
+      <td class="num">8,000</td>
+      <td class="num td-total">7,500</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">메가엠지씨커피순천성가롤로대로점</td>
+      <td class="td-sub">KT청구할인형<br><span class="muted">(수)복지용구 / 정재승</span></td>
+      <td><span class="cat cat-식대카페">식대/카페</span></td>
+      <td class="num">0</td>
+      <td class="num">7,000</td>
+      <td class="num">7,000</td>
+      <td class="num td-total">7,000</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">메가엠지씨커피순천성가롤로대로점</td>
+      <td class="td-sub">M BOOST VISA<br><span class="muted">한솔 / 2층공용(개발팀)</span></td>
+      <td><span class="cat cat-식대카페">식대/카페</span></td>
+      <td class="num">8,000</td>
+      <td class="num">0</td>
+      <td class="num">6,000</td>
+      <td class="num td-total">7,000</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">구글페이먼트_구글페이먼트코리아</td>
+      <td class="td-sub">SUPER할부-KT<br><span class="muted">한솔 / 이승학</span></td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="num">5,700</td>
+      <td class="num">5,700</td>
+      <td class="num">5,700</td>
+      <td class="num td-total">5,700</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">공공요금</td>
+      <td class="td-sub">KT청구할인형<br><span class="muted">(수)복지용구 / 정재승</span></td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="num">0</td>
+      <td class="num">5,400</td>
+      <td class="num">5,000</td>
+      <td class="num td-total">5,200</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">세븐일레븐 순천해룡상삼점</td>
+      <td class="td-sub">LG전자 스페셜롯데<br><span class="muted">순천에덴 / 손용진</span></td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="num">0</td>
+      <td class="num">5,800</td>
+      <td class="num">4,600</td>
+      <td class="num td-total">5,200</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">구글페이먼트_구글페이먼트코리아</td>
+      <td class="td-sub">SUPER할부-KT<br><span class="muted">한솔 / 이승학</span></td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="num">4,990</td>
+      <td class="num">4,990</td>
+      <td class="num">4,990</td>
+      <td class="num td-total">4,990</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">우정사업본부(우체국)</td>
+      <td class="td-sub">KB WISH올카드<br><span class="muted">(수)복지용구 / 송다윗</span></td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="num">5,000</td>
+      <td class="num">4,280</td>
+      <td class="num">0</td>
+      <td class="num td-total">4,640</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">KCP_결제 - 아이파킹 주식회사</td>
+      <td class="td-sub">KT청구할인형<br><span class="muted">(수)복지용구 / 정재승</span></td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="num">6,000</td>
+      <td class="num">2,500</td>
+      <td class="num">0</td>
+      <td class="num td-total">4,250</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">GS25광양영신점</td>
+      <td class="td-sub">KT청구할인형<br><span class="muted">(수)복지용구 / 정재승</span></td>
+      <td><span class="cat cat-식대카페">식대/카페</span></td>
+      <td class="num">4,000</td>
+      <td class="num">0</td>
+      <td class="num">4,000</td>
+      <td class="num td-total">4,000</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">메가엠지씨커피순천성가롤로대로점</td>
+      <td class="td-sub">M BOOST VISA<br><span class="muted">한솔 / 2층공용(개발팀)</span></td>
+      <td><span class="cat cat-식대카페">식대/카페</span></td>
+      <td class="num">3,000</td>
+      <td class="num">3,000</td>
+      <td class="num">0</td>
+      <td class="num td-total">3,000</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">구글페이먼트_구글페이먼트코리아</td>
+      <td class="td-sub">SUPER할부-KT<br><span class="muted">한솔 / 이승학</span></td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="num">2,990</td>
+      <td class="num">2,990</td>
+      <td class="num">2,990</td>
+      <td class="num td-total">2,990</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">모바일_지하철</td>
+      <td class="td-sub">LG전자 스페셜롯데<br><span class="muted">순천에덴 / 손용진</span></td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="num">1,950</td>
+      <td class="num">3,600</td>
+      <td class="num">0</td>
+      <td class="num td-total">2,775</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">메가엠지씨커피순천성가롤로대로점</td>
+      <td class="td-sub">M BOOST VISA<br><span class="muted">한솔 / 2층공용(개발팀)</span></td>
+      <td><span class="cat cat-식대카페">식대/카페</span></td>
+      <td class="num">2,500</td>
+      <td class="num">2,500</td>
+      <td class="num">0</td>
+      <td class="num td-total">2,500</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">구글페이먼트_구글페이먼트코리아</td>
+      <td class="td-sub">LG전자 스페셜롯데<br><span class="muted">순천에덴 / 손용진</span></td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="num">2,200</td>
+      <td class="num">2,200</td>
+      <td class="num">2,200</td>
+      <td class="num td-total">2,200</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="row-even">
+      <td class="td-main">메가엠지씨커피순천성가롤로대로점</td>
+      <td class="td-sub">KT청구할인형<br><span class="muted">(수)복지용구 / 정재승</span></td>
+      <td><span class="cat cat-식대카페">식대/카페</span></td>
+      <td class="num">2,000</td>
+      <td class="num">2,000</td>
+      <td class="num">0</td>
+      <td class="num td-total">2,000</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr>
+    <tr class="">
+      <td class="td-main">주식회사이스트에이드</td>
+      <td class="td-sub">NH농협 다사로이<br><span class="muted">(수)복지용구 / 정재승</span></td>
+      <td><span class="cat cat-복지기부">복지/기부</span></td>
+      <td class="num">990</td>
+      <td class="num">990</td>
+      <td class="num">990</td>
+      <td class="num td-total">990</td>
+      <td class="center"><span class="pill pill-check">확인</span></td>
+    </tr></tbody>
+    </table>
+  </div>
+
+  <!-- 크로스카드 중복 -->
+  <div class="section">
+    <div class="section-label">Duplicate Payments</div>
+    <div class="section-title">크로스카드 중복 결제 — 같은 서비스가 복수 카드에서 결제됨</div>
+    <table>
+      <thead><tr>
+        <th>가맹점명</th><th>카테고리</th><th>카드명</th><th>회사 / 소지자</th><th style="text-align:right">건수</th><th style="text-align:right">금액</th>
+      </tr></thead>
+      <tbody>
+      <tr class="dup-row">
+        <td class="td-main">정원장어마을추어탕</td>
+        <td><span class="cat cat-식대카페">식대/카페</span></td>
+        <td class="td-sub">M BOOST VISA</td>
+        <td class="td-sub">한솔 / 2층공용(개발팀)</td>
+        <td class="num">2건</td>
+        <td class="num">96,000</td>
+      </tr>
+      <tr class="dup-row">
+        <td class="td-main">정원장어마을추어탕</td>
+        <td><span class="cat cat-식대카페">식대/카페</span></td>
+        <td class="td-sub">LG전자 스페셜롯데</td>
+        <td class="td-sub">순천에덴 / 손용진</td>
+        <td class="num">1건</td>
+        <td class="num">48,000</td>
+      </tr>
+      <tr class="dup-sum">
+        <td colspan="4" class="muted" style="font-size:11px;padding-left:16px">소계</td>
+        <td class="num">3건</td>
+        <td class="num td-total">144,000</td>
+      </tr>
+      <tr class="dup-row">
+        <td class="td-main">정원장어마을추어탕</td>
+        <td><span class="cat cat-식대카페">식대/카페</span></td>
+        <td class="td-sub">M BOOST VISA</td>
+        <td class="td-sub">한솔 / 2층공용(개발팀)</td>
+        <td class="num">1건</td>
+        <td class="num">12,000</td>
+      </tr>
+      <tr class="dup-row">
+        <td class="td-main">정원장어마을추어탕</td>
+        <td><span class="cat cat-식대카페">식대/카페</span></td>
+        <td class="td-sub">KB WISH올카드</td>
+        <td class="td-sub">(수)복지용구 / 송다윗</td>
+        <td class="num">1건</td>
+        <td class="num">12,000</td>
+      </tr>
+      <tr class="dup-sum">
+        <td colspan="4" class="muted" style="font-size:11px;padding-left:16px">소계</td>
+        <td class="num">2건</td>
+        <td class="num td-total">24,000</td>
+      </tr>
+      <tr class="dup-row">
+        <td class="td-main">메가엠지씨커피순천성가롤로대로점</td>
+        <td><span class="cat cat-식대카페">식대/카페</span></td>
+        <td class="td-sub">M BOOST VISA</td>
+        <td class="td-sub">한솔 / 2층공용(개발팀)</td>
+        <td class="num">2건</td>
+        <td class="num">9,000</td>
+      </tr>
+      <tr class="dup-row">
+        <td class="td-main">메가엠지씨커피순천성가롤로대로점</td>
+        <td><span class="cat cat-식대카페">식대/카페</span></td>
+        <td class="td-sub">KT청구할인형</td>
+        <td class="td-sub">(수)복지용구 / 정재승</td>
+        <td class="num">2건</td>
+        <td class="num">9,000</td>
+      </tr>
+      <tr class="dup-sum">
+        <td colspan="4" class="muted" style="font-size:11px;padding-left:16px">소계</td>
+        <td class="num">4건</td>
+        <td class="num td-total">18,000</td>
+      </tr>
+      <tr class="dup-row">
+        <td class="td-main">메가엠지씨커피순천성가롤로대로점</td>
+        <td><span class="cat cat-식대카페">식대/카페</span></td>
+        <td class="td-sub">M BOOST VISA</td>
+        <td class="td-sub">한솔 / 2층공용(개발팀)</td>
+        <td class="num">7건</td>
+        <td class="num">14,000</td>
+      </tr>
+      <tr class="dup-row">
+        <td class="td-main">메가엠지씨커피순천성가롤로대로점</td>
+        <td><span class="cat cat-식대카페">식대/카페</span></td>
+        <td class="td-sub">KT청구할인형</td>
+        <td class="td-sub">(수)복지용구 / 정재승</td>
+        <td class="num">2건</td>
+        <td class="num">4,000</td>
+      </tr>
+      <tr class="dup-sum">
+        <td colspan="4" class="muted" style="font-size:11px;padding-left:16px">소계</td>
+        <td class="num">9건</td>
+        <td class="num td-total">18,000</td>
+      </tr>
+      <tr class="dup-row">
+        <td class="td-main">메가엠지씨커피순천성가롤로대로점</td>
+        <td><span class="cat cat-식대카페">식대/카페</span></td>
+        <td class="td-sub">KT청구할인형</td>
+        <td class="td-sub">(수)복지용구 / 정재승</td>
+        <td class="num">1건</td>
+        <td class="num">3,000</td>
+      </tr>
+      <tr class="dup-row">
+        <td class="td-main">메가엠지씨커피순천성가롤로대로점</td>
+        <td><span class="cat cat-식대카페">식대/카페</span></td>
+        <td class="td-sub">M BOOST VISA</td>
+        <td class="td-sub">한솔 / 2층공용(개발팀)</td>
+        <td class="num">2건</td>
+        <td class="num">6,000</td>
+      </tr>
+      <tr class="dup-sum">
+        <td colspan="4" class="muted" style="font-size:11px;padding-left:16px">소계</td>
+        <td class="num">3건</td>
+        <td class="num td-total">9,000</td>
+      </tr>
+      <tr class="dup-row">
+        <td class="td-main">메가엠지씨커피순천성가롤로대로점</td>
+        <td><span class="cat cat-식대카페">식대/카페</span></td>
+        <td class="td-sub">KT청구할인형</td>
+        <td class="td-sub">(수)복지용구 / 정재승</td>
+        <td class="num">1건</td>
+        <td class="num">2,500</td>
+      </tr>
+      <tr class="dup-row">
+        <td class="td-main">메가엠지씨커피순천성가롤로대로점</td>
+        <td><span class="cat cat-식대카페">식대/카페</span></td>
+        <td class="td-sub">M BOOST VISA</td>
+        <td class="td-sub">한솔 / 2층공용(개발팀)</td>
+        <td class="num">2건</td>
+        <td class="num">5,000</td>
+      </tr>
+      <tr class="dup-sum">
+        <td colspan="4" class="muted" style="font-size:11px;padding-left:16px">소계</td>
+        <td class="num">3건</td>
+        <td class="num td-total">7,500</td>
+      </tr></tbody>
+    </table>
+  </div>
+
+  <!-- 분석 기준 -->
+  <div class="section">
+    <div class="section-label">Methodology</div>
+    <div class="section-title">개선 제안 분류 기준</div>
+    <div class="methodology-box">
+      <div class="meth-grid">
+        <div class="meth-item">
+          <div class="meth-label">분석 대상 기간</div>
+          <div class="meth-value">2026년 1월 — 3월 (3개월)</div>
+          <div class="meth-desc">3개월 전체 기간 데이터 기준. 진정한 반복 지출이라면 분석 기간 내내 결제가 발생해야 한다는 원칙 적용.</div>
+        </div>
+        <div class="meth-item">
+          <div class="meth-label">반복/구독 인식 기준</div>
+          <div class="meth-value">3개월 연속 결제 &amp; 월평균 10,000원 이상</div>
+          <div class="meth-desc">동일 가맹점에서 1월·2월·3월 모두 결제가 확인된 항목만 포함. 2개월 이하이거나 소액 단발성 결제는 제외.</div>
+        </div>
+        <div class="meth-item">
+          <div class="meth-label">중복결제 인식 기준</div>
+          <div class="meth-value">구독성 카테고리에서 2개 이상 카드 결제</div>
+          <div class="meth-desc">AI/SaaS · 렌탈/구독 · 통신비 카테고리에 한정하여, 동일 서비스가 서로 다른 카드로 결제된 경우만 중복으로 판단.</div>
+        </div>
+        <div class="meth-item meth-excluded">
+          <div class="meth-label">의도적 제외 카테고리</div>
+          <div class="meth-tags">
+            <span class="meth-tag">식대 · 카페</span>
+            <span class="meth-tag">교통 · 주유</span>
+            <span class="meth-tag">의료 · 약국</span>
+            <span class="meth-tag">생활 · 잡화</span>
+            <span class="meth-tag">4대보험</span>
+            <span class="meth-tag">전기 · 공과금</span>
+          </div>
+          <div class="meth-desc">업무 수행 과정에서 당연히 발생하는 지출이거나 구독 해지 대상이 아닌 항목. 개선 제안에 포함할 경우 실사 현장에서 불필요한 혼선을 유발할 수 있어 제외.</div>
+        </div>
+      </div>
+      <div class="meth-note">
+        위 기준을 모두 충족한 항목만 아래 개선 제안에 포함됩니다. 건수가 적을수록 실사 조사의 정확도와 실행 가능성이 높아집니다.
+      </div>
+    </div>
+  </div>
+
+  <!-- 개선 제안 배너 -->
+  <div class="saving-banner">
+    <div>
+      <div class="sb-label">Estimated Monthly Savings</div>
+      <div class="sb-amount">16,579,946<span class="sb-won">원</span></div>
+      <div class="sb-sub">검토 및 조치 완료 시 기준</div>
+    </div>
+    <div class="sb-divider"></div>
+    <div class="sb-annual">
+      <div class="sb-label">연간 절감 추정</div>
+      <div class="sb-annual-num">198,959,352원</div>
+    </div>
+  </div>
+
+  <!-- 개선 제안 -->
+  <div class="section">
+    <div class="section-label">Recommendations</div>
+    <div class="section-title accent">개선 제안 — 월 절감액 순</div>
+    <table>
+      <thead><tr>
+        <th>유형</th><th style="text-align:center">우선순위</th><th>가맹점</th><th>카테고리</th>
+        <th>결제 카드 / 소지자</th><th style="text-align:right">월 절감 추정</th><th>조치 내용</th>
+      </tr></thead>
+      <tbody>
+    <tr class="rec-row rec-high">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-high">높음</span></td>
+      <td class="td-main">세종의료기</td>
+      <td><span class="cat cat-렌탈구독">렌탈/구독</span></td>
+      <td class="td-sub"><div class="rec-card">— SUPER할부-KT <span class="muted">한솔 / 이승학</span></div></td>
+      <td class="num rec-saving">6,000,000<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-high">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-high">높음</span></td>
+      <td class="td-main">Amazon_Web Service_아마존웹서비시즈코리아 유한</td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="td-sub"><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span></div></td>
+      <td class="num rec-saving">3,001,659<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-high">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-high">높음</span></td>
+      <td class="td-main">구구팔팔의료기</td>
+      <td><span class="cat cat-렌탈구독">렌탈/구독</span></td>
+      <td class="td-sub"><div class="rec-card">— KB WISH올카드 <span class="muted">(수)복지용구 / 송다윗</span></div></td>
+      <td class="num rec-saving">1,178,200<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-high">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-high">높음</span></td>
+      <td class="td-main">ANTHROPIC CLAUDE TEAM</td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="td-sub"><div class="rec-card">— M BOOST VISA <span class="muted">한솔 / 2층공용(개발팀)</span></div></td>
+      <td class="num rec-saving">830,121<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-high">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-high">높음</span></td>
+      <td class="td-main">NICE_통신판매_주식회사 채널</td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="td-sub"><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span></div></td>
+      <td class="num rec-saving">666,215<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-high">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-high">높음</span></td>
+      <td class="td-main">ANYDESK</td>
+      <td><span class="cat cat-렌탈구독">렌탈/구독</span></td>
+      <td class="td-sub"><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span></div></td>
+      <td class="num rec-saving">663,886<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-high">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-high">높음</span></td>
+      <td class="td-main">네이버페이</td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="td-sub"><div class="rec-card">— M BOOST VISA <span class="muted">한솔 / 2층공용(개발팀)</span></div></td>
+      <td class="num rec-saving">459,497<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-high">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-high">높음</span></td>
+      <td class="td-main">NOTION LABS, INC.</td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="td-sub"><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span></div></td>
+      <td class="num rec-saving">400,362<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-high">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-high">높음</span></td>
+      <td class="td-main">FIGMA</td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="td-sub"><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span></div></td>
+      <td class="num rec-saving">352,480<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-high">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-high">높음</span></td>
+      <td class="td-main">네이버페이</td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="td-sub"><div class="rec-card">— KT청구할인형 <span class="muted">(수)복지용구 / 정재승</span></div></td>
+      <td class="num rec-saving">235,000<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-high">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-high">높음</span></td>
+      <td class="td-main">Google Digital Inc.</td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="td-sub"><div class="rec-card">— M BOOST VISA <span class="muted">한솔 / 2층공용(개발팀)</span></div></td>
+      <td class="num rec-saving">207,412<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-high">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-high">높음</span></td>
+      <td class="td-main">KT통신요금자동납부</td>
+      <td><span class="cat cat-통신비">통신비</span></td>
+      <td class="td-sub"><div class="rec-card">— KT청구할인형 <span class="muted">(수)복지용구 / 정재승</span></div></td>
+      <td class="num rec-saving">178,203<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-high">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-high">높음</span></td>
+      <td class="td-main">KCP결제 - 엔에이치엔케이씨피(주)</td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="td-sub"><div class="rec-card">— KT청구할인형 <span class="muted">(수)복지용구 / 정재승</span></div></td>
+      <td class="num rec-saving">176,327<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-high">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-high">높음</span></td>
+      <td class="td-main">SLACK T09SR71H5L5</td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="td-sub"><div class="rec-card">— SUPER할부-KT <span class="muted">한솔 / 이승학</span></div></td>
+      <td class="num rec-saving">173,950<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-high">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-high">높음</span></td>
+      <td class="td-main">네이버페이_네이버파이낸셜 주식회사</td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="td-sub"><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span></div></td>
+      <td class="num rec-saving">167,495<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-high">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-high">높음</span></td>
+      <td class="td-main">KT통신요금 자동납부</td>
+      <td><span class="cat cat-통신비">통신비</span></td>
+      <td class="td-sub"><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span></div></td>
+      <td class="num rec-saving">167,230<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-high">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-high">높음</span></td>
+      <td class="td-main">구글페이먼트_구글페이먼트코리아</td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="td-sub"><div class="rec-card">— SUPER할부-KT <span class="muted">한솔 / 이승학</span></div></td>
+      <td class="num rec-saving">150,000<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-high">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-high">높음</span></td>
+      <td class="td-main">CURSOR, AI POWERED IDE</td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="td-sub"><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span></div></td>
+      <td class="num rec-saving">119,725<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">KT스카이라이프</td>
+      <td><span class="cat cat-통신비">통신비</span></td>
+      <td class="td-sub"><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span></div></td>
+      <td class="num rec-saving">99,000<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">KT통신요금 자동납부</td>
+      <td><span class="cat cat-통신비">통신비</span></td>
+      <td class="td-sub"><div class="rec-card">— SUPER할부-KT <span class="muted">한솔 / 이승학</span></div></td>
+      <td class="num rec-saving">93,710<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">명궁관</td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="td-sub"><div class="rec-card">— KT청구할인형 <span class="muted">(수)복지용구 / 정재승</span></div></td>
+      <td class="num rec-saving">84,000<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">더풍전주식회사</td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="td-sub"><div class="rec-card">— KB WISH올카드 <span class="muted">(수)복지용구 / 송다윗</span></div></td>
+      <td class="num rec-saving">77,000<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">지큐룸소주방</td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="td-sub"><div class="rec-card">— KT청구할인형 <span class="muted">(수)복지용구 / 정재승</span></div></td>
+      <td class="num rec-saving">70,650<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">케이티텔레캅주식회사호남본부</td>
+      <td><span class="cat cat-통신비">통신비</span></td>
+      <td class="td-sub"><div class="rec-card">— SUPER할부-KT <span class="muted">한솔 / 이승학</span></div></td>
+      <td class="num rec-saving">64,900<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">쿠쿠홈시스_쿠쿠홈시스주식회사</td>
+      <td><span class="cat cat-렌탈구독">렌탈/구독</span></td>
+      <td class="td-sub"><div class="rec-card">— SUPER할부-KT <span class="muted">한솔 / 이승학</span></div></td>
+      <td class="num rec-saving">64,350<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">뜰방</td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="td-sub"><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span></div></td>
+      <td class="num rec-saving">63,000<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">OPENAI</td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="td-sub"><div class="rec-card">— SUPER할부-KT <span class="muted">한솔 / 이승학</span></div></td>
+      <td class="num rec-saving">55,648<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">DEEVID AI</td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="td-sub"><div class="rec-card">— SUPER할부-KT <span class="muted">한솔 / 이승학</span></div></td>
+      <td class="num rec-saving">52,690<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">(주)세스코</td>
+      <td><span class="cat cat-렌탈구독">렌탈/구독</span></td>
+      <td class="td-sub"><div class="rec-card">— SUPER할부-KT <span class="muted">한솔 / 이승학</span></div></td>
+      <td class="num rec-saving">50,000<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">LG전자 구독료</td>
+      <td><span class="cat cat-렌탈구독">렌탈/구독</span></td>
+      <td class="td-sub"><div class="rec-card">— SUPER할부-KT <span class="muted">한솔 / 이승학</span></div></td>
+      <td class="num rec-saving">45,900<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">자동결제_2_실버시트</td>
+      <td><span class="cat cat-렌탈구독">렌탈/구독</span></td>
+      <td class="td-sub"><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span></div></td>
+      <td class="num rec-saving">33,000<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">CLAUDE.AI SUBSCRIPTION</td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="td-sub"><div class="rec-card">— M BOOST VISA <span class="muted">한솔 / 2층공용(개발팀)</span></div></td>
+      <td class="num rec-saving">32,375<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">네이버페이_네이버</td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="td-sub"><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span></div></td>
+      <td class="num rec-saving">31,500<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">PADDLE.NET* CHATBOTAI</td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="td-sub"><div class="rec-card">— SUPER할부-KT <span class="muted">한솔 / 이승학</span></div></td>
+      <td class="num rec-saving">30,036<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">세정이네 불쭈꾸미</td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="td-sub"><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span></div></td>
+      <td class="num rec-saving">30,000<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">더드림</td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="td-sub"><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span></div></td>
+      <td class="num rec-saving">30,000<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">OPENAI *CHATGPT SUBSCR</td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="td-sub"><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span></div></td>
+      <td class="num rec-saving">29,961<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">구글플레이 - 구글페이먼트코리아 유한회사</td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="td-sub"><div class="rec-card">— M BOOST VISA <span class="muted">한솔 / 2층공용(개발팀)</span></div></td>
+      <td class="num rec-saving">29,000<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">구글페이먼트_구글페이먼트코리아</td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="td-sub"><div class="rec-card">— SUPER할부-KT <span class="muted">한솔 / 이승학</span></div></td>
+      <td class="num rec-saving">29,000<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">투썸플레이스순천조례점</td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="td-sub"><div class="rec-card">— KT청구할인형 <span class="muted">(수)복지용구 / 정재승</span></div></td>
+      <td class="num rec-saving">26,150<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">KT스카이라이프</td>
+      <td><span class="cat cat-통신비">통신비</span></td>
+      <td class="td-sub"><div class="rec-card">— SUPER할부-KT <span class="muted">한솔 / 이승학</span></div></td>
+      <td class="num rec-saving">23,739<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">왕지철물 산업안전</td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="td-sub"><div class="rec-card">— KB WISH올카드 <span class="muted">(수)복지용구 / 송다윗</span></div></td>
+      <td class="num rec-saving">21,500<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">우리홈마트</td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="td-sub"><div class="rec-card">— KT청구할인형 <span class="muted">(수)복지용구 / 정재승</span></div></td>
+      <td class="num rec-saving">20,655<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">사회복지법인밀알복지재단</td>
+      <td><span class="cat cat-복지기부">복지/기부</span></td>
+      <td class="td-sub"><div class="rec-card">— NH농협 다사로이 <span class="muted">(수)복지용구 / 정재승</span></div></td>
+      <td class="num rec-saving">20,000<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">구글클라우드코리아</td>
+      <td><span class="cat cat-렌탈구독">렌탈/구독</span></td>
+      <td class="td-sub"><div class="rec-card">— SUPER할부-KT <span class="muted">한솔 / 이승학</span></div></td>
+      <td class="num rec-saving">20,000<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">자동결제_(주) 가인지캠퍼스</td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="td-sub"><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span></div></td>
+      <td class="num rec-saving">19,000<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">현대볼트종합상사</td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="td-sub"><div class="rec-card">— KB WISH올카드 <span class="muted">(수)복지용구 / 송다윗</span></div></td>
+      <td class="num rec-saving">17,050<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">쿠쿠홈시스_쿠쿠홈시스주식회사</td>
+      <td><span class="cat cat-렌탈구독">렌탈/구독</span></td>
+      <td class="td-sub"><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span></div></td>
+      <td class="num rec-saving">16,900<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">OPENAI</td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="td-sub"><div class="rec-card">— M BOOST VISA <span class="muted">한솔 / 2층공용(개발팀)</span></div></td>
+      <td class="num rec-saving">16,364<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">쿠쿠홈시스 - 쿠쿠홈시스</td>
+      <td><span class="cat cat-렌탈구독">렌탈/구독</span></td>
+      <td class="td-sub"><div class="rec-card">— M BOOST VISA <span class="muted">한솔 / 2층공용(개발팀)</span></div></td>
+      <td class="num rec-saving">15,900<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">쿠쿠홈시스_쿠쿠홈시스주식회사</td>
+      <td><span class="cat cat-렌탈구독">렌탈/구독</span></td>
+      <td class="td-sub"><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span></div></td>
+      <td class="num rec-saving">15,900<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">유튜브프리미엄 - 구글페이먼트코리아 유한회</td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="td-sub"><div class="rec-card">— M BOOST VISA <span class="muted">한솔 / 2층공용(개발팀)</span></div></td>
+      <td class="num rec-saving">14,900<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">네이버페이 - 주식회사 미리디</td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="td-sub"><div class="rec-card">— M BOOST VISA <span class="muted">한솔 / 2층공용(개발팀)</span></div></td>
+      <td class="num rec-saving">14,900<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">유튜브프리미엄 - 구글페이먼트코리아 유한회</td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="td-sub"><div class="rec-card">— M BOOST VISA <span class="muted">한솔 / 2층공용(개발팀)</span></div></td>
+      <td class="num rec-saving">11,990<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">포스트텔링크주식회사</td>
+      <td><span class="cat cat-복지기부">복지/기부</span></td>
+      <td class="td-sub"><div class="rec-card">— NH농협 다사로이 <span class="muted">(수)복지용구 / 정재승</span></div></td>
+      <td class="num rec-saving">11,000<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">NICE_통신판매_(주)리멤버앤컴</td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="td-sub"><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span></div></td>
+      <td class="num rec-saving">10,780<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">네이버페이_네이버클라우드 주식회사</td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="td-sub"><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span></div></td>
+      <td class="num rec-saving">10,516<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">SQSP* DOMAIN#221759035</td>
+      <td><span class="cat cat-렌탈구독">렌탈/구독</span></td>
+      <td class="td-sub"><div class="rec-card">— M BOOST VISA <span class="muted">한솔 / 2층공용(개발팀)</span></div></td>
+      <td class="num rec-saving">7,917<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">구글페이먼트_구글페이먼트코리아</td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="td-sub"><div class="rec-card">— SUPER할부-KT <span class="muted">한솔 / 이승학</span></div></td>
+      <td class="num rec-saving">5,700<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">공공요금</td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="td-sub"><div class="rec-card">— KT청구할인형 <span class="muted">(수)복지용구 / 정재승</span></div></td>
+      <td class="num rec-saving">5,200<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">세븐일레븐 순천해룡상삼점</td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="td-sub"><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span></div></td>
+      <td class="num rec-saving">5,200<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">구글페이먼트_구글페이먼트코리아</td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="td-sub"><div class="rec-card">— SUPER할부-KT <span class="muted">한솔 / 이승학</span></div></td>
+      <td class="num rec-saving">4,990<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">우정사업본부(우체국)</td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="td-sub"><div class="rec-card">— KB WISH올카드 <span class="muted">(수)복지용구 / 송다윗</span></div></td>
+      <td class="num rec-saving">4,640<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">KCP_결제 - 아이파킹 주식회사</td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="td-sub"><div class="rec-card">— KT청구할인형 <span class="muted">(수)복지용구 / 정재승</span></div></td>
+      <td class="num rec-saving">4,250<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">구글페이먼트_구글페이먼트코리아</td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="td-sub"><div class="rec-card">— SUPER할부-KT <span class="muted">한솔 / 이승학</span></div></td>
+      <td class="num rec-saving">2,990<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">모바일_지하철</td>
+      <td><span class="cat cat-기타업무비">기타업무비</span></td>
+      <td class="td-sub"><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span></div></td>
+      <td class="num rec-saving">2,775<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">구글페이먼트_구글페이먼트코리아</td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="td-sub"><div class="rec-card">— LG전자 스페셜롯데 <span class="muted">순천에덴 / 손용진</span></div></td>
+      <td class="num rec-saving">2,200<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">GOOGLE*GOOGLE DIGITAL</td>
+      <td><span class="cat cat-AISaaS">AI/SaaS</span></td>
+      <td class="td-sub"><div class="rec-card">— M BOOST VISA <span class="muted">한솔 / 2층공용(개발팀)</span></div></td>
+      <td class="num rec-saving">1,468<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">주식회사이스트에이드</td>
+      <td><span class="cat cat-복지기부">복지/기부</span></td>
+      <td class="td-sub"><div class="rec-card">— NH농협 다사로이 <span class="muted">(수)복지용구 / 정재승</span></div></td>
+      <td class="num rec-saving">990<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">바로알림서비스 03월이용료</td>
+      <td><span class="cat cat-렌탈구독">렌탈/구독</span></td>
+      <td class="td-sub"><div class="rec-card">— V2 BIZ AMEX <span class="muted">순천에덴 / 반유환</span></div></td>
+      <td class="num rec-saving">300<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">바로알림서비스 02월이용료</td>
+      <td><span class="cat cat-렌탈구독">렌탈/구독</span></td>
+      <td class="td-sub"><div class="rec-card">— V2 BIZ AMEX <span class="muted">순천에덴 / 반유환</span></div></td>
+      <td class="num rec-saving">300<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr>
+    <tr class="rec-row rec-mid">
+      <td><span class="rec-type rec-type-sub">구독확인</span></td>
+      <td class="center"><span class="rec-priority p-mid">중간</span></td>
+      <td class="td-main">바로알림서비스 01월이용료</td>
+      <td><span class="cat cat-렌탈구독">렌탈/구독</span></td>
+      <td class="td-sub"><div class="rec-card">— V2 BIZ AMEX <span class="muted">순천에덴 / 반유환</span></div></td>
+      <td class="num rec-saving">300<span class="won">원</span></td>
+      <td class="td-sub">실제 사용자 및 필요성 확인</td>
+    </tr></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+const MONO = ['#1A1814','#3D3A35','#5C5851','#7A756E','#9A958F','#B8B3AC','#D6D1CA'];
+const ACCENT = '#C8380A';
+
+new Chart(document.getElementById('cardChart'), {
+  type: 'bar',
+  data: {
+    labels: ["LG전자 스페셜롯데","M BOOST VISA","NH농협 다사로이","KT청구할인형","SUPER할부-KT","KB WISH올카드","V2 BIZ AMEX"],
+    datasets: [{ data: [35990819,18139864,18107973,16897687,9952853,4438172,900],
+      backgroundColor: MONO, borderWidth: 0 }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { size: 10 }, color: '#9A958F' } },
+      y: { grid: { color: '#F0EDE8' }, ticks: { callback: v => (v/10000).toFixed(0)+'만', font: { size: 10 }, color: '#9A958F' } }
+    }
+  }
+});
+
+new Chart(document.getElementById('catChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ["기타업무비","4대보험","식대/카페","렌탈/구독","AI/SaaS","통신비","생활/잡화","전기/공과금","교통/주유","의료/약국","복지/기부"],
+    datasets: [{ data: [45638163,17233065,13349666,9711453,8301025,2928988,2453068,2166972,1451598,218300,75970],
+      backgroundColor: MONO, borderWidth: 0 }]
+  },
+  options: {
+    responsive: true,
+    cutout: '62%',
+    plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, color: '#5C5851', boxWidth: 10, padding: 10 } } }
+  }
+});
+
+new Chart(document.getElementById('monthChart'), {
+  type: 'line',
+  data: {
+    labels: ['1월', '2월', '3월'],
+    datasets: [{ data: [38707466,29836956,34983846],
+      borderColor: ACCENT, backgroundColor: 'rgba(200,56,10,0.06)',
+      borderWidth: 2, tension: 0.3, fill: true, pointBackgroundColor: ACCENT, pointRadius: 4 }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { size: 10 }, color: '#9A958F' } },
+      y: { grid: { color: '#F0EDE8' }, ticks: { callback: v => (v/10000).toFixed(0)+'만', font: { size: 10 }, color: '#9A958F' } }
+    }
+  }
+});
+</script>
+</body>
+</html>

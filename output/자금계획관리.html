@@ -1,0 +1,1887 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>자금계획관리 2026</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+
+/* ── HEADER ── */
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 60px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:40px;z-index:100}
+.header-left{display:flex;align-items:center;gap:16px}
+.header-title{font-size:14px;font-weight:700;letter-spacing:.05em;color:var(--ink)}
+.header-sub{font-size:11px;color:var(--muted);letter-spacing:.03em}
+.header-right{display:flex;align-items:center;gap:8px}
+.hdr-btn{font-size:11px;padding:6px 14px;border:1px solid var(--border);color:var(--ink2);background:var(--surface);cursor:pointer;font-family:inherit;transition:all .15s;display:flex;align-items:center;gap:5px}
+.hdr-btn:hover{border-color:var(--ink2);color:var(--ink)}
+.edit-toggle{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);cursor:pointer;padding:5px 10px;border:1px solid var(--border)}
+.edit-toggle input{cursor:pointer;accent-color:var(--accent)}
+.edit-toggle.active{color:var(--accent);border-color:var(--accent);background:#FFF8F6}
+
+/* ── KPI ── */
+.kpi-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 60px;display:flex;align-items:stretch;gap:0}
+.kpi{padding:14px 28px;border-right:1px solid var(--border);min-width:140px}
+.kpi:last-child{border-right:none}
+.kpi-label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.kpi-val{font-size:20px;font-weight:700;letter-spacing:-.02em;color:var(--ink);line-height:1;font-variant-numeric:tabular-nums}
+.kpi-val.pos{color:var(--pos)}
+.kpi-val.neg{color:var(--neg)}
+.kpi-unit{font-size:11px;font-weight:400;color:var(--muted);margin-left:2px}
+.kpi-sub{font-size:10px;color:var(--muted);margin-top:3px}
+
+/* ── ALERT ── */
+@keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(calc(-1 * var(--ticker-one,2000px)))}}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+.alert-bar{background:#FFFBF0;border-bottom:1px solid var(--warn-bd);display:none;overflow:hidden}
+.alert-bar.has-alerts{display:flex;align-items:center}
+.alert-label-wrap{flex-shrink:0;display:flex;align-items:center;gap:7px;padding:10px 20px 10px 60px;background:#FFFBF0;border-right:1px solid var(--warn-bd)}
+.alert-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--warn);font-weight:700}
+.alert-dot{width:6px;height:6px;border-radius:50%;background:var(--warn);animation:pulse 1.4s ease-in-out infinite}
+.alert-track{flex:1;overflow:hidden;mask-image:linear-gradient(to right,transparent 0,black 40px,black calc(100% - 40px),transparent 100%)}
+.alert-inner{display:flex;align-items:center;padding:10px 0;width:max-content;animation:ticker var(--ticker-dur,25s) linear infinite}
+.alert-inner:hover{animation-play-state:paused}
+.alert-chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;background:var(--warn-bg);border:1px solid var(--warn-bd);color:var(--warn);padding:3px 12px;font-weight:600;white-space:nowrap}
+.alert-chip.neg{background:var(--neg-bg);border-color:var(--neg-bd);color:var(--neg)}
+.ticker-sep{display:inline-block;color:var(--warn);opacity:.35;font-size:13px;margin:0 18px;font-weight:300}
+
+/* ── TABS ── */
+.tab-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 60px;display:flex;gap:0;position:sticky;top:96px;z-index:99}
+.tab-btn{padding:14px 22px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);cursor:pointer;border:none;background:none;font-family:inherit;border-bottom:2px solid transparent;transition:all .15s}
+.tab-btn:hover{color:var(--ink2)}
+.tab-btn.active{color:var(--ink);border-bottom-color:var(--accent);font-weight:800}
+.tab-content{display:none}.tab-content.active{display:block}
+.container{padding:36px 60px;max-width:1400px}
+
+/* ── SECTION LABEL ── */
+.section-label{display:flex;align-items:center;gap:12px;margin-bottom:20px;margin-top:32px}
+.section-label-text{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink2);font-weight:700}
+.section-label-line{flex:1;height:1px;background:var(--border)}
+.section-label-spec{font-size:9px;letter-spacing:.08em;color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* ── CHART AREA ── */
+.chart-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:2px;margin-bottom:2px;background:var(--border)}
+.chart-card{background:var(--surface);padding:28px}
+.chart-label{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.chart-title{font-size:16px;font-weight:800;letter-spacing:-.01em;color:var(--ink);margin-bottom:20px;line-height:1.1}
+.chart-wrap{position:relative;height:200px}
+
+/* ── SUMMARY TABLE ── */
+.summary-card{background:var(--surface);margin-bottom:2px}
+.summary-header{padding:20px 24px 0;display:flex;align-items:baseline;gap:12px}
+.summary-header-label{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.summary-header-title{font-size:15px;font-weight:800;letter-spacing:-.01em;color:var(--ink)}
+.summary-table-wrap{padding:0 24px 24px}
+.summary-table{width:100%;border-collapse:collapse;margin-top:16px}
+.summary-table th{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:5px 12px;text-align:right;font-weight:600;border-bottom:2px solid var(--ink)}
+.summary-table th:first-child{text-align:left}
+.summary-table td{padding:9px 12px;text-align:right;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums;font-size:12px}
+.summary-table td:first-child{text-align:left;font-weight:700;font-size:11px;letter-spacing:.05em}
+.summary-table .row-total{background:var(--ink);color:white}
+.summary-table .row-total td{color:rgba(255,255,255,.9);border-bottom:none}
+.summary-table .row-total td:first-child{color:white}
+.summary-table .row-net td{font-weight:700;background:rgba(26,20,16,.04)}
+.num-pos{color:var(--pos)}
+.num-neg{color:var(--neg)}
+
+/* ── TOOLBAR ── */
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.search-box{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-bottom:1.5px solid var(--ink);padding:7px 14px;width:280px;transition:border-color .2s}
+.search-box:focus-within{border-bottom-color:var(--accent)}
+.search-box input{border:none;outline:none;background:none;font-family:inherit;font-size:12px;color:var(--ink);width:100%}
+.search-box input::placeholder{color:var(--muted);font-weight:300}
+.search-icon{flex-shrink:0;opacity:.4;transition:opacity .2s}
+.search-box:focus-within .search-icon{opacity:.8}
+.tool-btn{font-size:10px;padding:7px 14px;border:1px solid var(--border);color:var(--ink2);background:var(--surface);cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap;letter-spacing:.08em;text-transform:uppercase}
+.tool-btn:hover{border-color:var(--ink);color:var(--ink);background:rgba(26,20,16,.04)}
+.tool-btn.active{background:var(--ink);color:white;border-color:var(--ink)}
+
+/* ── PLAN TABLE ── */
+.company-group{margin-bottom:2px}
+.company-header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--ink);cursor:pointer;transition:background .15s}
+.company-header:hover{background:var(--ink2)}
+.company-name-wrap{display:flex;align-items:center;gap:8px}
+.co-bracket{font-size:11px;color:rgba(255,255,255,.35);font-weight:300}
+.company-name{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:white}
+.company-totals{display:flex;gap:0}
+.ctot{display:flex;flex-direction:column;align-items:flex-end;min-width:76px;padding:0 12px;border-left:1px solid rgba(255,255,255,.1)}
+.ctot-label{font-size:8px;color:rgba(255,255,255,.35);letter-spacing:.1em;text-transform:uppercase}
+.ctot-val{font-size:12px;font-weight:700;color:rgba(255,255,255,.85);font-variant-numeric:tabular-nums}
+.plan-table{width:100%;border-collapse:collapse;font-size:12px}
+.plan-table th{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:6px 10px;text-align:right;border-bottom:1px solid var(--border);background:var(--surface);font-weight:600;white-space:nowrap}
+.plan-table th.col-desc{text-align:left;min-width:240px}
+.plan-table td{padding:8px 10px;border-bottom:1px solid rgba(205,198,184,.5);vertical-align:middle;font-variant-numeric:tabular-nums;background:var(--surface)}
+.plan-table tr:hover td{background:#EFECE5}
+.col-plan{text-align:right;color:var(--plan)}
+.col-actual{text-align:right}
+.col-diff{text-align:right;font-size:11px}
+.col-total{text-align:right;font-weight:700;background:#E8E3D8 !important;color:var(--ink)}
+.desc-cell{display:flex;align-items:center;gap:6px}
+.desc-text{flex:1;color:var(--ink2);font-size:12px}
+.note-btn{font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer;opacity:0;transition:opacity .15s;padding:1px 4px}
+tr:hover .note-btn{opacity:1}
+.note-display{font-size:10px;color:var(--muted);font-style:italic;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.actual-val{cursor:pointer;color:var(--muted);font-style:italic}
+.actual-val.has-value{color:var(--actual);font-style:normal;font-weight:700}
+.actual-input{width:80px;padding:3px 6px;border:1.5px solid var(--ink);background:white;font-family:inherit;font-size:12px;outline:none;text-align:right}
+.plan-val{color:var(--plan);font-weight:600}
+.plan-input{width:80px;padding:3px 6px;border:1.5px solid var(--plan-bd);background:var(--plan-bg);font-family:inherit;font-size:12px;outline:none;text-align:right}
+.diff-pos{color:var(--pos);font-weight:600}
+.diff-neg{color:var(--neg);font-weight:600}
+.full-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+.full-table th{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:6px 10px;text-align:right;border-bottom:1px solid var(--border);background:var(--surface);font-weight:600}
+.full-table th:first-child,.full-table th:nth-child(2){text-align:left}
+.section-badge{font-size:10px;font-weight:700;padding:2px 8px;letter-spacing:.08em}
+.badge-in{background:var(--pos-bg);color:var(--pos);border:1px solid var(--pos-bd)}
+.badge-out{background:var(--neg-bg);color:var(--neg);border:1px solid var(--neg-bd)}
+.empty-msg{color:var(--muted);font-size:12px;padding:20px 0;text-align:center}
+.section-title{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;margin-top:28px}
+
+/* ── MODAL ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);padding:36px;width:440px;max-width:90vw;position:relative;border-top:3px solid var(--ink)}
+.modal-spec{font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.modal-title{font-size:18px;font-weight:800;letter-spacing:-.01em;margin-bottom:24px;color:var(--ink)}
+.modal-close{position:absolute;top:18px;right:18px;background:none;border:none;font-size:16px;cursor:pointer;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;font-size:10px}
+.modal-field{margin-bottom:16px}
+.modal-label{font-size:9px;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;margin-bottom:6px;display:block}
+.modal-input{width:100%;padding:9px 12px;border:none;border-bottom:1.5px solid var(--ink);background:transparent;font-family:inherit;font-size:13px;outline:none}
+.modal-input:focus{border-bottom-color:var(--accent)}
+textarea.modal-input{resize:vertical;min-height:80px;border:1px solid var(--border);border-bottom:1.5px solid var(--ink)}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:28px}
+.modal-btn{font-size:10px;padding:9px 20px;border:1px solid var(--border);cursor:pointer;font-family:inherit;letter-spacing:.1em;text-transform:uppercase}
+.modal-btn.primary{background:var(--ink);color:white;border-color:var(--ink)}
+
+/* ── PRINT ── */
+@media print{.header,.tab-bar,.toolbar,.alert-bar,.hdr-btn,.note-btn{display:none!important}.tab-content{display:block!important}.container{padding:0}}
+</style>
+</head>
+<body>
+<div id="hl-splash" style="position:fixed;inset:0;z-index:99999;background:#0B0D14;display:flex;align-items:center;justify-content:center;flex-direction:column;opacity:1;transition:opacity .65s ease">
+  <div style="position:relative;width:136px;height:136px;background:#2454C8;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding-bottom:10px;box-shadow:0 0 0 1.5px rgba(255,255,255,0.12) inset">
+    <div style="position:absolute;top:22px;left:15px;right:15px;height:1px;background:rgba(255,255,255,0.45)"></div>
+    <div style="position:absolute;bottom:22px;left:15px;right:15px;height:1px;background:rgba(255,255,255,0.45)"></div>
+    <span style="font-family:'Noto Sans KR','Malgun Gothic',sans-serif;font-weight:900;font-size:36px;color:#fff;line-height:1;letter-spacing:-1px">han</span>
+    <span style="font-family:'Noto Sans KR','Malgun Gothic',sans-serif;font-weight:900;font-size:36px;color:#fff;line-height:1;letter-spacing:-1px">Q</span>
+  </div>
+  <div style="margin-top:18px;font-family:'Noto Sans KR','Malgun Gothic',sans-serif;font-size:10px;letter-spacing:.35em;color:rgba(255,255,255,.55);text-transform:uppercase;font-weight:400">H A N Q</div>
+</div>
+<script>(function(){var e=document.getElementById('hl-splash');if(window.self!==window.top){e.remove();return;}setTimeout(function(){e.style.opacity='0';setTimeout(function(){e.remove()},700)},1600)})();</script>
+<style>
+:root{
+  --bg:#F7F5F0;--surface:#FDFCFA;--ink:#1A1814;--ink2:#3D3830;
+  --muted:#9A9389;--border:#E2DDD6;--accent:#C8380A;
+  --pos:#1A6B3C;--pos-bg:#F0FAF4;--pos-bd:#B6DFC8;
+  --neg:#B8282A;--neg-bg:#FDF2F2;--neg-bd:#F0C4C4;
+  --warn:#B87A00;--warn-bg:#FFFBF0;--warn-bd:#E8D08A;
+  --plan:#5B7FA6;--plan-bg:#EEF3FA;--plan-bd:#C8D8EE;
+  --actual:#2D6A4F;--actual-bg:#F0FAF4;--actual-bd:#B6DFC8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;min-height:100vh}
+.app-nav{background:var(--ink);padding:0 60px;display:flex;align-items:center;justify-content:space-between;height:40px;position:sticky;top:0;z-index:200}
+.app-nav-brand{font-size:11px;font-weight:700;letter-spacing:.1em;color:rgba(255,255,255,.9);text-transform:uppercase}
+.app-nav-links{display:flex;gap:0;height:100%}
+.app-nav-link{padding:0 18px;display:flex;align-items:center;font-size:11px;color:rgba(255,255,255,.5);text-decoration:none;letter-spacing:.06em;border-bottom:2px solid transparent;transition:all .15s;margin-bottom:-0px}
+.app-nav-link:hover{color:rgba(255,255,255,.85)}
+.app-nav-link.active{color:white;border-bottom-color:var(--accent);font-weight:700}
+</style>
+<nav class="app-nav">
+  <span class="app-nav-brand">사내 재무관리 시스템</span>
+  <div class="app-nav-links">
+    <a href="/accounts" class="app-nav-link">계좌현황</a>
+    <a href="/plan" class="app-nav-link active">자금계획</a>
+  </div>
+</nav>
+<script>(function(){if(window.self!==window.top){var n=document.querySelector('.app-nav');if(n)n.style.display='none';}})();</script>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-left">
+    <div>
+      <div class="header-title">자금계획관리</div>
+      <div class="header-sub">2026.04 — 2026.06　／　단위 · 천원</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <label class="edit-toggle" id="edit-toggle-wrap">
+      <input type="checkbox" id="edit-mode-toggle"> [ 계획 편집 ]
+    </label>
+    <a class="hdr-btn" href="/api/export-plan-excel" download>↓ Excel</a>
+    <button class="hdr-btn" onclick="window.print()">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="2" y="4" width="8" height="5" rx=".6" stroke="currentColor" stroke-width="1.1"/><path d="M4 4V2h4v2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><rect x="3.5" y="6.5" width="5" height="2.5" rx=".3" stroke="currentColor" stroke-width=".9"/></svg>
+      인쇄
+    </button>
+  </div>
+</header>
+
+<!-- KPI BAR -->
+<div class="kpi-bar">
+  <div class="kpi">
+    <div class="kpi-label">4월 수입 계획</div>
+    <div class="kpi-val" id="kpi-inc-apr">184,047<span class="kpi-unit">천원</span></div>
+    <div class="kpi-sub">계획 기준</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">4월 지출 계획</div>
+    <div class="kpi-val" id="kpi-exp-apr">143,740<span class="kpi-unit">천원</span></div>
+    <div class="kpi-sub">계획 기준</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">4월 순수지 계획</div>
+    <div class="kpi-val pos" id="kpi-net-apr">40,307<span class="kpi-unit">천원</span></div>
+    <div class="kpi-sub">흑자</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">4월 실적 순수지</div>
+    <div class="kpi-val" id="kpi-actual-net">—<span class="kpi-unit">천원</span></div>
+    <div class="kpi-sub">실적 입력 후 표시</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">5월 순수지 계획</div>
+    <div class="kpi-val neg">-8,000<span class="kpi-unit">천원</span></div>
+    <div class="kpi-sub">적자</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">6월 순수지 계획</div>
+    <div class="kpi-val pos">—<span class="kpi-unit"></span></div>
+    <div class="kpi-sub">계획 미입력</div>
+  </div>
+</div>
+
+<!-- ALERT BAR -->
+<div class="alert-bar has-alerts" id="alert-bar">
+
+  <div class="alert-label-wrap"><span class="alert-dot"></span><span class="alert-label">주의</span></div>
+  <div class="alert-track">
+    <div class="alert-inner" id="alert-ticker">
+      <span class="alert-chip neg">5월 자금 부족 예상 <span style="font-size:10px;font-weight:700;padding:1px 6px;background:#B8282A;color:white;margin-left:4px">8,000천원</span></span>
+    </div>
+  </div>
+
+</div>
+
+<!-- TABS -->
+<div class="tab-bar">
+  <button class="tab-btn active" data-tab="overview">개요</button>
+  <button class="tab-btn" data-tab="income">수입</button>
+  <button class="tab-btn" data-tab="expense">지출</button>
+  <button class="tab-btn" data-tab="finance">재무수지</button>
+</div>
+
+<!-- TAB: 개요 -->
+<div class="tab-content active" id="tab-overview">
+  <div class="container">
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-label">Monthly</div>
+        <div class="chart-title">수입 · 지출<br>월별 비교</div>
+        <div class="chart-wrap"><canvas id="chart-monthly"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-label">Apr / by Company</div>
+        <div class="chart-title">4월 수입<br>회사별 구성</div>
+        <div class="chart-wrap"><canvas id="chart-company"></canvas></div>
+      </div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-header">
+        <span class="summary-header-label">Summary</span>
+        <span class="summary-header-title">월별 자금 요약</span>
+      </div>
+      <div class="summary-table-wrap">
+      <table class="summary-table">
+        <thead><tr>
+          <th>구분</th>
+          <th>4월 계획</th><th>4월 실적</th><th>4월 차이</th>
+          <th>5월 계획</th><th>5월 실적</th><th>5월 차이</th>
+          <th>6월 계획</th><th>6월 실적</th><th>6월 차이</th>
+          <th>합계 계획</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td>수입</td>
+            <td>184,047</td><td class="num-pos" id="sum-actual-inc-0">—</td><td id="sum-diff-inc-0">—</td><td>0</td><td class="num-pos" id="sum-actual-inc-1">—</td><td id="sum-diff-inc-1">—</td><td>0</td><td class="num-pos" id="sum-actual-inc-2">—</td><td id="sum-diff-inc-2">—</td>
+            <td>184,047</td>
+          </tr>
+          <tr>
+            <td>지출</td>
+            <td>143,740</td><td class="num-neg" id="sum-actual-exp-0">—</td><td id="sum-diff-exp-0">—</td><td>8,000</td><td class="num-neg" id="sum-actual-exp-1">—</td><td id="sum-diff-exp-1">—</td><td>0</td><td class="num-neg" id="sum-actual-exp-2">—</td><td id="sum-diff-exp-2">—</td>
+            <td>151,740</td>
+          </tr>
+          <tr class="row-net">
+            <td>순수지</td>
+            <td class="num-pos">40,307</td><td id="sum-actual-net-0" class="num-pos">—</td><td id="sum-diff-net-0">—</td><td class="num-neg">-8,000</td><td id="sum-actual-net-1" class="num-neg">—</td><td id="sum-diff-net-1">—</td><td class="num-pos">0</td><td id="sum-actual-net-2" class="num-pos">—</td><td id="sum-diff-net-2">—</td>
+            <td class="num-pos">32,307</td>
+          </tr>
+          <tr>
+            <td>재무지출</td>
+            <td>2,000</td><td id="sum-actual-finout-0">—</td><td>—</td><td>0</td><td id="sum-actual-finout-1">—</td><td>—</td><td>0</td><td id="sum-actual-finout-2">—</td><td>—</td>
+            <td>2,000</td>
+          </tr>
+          <tr class="row-total">
+            <td>자금 과(부족)</td>
+            <td class="num-pos">38,307</td><td id="sum-actual-cash-0">—</td><td>—</td><td class="num-neg">-8,000</td><td id="sum-actual-cash-1">—</td><td>—</td><td class="num-pos">0</td><td id="sum-actual-cash-2">—</td><td>—</td>
+            <td class="num-pos">30,307</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB: 수입 -->
+<div class="tab-content" id="tab-income">
+  <div class="container">
+    <div class="toolbar">
+      <div class="search-box">
+        <svg class="search-icon" width="15" height="15" viewBox="0 0 15 15" fill="none">
+          <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.2"/>
+          <line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+        <input type="text" placeholder="항목 검색..." id="search-income" oninput="filterTable('income',this.value)">
+      </div>
+      <button class="tool-btn" onclick="collapseAll('income')">전체 접기</button>
+      <button class="tool-btn" onclick="expandAll('income')">전체 펼치기</button>
+    </div>
+    <div id="income-tables">
+      
+<div class="company-group" data-company="(수)복지">
+  <div class="company-header">
+    <div class="company-name-wrap">
+      <span class="co-bracket">[</span>
+      <span class="company-name">(수)복지</span>
+      <span class="co-bracket">]</span>
+    </div>
+    <div class="company-totals">
+      <span class="ctot" data-section="income" data-company="(수)복지" data-month="apr"><span class="ctot-label">4월</span><span class="ctot-val">97,082</span></span><span class="ctot" data-section="income" data-company="(수)복지" data-month="may"><span class="ctot-label">5월</span><span class="ctot-val">0</span></span><span class="ctot" data-section="income" data-company="(수)복지" data-month="jun"><span class="ctot-label">6월</span><span class="ctot-val">0</span></span>
+    </div>
+  </div>
+  <table class="plan-table">
+    <thead><tr>
+      <th class="col-desc">항목</th>
+      <th class="col-plan" data-month="apr">계획 4월</th><th class="col-actual" data-month="apr">실적 4월</th><th class="col-diff" data-month="apr">차이</th><th class="col-plan" data-month="may">계획 5월</th><th class="col-actual" data-month="may">실적 5월</th><th class="col-diff" data-month="may">차이</th><th class="col-plan" data-month="jun">계획 6월</th><th class="col-actual" data-month="jun">실적 6월</th><th class="col-diff" data-month="jun">차이</th>
+      <th class="col-total">합계(계획)</th>
+    </tr></thead>
+    <tbody>
+      
+      <tr data-id="r9" data-section="income">
+        <td class="col-desc desc-cell">
+          <span class="desc-text">복지용구 공단부담금 신한 110547773536</span>
+          <button class="note-btn" data-id="r9" title="메모">✎</button>
+          <span class="note-display" id="note-r9"></span>
+        </td>
+        
+        <td class="col-plan plan-cell" data-id="r9" data-month="apr">
+          <span class="plan-val">78,082</span>
+          <input class="plan-input" type="number" value="78082" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r9" data-month="apr">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r9" data-month="apr">—</td>
+        <td class="col-plan plan-cell" data-id="r9" data-month="may">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r9" data-month="may">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r9" data-month="may">—</td>
+        <td class="col-plan plan-cell" data-id="r9" data-month="jun">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r9" data-month="jun">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r9" data-month="jun">—</td>
+        <td class="col-total total-cell">78,082</td>
+      </tr>
+      <tr data-id="r10" data-section="income">
+        <td class="col-desc desc-cell">
+          <span class="desc-text">복지용구 본인부담금 대여 가상 (신한변경)</span>
+          <button class="note-btn" data-id="r10" title="메모">✎</button>
+          <span class="note-display" id="note-r10"></span>
+        </td>
+        
+        <td class="col-plan plan-cell" data-id="r10" data-month="apr">
+          <span class="plan-val">2,000</span>
+          <input class="plan-input" type="number" value="2000" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r10" data-month="apr">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r10" data-month="apr">—</td>
+        <td class="col-plan plan-cell" data-id="r10" data-month="may">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r10" data-month="may">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r10" data-month="may">—</td>
+        <td class="col-plan plan-cell" data-id="r10" data-month="jun">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r10" data-month="jun">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r10" data-month="jun">—</td>
+        <td class="col-total total-cell">2,000</td>
+      </tr>
+      <tr data-id="r11" data-section="income">
+        <td class="col-desc desc-cell">
+          <span class="desc-text">복지용구 본인부담금 판매 가상 (신한변경)</span>
+          <button class="note-btn" data-id="r11" title="메모">✎</button>
+          <span class="note-display" id="note-r11"></span>
+        </td>
+        
+        <td class="col-plan plan-cell" data-id="r11" data-month="apr">
+          <span class="plan-val">6,000</span>
+          <input class="plan-input" type="number" value="6000" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r11" data-month="apr">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r11" data-month="apr">—</td>
+        <td class="col-plan plan-cell" data-id="r11" data-month="may">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r11" data-month="may">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r11" data-month="may">—</td>
+        <td class="col-plan plan-cell" data-id="r11" data-month="jun">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r11" data-month="jun">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r11" data-month="jun">—</td>
+        <td class="col-total total-cell">6,000</td>
+      </tr>
+      <tr data-id="r12" data-section="income">
+        <td class="col-desc desc-cell">
+          <span class="desc-text">보장구 (신한변경)</span>
+          <button class="note-btn" data-id="r12" title="메모">✎</button>
+          <span class="note-display" id="note-r12"></span>
+        </td>
+        
+        <td class="col-plan plan-cell" data-id="r12" data-month="apr">
+          <span class="plan-val">1,000</span>
+          <input class="plan-input" type="number" value="1000" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r12" data-month="apr">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r12" data-month="apr">—</td>
+        <td class="col-plan plan-cell" data-id="r12" data-month="may">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r12" data-month="may">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r12" data-month="may">—</td>
+        <td class="col-plan plan-cell" data-id="r12" data-month="jun">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r12" data-month="jun">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r12" data-month="jun">—</td>
+        <td class="col-total total-cell">1,000</td>
+      </tr>
+      <tr data-id="r13" data-section="income">
+        <td class="col-desc desc-cell">
+          <span class="desc-text">매장 카드매출 (여신) 본임부담금</span>
+          <button class="note-btn" data-id="r13" title="메모">✎</button>
+          <span class="note-display" id="note-r13"></span>
+        </td>
+        
+        <td class="col-plan plan-cell" data-id="r13" data-month="apr">
+          <span class="plan-val">5,000</span>
+          <input class="plan-input" type="number" value="5000" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r13" data-month="apr">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r13" data-month="apr">—</td>
+        <td class="col-plan plan-cell" data-id="r13" data-month="may">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r13" data-month="may">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r13" data-month="may">—</td>
+        <td class="col-plan plan-cell" data-id="r13" data-month="jun">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r13" data-month="jun">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r13" data-month="jun">—</td>
+        <td class="col-total total-cell">5,000</td>
+      </tr>
+      <tr data-id="r14" data-section="income">
+        <td class="col-desc desc-cell">
+          <span class="desc-text">매장 카드매출 (여신) 비급여 매장판매</span>
+          <button class="note-btn" data-id="r14" title="메모">✎</button>
+          <span class="note-display" id="note-r14"></span>
+        </td>
+        
+        <td class="col-plan plan-cell" data-id="r14" data-month="apr">
+          <span class="plan-val">5,000</span>
+          <input class="plan-input" type="number" value="5000" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r14" data-month="apr">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r14" data-month="apr">—</td>
+        <td class="col-plan plan-cell" data-id="r14" data-month="may">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r14" data-month="may">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r14" data-month="may">—</td>
+        <td class="col-plan plan-cell" data-id="r14" data-month="jun">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r14" data-month="jun">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r14" data-month="jun">—</td>
+        <td class="col-total total-cell">5,000</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+<div class="company-group" data-company="에덴요양교육원">
+  <div class="company-header">
+    <div class="company-name-wrap">
+      <span class="co-bracket">[</span>
+      <span class="company-name">에덴요양교육원</span>
+      <span class="co-bracket">]</span>
+    </div>
+    <div class="company-totals">
+      <span class="ctot" data-section="income" data-company="에덴요양교육원" data-month="apr"><span class="ctot-label">4월</span><span class="ctot-val">7,000</span></span><span class="ctot" data-section="income" data-company="에덴요양교육원" data-month="may"><span class="ctot-label">5월</span><span class="ctot-val">0</span></span><span class="ctot" data-section="income" data-company="에덴요양교육원" data-month="jun"><span class="ctot-label">6월</span><span class="ctot-val">0</span></span>
+    </div>
+  </div>
+  <table class="plan-table">
+    <thead><tr>
+      <th class="col-desc">항목</th>
+      <th class="col-plan" data-month="apr">계획 4월</th><th class="col-actual" data-month="apr">실적 4월</th><th class="col-diff" data-month="apr">차이</th><th class="col-plan" data-month="may">계획 5월</th><th class="col-actual" data-month="may">실적 5월</th><th class="col-diff" data-month="may">차이</th><th class="col-plan" data-month="jun">계획 6월</th><th class="col-actual" data-month="jun">실적 6월</th><th class="col-diff" data-month="jun">차이</th>
+      <th class="col-total">합계(계획)</th>
+    </tr></thead>
+    <tbody>
+      
+      <tr data-id="r17" data-section="income">
+        <td class="col-desc desc-cell">
+          <span class="desc-text">2개월단위 매출발생</span>
+          <button class="note-btn" data-id="r17" title="메모">✎</button>
+          <span class="note-display" id="note-r17"></span>
+        </td>
+        
+        <td class="col-plan plan-cell" data-id="r17" data-month="apr">
+          <span class="plan-val">7,000</span>
+          <input class="plan-input" type="number" value="7000" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r17" data-month="apr">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r17" data-month="apr">—</td>
+        <td class="col-plan plan-cell" data-id="r17" data-month="may">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r17" data-month="may">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r17" data-month="may">—</td>
+        <td class="col-plan plan-cell" data-id="r17" data-month="jun">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r17" data-month="jun">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r17" data-month="jun">—</td>
+        <td class="col-total total-cell">7,000</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+<div class="company-group" data-company="한솔">
+  <div class="company-header">
+    <div class="company-name-wrap">
+      <span class="co-bracket">[</span>
+      <span class="company-name">한솔</span>
+      <span class="co-bracket">]</span>
+    </div>
+    <div class="company-totals">
+      <span class="ctot" data-section="income" data-company="한솔" data-month="apr"><span class="ctot-label">4월</span><span class="ctot-val">53,400</span></span><span class="ctot" data-section="income" data-company="한솔" data-month="may"><span class="ctot-label">5월</span><span class="ctot-val">0</span></span><span class="ctot" data-section="income" data-company="한솔" data-month="jun"><span class="ctot-label">6월</span><span class="ctot-val">0</span></span>
+    </div>
+  </div>
+  <table class="plan-table">
+    <thead><tr>
+      <th class="col-desc">항목</th>
+      <th class="col-plan" data-month="apr">계획 4월</th><th class="col-actual" data-month="apr">실적 4월</th><th class="col-diff" data-month="apr">차이</th><th class="col-plan" data-month="may">계획 5월</th><th class="col-actual" data-month="may">실적 5월</th><th class="col-diff" data-month="may">차이</th><th class="col-plan" data-month="jun">계획 6월</th><th class="col-actual" data-month="jun">실적 6월</th><th class="col-diff" data-month="jun">차이</th>
+      <th class="col-total">합계(계획)</th>
+    </tr></thead>
+    <tbody>
+      
+      <tr data-id="r18" data-section="income">
+        <td class="col-desc desc-cell">
+          <span class="desc-text">한큐 (체험증가 -월1백별도) Max35,000</span>
+          <button class="note-btn" data-id="r18" title="메모">✎</button>
+          <span class="note-display" id="note-r18"></span>
+        </td>
+        
+        <td class="col-plan plan-cell" data-id="r18" data-month="apr">
+          <span class="plan-val">28,000</span>
+          <input class="plan-input" type="number" value="28000" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r18" data-month="apr">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r18" data-month="apr">—</td>
+        <td class="col-plan plan-cell" data-id="r18" data-month="may">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r18" data-month="may">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r18" data-month="may">—</td>
+        <td class="col-plan plan-cell" data-id="r18" data-month="jun">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r18" data-month="jun">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r18" data-month="jun">—</td>
+        <td class="col-total total-cell">28,000</td>
+      </tr>
+      <tr data-id="r19" data-section="income">
+        <td class="col-desc desc-cell">
+          <span class="desc-text">재무</span>
+          <button class="note-btn" data-id="r19" title="메모">✎</button>
+          <span class="note-display" id="note-r19"></span>
+        </td>
+        
+        <td class="col-plan plan-cell" data-id="r19" data-month="apr">
+          <span class="plan-val">14,000</span>
+          <input class="plan-input" type="number" value="14000" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r19" data-month="apr">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r19" data-month="apr">—</td>
+        <td class="col-plan plan-cell" data-id="r19" data-month="may">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r19" data-month="may">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r19" data-month="may">—</td>
+        <td class="col-plan plan-cell" data-id="r19" data-month="jun">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r19" data-month="jun">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r19" data-month="jun">—</td>
+        <td class="col-total total-cell">14,000</td>
+      </tr>
+      <tr data-id="r20" data-section="income">
+        <td class="col-desc desc-cell">
+          <span class="desc-text">한큐의료기</span>
+          <button class="note-btn" data-id="r20" title="메모">✎</button>
+          <span class="note-display" id="note-r20"></span>
+        </td>
+        
+        <td class="col-plan plan-cell" data-id="r20" data-month="apr">
+          <span class="plan-val">1,400</span>
+          <input class="plan-input" type="number" value="1400" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r20" data-month="apr">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r20" data-month="apr">—</td>
+        <td class="col-plan plan-cell" data-id="r20" data-month="may">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r20" data-month="may">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r20" data-month="may">—</td>
+        <td class="col-plan plan-cell" data-id="r20" data-month="jun">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r20" data-month="jun">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r20" data-month="jun">—</td>
+        <td class="col-total total-cell">1,400</td>
+      </tr>
+      <tr data-id="r21" data-section="income">
+        <td class="col-desc desc-cell">
+          <span class="desc-text">비급여 의료기</span>
+          <button class="note-btn" data-id="r21" title="메모">✎</button>
+          <span class="note-display" id="note-r21"></span>
+        </td>
+        
+        <td class="col-plan plan-cell" data-id="r21" data-month="apr">
+          <span class="plan-val">10,000</span>
+          <input class="plan-input" type="number" value="10000" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r21" data-month="apr">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r21" data-month="apr">—</td>
+        <td class="col-plan plan-cell" data-id="r21" data-month="may">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r21" data-month="may">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r21" data-month="may">—</td>
+        <td class="col-plan plan-cell" data-id="r21" data-month="jun">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r21" data-month="jun">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r21" data-month="jun">—</td>
+        <td class="col-total total-cell">10,000</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+<div class="company-group" data-company="더빌 30056827 /!특수7061">
+  <div class="company-header">
+    <div class="company-name-wrap">
+      <span class="co-bracket">[</span>
+      <span class="company-name">더빌 30056827 /!특수7061</span>
+      <span class="co-bracket">]</span>
+    </div>
+    <div class="company-totals">
+      <span class="ctot" data-section="income" data-company="더빌 30056827 /!특수7061" data-month="apr"><span class="ctot-label">4월</span><span class="ctot-val">26,565</span></span><span class="ctot" data-section="income" data-company="더빌 30056827 /!특수7061" data-month="may"><span class="ctot-label">5월</span><span class="ctot-val">0</span></span><span class="ctot" data-section="income" data-company="더빌 30056827 /!특수7061" data-month="jun"><span class="ctot-label">6월</span><span class="ctot-val">0</span></span>
+    </div>
+  </div>
+  <table class="plan-table">
+    <thead><tr>
+      <th class="col-desc">항목</th>
+      <th class="col-plan" data-month="apr">계획 4월</th><th class="col-actual" data-month="apr">실적 4월</th><th class="col-diff" data-month="apr">차이</th><th class="col-plan" data-month="may">계획 5월</th><th class="col-actual" data-month="may">실적 5월</th><th class="col-diff" data-month="may">차이</th><th class="col-plan" data-month="jun">계획 6월</th><th class="col-actual" data-month="jun">실적 6월</th><th class="col-diff" data-month="jun">차이</th>
+      <th class="col-total">합계(계획)</th>
+    </tr></thead>
+    <tbody>
+      
+      <tr data-id="r22" data-section="income">
+        <td class="col-desc desc-cell">
+          <span class="desc-text">기타영업수입 (컨설팅 ,바코드) 비정기</span>
+          <button class="note-btn" data-id="r22" title="메모">✎</button>
+          <span class="note-display" id="note-r22"></span>
+        </td>
+        
+        <td class="col-plan plan-cell" data-id="r22" data-month="apr">
+          <span class="plan-val">13,565</span>
+          <input class="plan-input" type="number" value="13565" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r22" data-month="apr">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r22" data-month="apr">—</td>
+        <td class="col-plan plan-cell" data-id="r22" data-month="may">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r22" data-month="may">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r22" data-month="may">—</td>
+        <td class="col-plan plan-cell" data-id="r22" data-month="jun">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r22" data-month="jun">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r22" data-month="jun">—</td>
+        <td class="col-total total-cell">13,565</td>
+      </tr>
+      <tr data-id="r23" data-section="income">
+        <td class="col-desc desc-cell">
+          <span class="desc-text">개인수입</span>
+          <button class="note-btn" data-id="r23" title="메모">✎</button>
+          <span class="note-display" id="note-r23"></span>
+        </td>
+        
+        <td class="col-plan plan-cell" data-id="r23" data-month="apr">
+          <span class="plan-val">13,000</span>
+          <input class="plan-input" type="number" value="13000" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r23" data-month="apr">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r23" data-month="apr">—</td>
+        <td class="col-plan plan-cell" data-id="r23" data-month="may">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r23" data-month="may">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r23" data-month="may">—</td>
+        <td class="col-plan plan-cell" data-id="r23" data-month="jun">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r23" data-month="jun">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r23" data-month="jun">—</td>
+        <td class="col-total total-cell">13,000</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+    </div>
+    <div style="margin-top:16px;padding:12px 14px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:12px;font-weight:700">수입 합계</span>
+      <div style="display:flex;gap:20px">
+        <span style="font-size:12px"><span style="color:var(--muted);font-size:10px;margin-right:4px">4월</span><strong>184,047</strong> 천원</span><span style="font-size:12px"><span style="color:var(--muted);font-size:10px;margin-right:4px">5월</span><strong>0</strong> 천원</span><span style="font-size:12px"><span style="color:var(--muted);font-size:10px;margin-right:4px">6월</span><strong>0</strong> 천원</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB: 지출 -->
+<div class="tab-content" id="tab-expense">
+  <div class="container">
+    <div class="toolbar">
+      <div class="search-box">
+        <svg class="search-icon" width="15" height="15" viewBox="0 0 15 15" fill="none">
+          <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.2"/>
+          <line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+        <input type="text" placeholder="항목 검색..." id="search-expense" oninput="filterTable('expense',this.value)">
+      </div>
+      <button class="tool-btn" onclick="collapseAll('expense')">전체 접기</button>
+      <button class="tool-btn" onclick="expandAll('expense')">전체 펼치기</button>
+    </div>
+    <div id="expense-tables">
+      
+<div class="company-group" data-company="(수)복지">
+  <div class="company-header">
+    <div class="company-name-wrap">
+      <span class="co-bracket">[</span>
+      <span class="company-name">(수)복지</span>
+      <span class="co-bracket">]</span>
+    </div>
+    <div class="company-totals">
+      <span class="ctot" data-section="expense" data-company="(수)복지" data-month="apr"><span class="ctot-label">4월</span><span class="ctot-val">73,300</span></span><span class="ctot" data-section="expense" data-company="(수)복지" data-month="may"><span class="ctot-label">5월</span><span class="ctot-val">0</span></span><span class="ctot" data-section="expense" data-company="(수)복지" data-month="jun"><span class="ctot-label">6월</span><span class="ctot-val">0</span></span>
+    </div>
+  </div>
+  <table class="plan-table">
+    <thead><tr>
+      <th class="col-desc">항목</th>
+      <th class="col-plan" data-month="apr">계획 4월</th><th class="col-actual" data-month="apr">실적 4월</th><th class="col-diff" data-month="apr">차이</th><th class="col-plan" data-month="may">계획 5월</th><th class="col-actual" data-month="may">실적 5월</th><th class="col-diff" data-month="may">차이</th><th class="col-plan" data-month="jun">계획 6월</th><th class="col-actual" data-month="jun">실적 6월</th><th class="col-diff" data-month="jun">차이</th>
+      <th class="col-total">합계(계획)</th>
+    </tr></thead>
+    <tbody>
+      
+      <tr data-id="r25" data-section="expense">
+        <td class="col-desc desc-cell">
+          <span class="desc-text">임직원급여(정규)-11명(2월말기준)</span>
+          <button class="note-btn" data-id="r25" title="메모">✎</button>
+          <span class="note-display" id="note-r25"></span>
+        </td>
+        
+        <td class="col-plan plan-cell" data-id="r25" data-month="apr">
+          <span class="plan-val">34,300</span>
+          <input class="plan-input" type="number" value="34300" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r25" data-month="apr">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r25" data-month="apr">—</td>
+        <td class="col-plan plan-cell" data-id="r25" data-month="may">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r25" data-month="may">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r25" data-month="may">—</td>
+        <td class="col-plan plan-cell" data-id="r25" data-month="jun">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r25" data-month="jun">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r25" data-month="jun">—</td>
+        <td class="col-total total-cell">34,300</td>
+      </tr>
+      <tr data-id="r35" data-section="expense">
+        <td class="col-desc desc-cell">
+          <span class="desc-text">복지용구 공단부담금 티에치케이 매입</span>
+          <button class="note-btn" data-id="r35" title="메모">✎</button>
+          <span class="note-display" id="note-r35"></span>
+        </td>
+        
+        <td class="col-plan plan-cell" data-id="r35" data-month="apr">
+          <span class="plan-val">36,000</span>
+          <input class="plan-input" type="number" value="36000" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r35" data-month="apr">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r35" data-month="apr">—</td>
+        <td class="col-plan plan-cell" data-id="r35" data-month="may">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r35" data-month="may">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r35" data-month="may">—</td>
+        <td class="col-plan plan-cell" data-id="r35" data-month="jun">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r35" data-month="jun">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r35" data-month="jun">—</td>
+        <td class="col-total total-cell">36,000</td>
+      </tr>
+      <tr data-id="r36" data-section="expense">
+        <td class="col-desc desc-cell">
+          <span class="desc-text">비급여-기저귀외</span>
+          <button class="note-btn" data-id="r36" title="메모">✎</button>
+          <span class="note-display" id="note-r36"></span>
+        </td>
+        
+        <td class="col-plan plan-cell" data-id="r36" data-month="apr">
+          <span class="plan-val">3,000</span>
+          <input class="plan-input" type="number" value="3000" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r36" data-month="apr">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r36" data-month="apr">—</td>
+        <td class="col-plan plan-cell" data-id="r36" data-month="may">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r36" data-month="may">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r36" data-month="may">—</td>
+        <td class="col-plan plan-cell" data-id="r36" data-month="jun">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r36" data-month="jun">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r36" data-month="jun">—</td>
+        <td class="col-total total-cell">3,000</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+<div class="company-group" data-company="한솔">
+  <div class="company-header">
+    <div class="company-name-wrap">
+      <span class="co-bracket">[</span>
+      <span class="company-name">한솔</span>
+      <span class="co-bracket">]</span>
+    </div>
+    <div class="company-totals">
+      <span class="ctot" data-section="expense" data-company="한솔" data-month="apr"><span class="ctot-label">4월</span><span class="ctot-val">7,000</span></span><span class="ctot" data-section="expense" data-company="한솔" data-month="may"><span class="ctot-label">5월</span><span class="ctot-val">0</span></span><span class="ctot" data-section="expense" data-company="한솔" data-month="jun"><span class="ctot-label">6월</span><span class="ctot-val">0</span></span>
+    </div>
+  </div>
+  <table class="plan-table">
+    <thead><tr>
+      <th class="col-desc">항목</th>
+      <th class="col-plan" data-month="apr">계획 4월</th><th class="col-actual" data-month="apr">실적 4월</th><th class="col-diff" data-month="apr">차이</th><th class="col-plan" data-month="may">계획 5월</th><th class="col-actual" data-month="may">실적 5월</th><th class="col-diff" data-month="may">차이</th><th class="col-plan" data-month="jun">계획 6월</th><th class="col-actual" data-month="jun">실적 6월</th><th class="col-diff" data-month="jun">차이</th>
+      <th class="col-total">합계(계획)</th>
+    </tr></thead>
+    <tbody>
+      
+      <tr data-id="r39" data-section="expense">
+        <td class="col-desc desc-cell">
+          <span class="desc-text">비급여 의료기 매입</span>
+          <button class="note-btn" data-id="r39" title="메모">✎</button>
+          <span class="note-display" id="note-r39"></span>
+        </td>
+        
+        <td class="col-plan plan-cell" data-id="r39" data-month="apr">
+          <span class="plan-val">7,000</span>
+          <input class="plan-input" type="number" value="7000" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r39" data-month="apr">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r39" data-month="apr">—</td>
+        <td class="col-plan plan-cell" data-id="r39" data-month="may">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r39" data-month="may">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r39" data-month="may">—</td>
+        <td class="col-plan plan-cell" data-id="r39" data-month="jun">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r39" data-month="jun">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r39" data-month="jun">—</td>
+        <td class="col-total total-cell">7,000</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+<div class="company-group" data-company="(수)복지+한솔">
+  <div class="company-header">
+    <div class="company-name-wrap">
+      <span class="co-bracket">[</span>
+      <span class="company-name">(수)복지+한솔</span>
+      <span class="co-bracket">]</span>
+    </div>
+    <div class="company-totals">
+      <span class="ctot" data-section="expense" data-company="(수)복지+한솔" data-month="apr"><span class="ctot-label">4월</span><span class="ctot-val">63,440</span></span><span class="ctot" data-section="expense" data-company="(수)복지+한솔" data-month="may"><span class="ctot-label">5월</span><span class="ctot-val">8,000</span></span><span class="ctot" data-section="expense" data-company="(수)복지+한솔" data-month="jun"><span class="ctot-label">6월</span><span class="ctot-val">0</span></span>
+    </div>
+  </div>
+  <table class="plan-table">
+    <thead><tr>
+      <th class="col-desc">항목</th>
+      <th class="col-plan" data-month="apr">계획 4월</th><th class="col-actual" data-month="apr">실적 4월</th><th class="col-diff" data-month="apr">차이</th><th class="col-plan" data-month="may">계획 5월</th><th class="col-actual" data-month="may">실적 5월</th><th class="col-diff" data-month="may">차이</th><th class="col-plan" data-month="jun">계획 6월</th><th class="col-actual" data-month="jun">실적 6월</th><th class="col-diff" data-month="jun">차이</th>
+      <th class="col-total">합계(계획)</th>
+    </tr></thead>
+    <tbody>
+      
+      <tr data-id="r42" data-section="expense">
+        <td class="col-desc desc-cell">
+          <span class="desc-text">전기료</span>
+          <button class="note-btn" data-id="r42" title="메모">✎</button>
+          <span class="note-display" id="note-r42"></span>
+        </td>
+        
+        <td class="col-plan plan-cell" data-id="r42" data-month="apr">
+          <span class="plan-val">1,300</span>
+          <input class="plan-input" type="number" value="1300" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r42" data-month="apr">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r42" data-month="apr">—</td>
+        <td class="col-plan plan-cell" data-id="r42" data-month="may">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r42" data-month="may">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r42" data-month="may">—</td>
+        <td class="col-plan plan-cell" data-id="r42" data-month="jun">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r42" data-month="jun">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r42" data-month="jun">—</td>
+        <td class="col-total total-cell">1,300</td>
+      </tr>
+      <tr data-id="r43" data-section="expense">
+        <td class="col-desc desc-cell">
+          <span class="desc-text">전화,인터넷,기타공과금</span>
+          <button class="note-btn" data-id="r43" title="메모">✎</button>
+          <span class="note-display" id="note-r43"></span>
+        </td>
+        
+        <td class="col-plan plan-cell" data-id="r43" data-month="apr">
+          <span class="plan-val">2,000</span>
+          <input class="plan-input" type="number" value="2000" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r43" data-month="apr">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r43" data-month="apr">—</td>
+        <td class="col-plan plan-cell" data-id="r43" data-month="may">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r43" data-month="may">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r43" data-month="may">—</td>
+        <td class="col-plan plan-cell" data-id="r43" data-month="jun">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r43" data-month="jun">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r43" data-month="jun">—</td>
+        <td class="col-total total-cell">2,000</td>
+      </tr>
+      <tr data-id="r44" data-section="expense">
+        <td class="col-desc desc-cell">
+          <span class="desc-text">경비비(세콤)</span>
+          <button class="note-btn" data-id="r44" title="메모">✎</button>
+          <span class="note-display" id="note-r44"></span>
+        </td>
+        
+        <td class="col-plan plan-cell" data-id="r44" data-month="apr">
+          <span class="plan-val">200</span>
+          <input class="plan-input" type="number" value="200" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r44" data-month="apr">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r44" data-month="apr">—</td>
+        <td class="col-plan plan-cell" data-id="r44" data-month="may">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r44" data-month="may">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r44" data-month="may">—</td>
+        <td class="col-plan plan-cell" data-id="r44" data-month="jun">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r44" data-month="jun">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r44" data-month="jun">—</td>
+        <td class="col-total total-cell">200</td>
+      </tr>
+      <tr data-id="r45" data-section="expense">
+        <td class="col-desc desc-cell">
+          <span class="desc-text">법인카드결재일반</span>
+          <button class="note-btn" data-id="r45" title="메모">✎</button>
+          <span class="note-display" id="note-r45"></span>
+        </td>
+        
+        <td class="col-plan plan-cell" data-id="r45" data-month="apr">
+          <span class="plan-val">6,340</span>
+          <input class="plan-input" type="number" value="6340" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r45" data-month="apr">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r45" data-month="apr">—</td>
+        <td class="col-plan plan-cell" data-id="r45" data-month="may">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r45" data-month="may">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r45" data-month="may">—</td>
+        <td class="col-plan plan-cell" data-id="r45" data-month="jun">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r45" data-month="jun">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r45" data-month="jun">—</td>
+        <td class="col-total total-cell">6,340</td>
+      </tr>
+      <tr data-id="r46" data-section="expense">
+        <td class="col-desc desc-cell">
+          <span class="desc-text">서버비</span>
+          <button class="note-btn" data-id="r46" title="메모">✎</button>
+          <span class="note-display" id="note-r46"></span>
+        </td>
+        
+        <td class="col-plan plan-cell" data-id="r46" data-month="apr">
+          <span class="plan-val">4,000</span>
+          <input class="plan-input" type="number" value="4000" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r46" data-month="apr">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r46" data-month="apr">—</td>
+        <td class="col-plan plan-cell" data-id="r46" data-month="may">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r46" data-month="may">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r46" data-month="may">—</td>
+        <td class="col-plan plan-cell" data-id="r46" data-month="jun">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r46" data-month="jun">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r46" data-month="jun">—</td>
+        <td class="col-total total-cell">4,000</td>
+      </tr>
+      <tr data-id="r47" data-section="expense">
+        <td class="col-desc desc-cell">
+          <span class="desc-text">식비</span>
+          <button class="note-btn" data-id="r47" title="메모">✎</button>
+          <span class="note-display" id="note-r47"></span>
+        </td>
+        
+        <td class="col-plan plan-cell" data-id="r47" data-month="apr">
+          <span class="plan-val">7,000</span>
+          <input class="plan-input" type="number" value="7000" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r47" data-month="apr">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r47" data-month="apr">—</td>
+        <td class="col-plan plan-cell" data-id="r47" data-month="may">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r47" data-month="may">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r47" data-month="may">—</td>
+        <td class="col-plan plan-cell" data-id="r47" data-month="jun">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r47" data-month="jun">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r47" data-month="jun">—</td>
+        <td class="col-total total-cell">7,000</td>
+      </tr>
+      <tr data-id="r48" data-section="expense">
+        <td class="col-desc desc-cell">
+          <span class="desc-text">사무집기</span>
+          <button class="note-btn" data-id="r48" title="메모">✎</button>
+          <span class="note-display" id="note-r48"></span>
+        </td>
+        
+        <td class="col-plan plan-cell" data-id="r48" data-month="apr">
+          <span class="plan-val">10,000</span>
+          <input class="plan-input" type="number" value="10000" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r48" data-month="apr">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r48" data-month="apr">—</td>
+        <td class="col-plan plan-cell" data-id="r48" data-month="may">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r48" data-month="may">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r48" data-month="may">—</td>
+        <td class="col-plan plan-cell" data-id="r48" data-month="jun">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r48" data-month="jun">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r48" data-month="jun">—</td>
+        <td class="col-total total-cell">10,000</td>
+      </tr>
+      <tr data-id="r49" data-section="expense">
+        <td class="col-desc desc-cell">
+          <span class="desc-text">차량보험료,렌트료</span>
+          <button class="note-btn" data-id="r49" title="메모">✎</button>
+          <span class="note-display" id="note-r49"></span>
+        </td>
+        
+        <td class="col-plan plan-cell" data-id="r49" data-month="apr">
+          <span class="plan-val">600</span>
+          <input class="plan-input" type="number" value="600" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r49" data-month="apr">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r49" data-month="apr">—</td>
+        <td class="col-plan plan-cell" data-id="r49" data-month="may">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r49" data-month="may">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r49" data-month="may">—</td>
+        <td class="col-plan plan-cell" data-id="r49" data-month="jun">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r49" data-month="jun">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r49" data-month="jun">—</td>
+        <td class="col-total total-cell">600</td>
+      </tr>
+      <tr data-id="r51" data-section="expense">
+        <td class="col-desc desc-cell">
+          <span class="desc-text">매입분할결제</span>
+          <button class="note-btn" data-id="r51" title="메모">✎</button>
+          <span class="note-display" id="note-r51"></span>
+        </td>
+        
+        <td class="col-plan plan-cell" data-id="r51" data-month="apr">
+          <span class="plan-val">32,000</span>
+          <input class="plan-input" type="number" value="32000" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r51" data-month="apr">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r51" data-month="apr">—</td>
+        <td class="col-plan plan-cell" data-id="r51" data-month="may">
+          <span class="plan-val">8,000</span>
+          <input class="plan-input" type="number" value="8000" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r51" data-month="may">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r51" data-month="may">—</td>
+        <td class="col-plan plan-cell" data-id="r51" data-month="jun">
+          <span class="plan-val">—</span>
+          <input class="plan-input" type="number" value="0" style="display:none"/>
+        </td>
+        <td class="col-actual actual-cell" data-id="r51" data-month="jun">
+          <span class="actual-val">—</span>
+          <input class="actual-input" type="number" placeholder="입력" style="display:none"/>
+        </td>
+        <td class="col-diff diff-cell" data-id="r51" data-month="jun">—</td>
+        <td class="col-total total-cell">40,000</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+    </div>
+    <div style="margin-top:16px;padding:12px 14px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:12px;font-weight:700">지출 합계</span>
+      <div style="display:flex;gap:20px">
+        <span style="font-size:12px"><span style="color:var(--muted);font-size:10px;margin-right:4px">4월</span><strong>143,740</strong> 천원</span><span style="font-size:12px"><span style="color:var(--muted);font-size:10px;margin-right:4px">5월</span><strong>8,000</strong> 천원</span><span style="font-size:12px"><span style="color:var(--muted);font-size:10px;margin-right:4px">6월</span><strong>0</strong> 천원</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB: 재무수지 -->
+<div class="tab-content" id="tab-finance">
+  <div class="container">
+    <div class="section-title">재무수지 항목</div>
+    <table class="plan-table full-table">
+    <thead><tr>
+      <th>구분</th><th class="col-desc">항목</th>
+      <th>계획 4월</th><th>실적 4월</th><th>차이</th><th>계획 5월</th><th>실적 5월</th><th>차이</th><th>계획 6월</th><th>실적 6월</th><th>차이</th>
+      <th>합계(계획)</th>
+    </tr></thead>
+    <tbody>
+    
+      <tr data-id="r59" data-section="fin_out">
+        <td class="section-badge badge-out">OUT</td>
+        <td class="col-desc desc-cell"><span class="desc-text">(항목 없음)</span></td>
+        
+        <td class="col-plan plan-cell" data-id="r59" data-month="apr"><span class="plan-val">2,000</span><input class="plan-input" type="number" value="2000" style="display:none"/></td>
+        <td class="col-actual actual-cell" data-id="r59" data-month="apr"><span class="actual-val">—</span><input class="actual-input" type="number" placeholder="입력" style="display:none"/></td>
+        <td class="col-diff diff-cell" data-id="r59" data-month="apr">—</td>
+        <td class="col-plan plan-cell" data-id="r59" data-month="may"><span class="plan-val">—</span><input class="plan-input" type="number" value="0" style="display:none"/></td>
+        <td class="col-actual actual-cell" data-id="r59" data-month="may"><span class="actual-val">—</span><input class="actual-input" type="number" placeholder="입력" style="display:none"/></td>
+        <td class="col-diff diff-cell" data-id="r59" data-month="may">—</td>
+        <td class="col-plan plan-cell" data-id="r59" data-month="jun"><span class="plan-val">—</span><input class="plan-input" type="number" value="0" style="display:none"/></td>
+        <td class="col-actual actual-cell" data-id="r59" data-month="jun"><span class="actual-val">—</span><input class="actual-input" type="number" placeholder="입력" style="display:none"/></td>
+        <td class="col-diff diff-cell" data-id="r59" data-month="jun">—</td>
+        <td class="col-total total-cell">2,000</td>
+      </tr>
+    </tbody></table>
+  </div>
+</div>
+
+<!-- NOTE MODAL -->
+<div class="modal-overlay" id="note-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('note-modal')">✕</button>
+    <div class="modal-title">메모</div>
+    <div class="modal-field">
+      <label class="modal-label">항목</label>
+      <div id="note-modal-desc" style="font-size:13px;color:var(--ink2);padding:8px 0;border-bottom:1px solid var(--border)"></div>
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">메모 내용</label>
+      <textarea class="modal-input" id="note-modal-input" rows="4" placeholder="메모를 입력하세요..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn" onclick="closeModal('note-modal')">취소</button>
+      <button class="modal-btn primary" onclick="saveNote()">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── BASE DATA ──
+const ITEMS = [{"id":"r9","section":"income","company":"(수)복지","desc":"복지용구 공단부담금 신한 110547773536","plan":{"apr":78082,"may":0,"jun":0}},{"id":"r10","section":"income","company":"(수)복지","desc":"복지용구 본인부담금 대여 가상 (신한변경)","plan":{"apr":2000,"may":0,"jun":0}},{"id":"r11","section":"income","company":"(수)복지","desc":"복지용구 본인부담금 판매 가상 (신한변경)","plan":{"apr":6000,"may":0,"jun":0}},{"id":"r12","section":"income","company":"(수)복지","desc":"보장구 (신한변경)","plan":{"apr":1000,"may":0,"jun":0}},{"id":"r13","section":"income","company":"(수)복지","desc":"매장 카드매출 (여신) 본임부담금","plan":{"apr":5000,"may":0,"jun":0}},{"id":"r14","section":"income","company":"(수)복지","desc":"매장 카드매출 (여신) 비급여 매장판매","plan":{"apr":5000,"may":0,"jun":0}},{"id":"r17","section":"income","company":"에덴요양교육원","desc":"2개월단위 매출발생","plan":{"apr":7000,"may":0,"jun":0}},{"id":"r18","section":"income","company":"한솔","desc":"한큐 (체험증가 -월1백별도) Max35,000","plan":{"apr":28000,"may":0,"jun":0}},{"id":"r19","section":"income","company":"한솔","desc":"재무","plan":{"apr":14000,"may":0,"jun":0}},{"id":"r20","section":"income","company":"한솔","desc":"한큐의료기","plan":{"apr":1400,"may":0,"jun":0}},{"id":"r21","section":"income","company":"한솔","desc":"비급여 의료기","plan":{"apr":10000,"may":0,"jun":0}},{"id":"r22","section":"income","company":"더빌 30056827 /!특수7061","desc":"기타영업수입 (컨설팅 ,바코드) 비정기","plan":{"apr":13565,"may":0,"jun":0}},{"id":"r23","section":"income","company":"더빌 30056827 /!특수7061","desc":"개인수입","plan":{"apr":13000,"may":0,"jun":0}},{"id":"r25","section":"expense","company":"(수)복지","desc":"임직원급여(정규)-11명(2월말기준)","plan":{"apr":34300,"may":0,"jun":0}},{"id":"r35","section":"expense","company":"(수)복지","desc":"복지용구 공단부담금 티에치케이 매입","plan":{"apr":36000,"may":0,"jun":0}},{"id":"r36","section":"expense","company":"(수)복지","desc":"비급여-기저귀외","plan":{"apr":3000,"may":0,"jun":0}},{"id":"r39","section":"expense","company":"한솔","desc":"비급여 의료기 매입","plan":{"apr":7000,"may":0,"jun":0}},{"id":"r42","section":"expense","company":"(수)복지+한솔","desc":"전기료","plan":{"apr":1300,"may":0,"jun":0}},{"id":"r43","section":"expense","company":"(수)복지+한솔","desc":"전화,인터넷,기타공과금","plan":{"apr":2000,"may":0,"jun":0}},{"id":"r44","section":"expense","company":"(수)복지+한솔","desc":"경비비(세콤)","plan":{"apr":200,"may":0,"jun":0}},{"id":"r45","section":"expense","company":"(수)복지+한솔","desc":"법인카드결재일반","plan":{"apr":6340,"may":0,"jun":0}},{"id":"r46","section":"expense","company":"(수)복지+한솔","desc":"서버비","plan":{"apr":4000,"may":0,"jun":0}},{"id":"r47","section":"expense","company":"(수)복지+한솔","desc":"식비","plan":{"apr":7000,"may":0,"jun":0}},{"id":"r48","section":"expense","company":"(수)복지+한솔","desc":"사무집기","plan":{"apr":10000,"may":0,"jun":0}},{"id":"r49","section":"expense","company":"(수)복지+한솔","desc":"차량보험료,렌트료","plan":{"apr":600,"may":0,"jun":0}},{"id":"r51","section":"expense","company":"(수)복지+한솔","desc":"매입분할결제","plan":{"apr":32000,"may":8000,"jun":0}},{"id":"r59","section":"fin_out","company":"차입금상환(원금+이자)","desc":"(항목 없음)","plan":{"apr":2000,"may":0,"jun":0}}];
+const PLAN_INC = [184047,0,0];
+const PLAN_EXP = [143740,8000,0];
+const MONTHS = ['apr','may','jun'];
+const MONTH_LABELS = ['4월','5월','6월'];
+
+// ── STATE ──
+let state = { actuals: {}, planOverrides: {}, notes: {} };
+let editMode = false;
+let currentNoteId = null;
+
+// ── INIT ──
+async function init() {
+  try {
+    const res = await fetch('/api/finance-plan-state');
+    if (res.ok) {
+      const d = await res.json();
+      if (d && typeof d === 'object') state = Object.assign({ actuals:{}, planOverrides:{}, notes:{} }, d);
+    }
+  } catch(e) {}
+  applyState();
+  initCharts();
+  initTicker();
+  updateKPIs();
+}
+
+// ── PERSIST ──
+async function persist() {
+  state.updatedAt = new Date().toISOString();
+  try {
+    await fetch('/api/finance-plan-state', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(state)
+    });
+  } catch(e) {}
+}
+
+// ── APPLY STATE ──
+function applyState() {
+  ITEMS.forEach(item => {
+    MONTHS.forEach((m, mi) => {
+      // Plan overrides
+      const planOverride = state.planOverrides[item.id]?.[m];
+      if (planOverride !== undefined) {
+        const planCell = document.querySelector('.plan-cell[data-id="' + item.id + '"][data-month="' + m + '"]');
+        if (planCell) {
+          planCell.querySelector('.plan-val').textContent = planOverride > 0 ? formatNum(planOverride) : '—';
+          planCell.querySelector('.plan-input').value = planOverride;
+        }
+      }
+      // Actuals
+      const actual = state.actuals[item.id]?.[m];
+      if (actual !== undefined && actual !== null) {
+        setActualDisplay(item.id, m, actual);
+      }
+      // Diff
+      updateDiff(item.id, m);
+    });
+    // Notes
+    const note = state.notes[item.id];
+    const noteEl = document.getElementById('note-' + item.id);
+    if (noteEl && note) noteEl.textContent = note;
+  });
+}
+
+function formatNum(n) {
+  if (n === null || n === undefined || isNaN(n)) return '—';
+  return Math.round(n).toLocaleString('ko-KR');
+}
+
+function getPlan(id, month) {
+  const item = ITEMS.find(x => x.id === id);
+  if (!item) return 0;
+  return state.planOverrides[id]?.[month] ?? item.plan[month] ?? 0;
+}
+
+function getActual(id, month) {
+  return state.actuals[id]?.[month] ?? null;
+}
+
+function setActualDisplay(id, month, value) {
+  const cell = document.querySelector('.actual-cell[data-id="' + id + '"][data-month="' + month + '"]');
+  if (!cell) return;
+  const span = cell.querySelector('.actual-val');
+  if (value !== null && value !== '' && !isNaN(value)) {
+    span.textContent = formatNum(Number(value));
+    span.classList.add('has-value');
+  } else {
+    span.textContent = '—';
+    span.classList.remove('has-value');
+  }
+}
+
+function updateDiff(id, month) {
+  const cell = document.querySelector('.diff-cell[data-id="' + id + '"][data-month="' + month + '"]');
+  if (!cell) return;
+  const plan = getPlan(id, month);
+  const actual = getActual(id, month);
+  if (actual === null) { cell.textContent = '—'; cell.className = 'col-diff diff-cell'; return; }
+  const diff = plan - Number(actual);
+  cell.textContent = (diff >= 0 ? '+' : '') + formatNum(diff);
+  cell.className = 'col-diff diff-cell ' + (diff >= 0 ? 'diff-pos' : 'diff-neg');
+}
+
+// ── ACTUAL CELL CLICK ──
+document.addEventListener('click', function(e) {
+  const cell = e.target.closest('.actual-cell');
+  if (!cell) return;
+  const span = cell.querySelector('.actual-val');
+  const input = cell.querySelector('.actual-input');
+  const id = cell.dataset.id;
+  const month = cell.dataset.month;
+  const current = state.actuals[id]?.[month] ?? '';
+  span.style.display = 'none';
+  input.value = current;
+  input.style.display = 'inline-block';
+  input.focus();
+  input.select();
+
+  function commit() {
+    const val = input.value.trim();
+    span.style.display = '';
+    input.style.display = 'none';
+    if (!state.actuals[id]) state.actuals[id] = {};
+    const n = val === '' ? null : Number(val);
+    state.actuals[id][month] = n;
+    setActualDisplay(id, month, n);
+    updateDiff(id, month);
+    updateKPIs();
+    persist();
+  }
+
+  input.onblur = commit;
+  input.onkeydown = function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); commit(); }
+    if (e.key === 'Escape') { input.blur(); }
+  };
+});
+
+// ── PLAN CELL EDIT ──
+document.addEventListener('click', function(e) {
+  if (!editMode) return;
+  const cell = e.target.closest('.plan-cell');
+  if (!cell) return;
+  const span = cell.querySelector('.plan-val');
+  const input = cell.querySelector('.plan-input');
+  const id = cell.dataset.id;
+  const month = cell.dataset.month;
+  span.style.display = 'none';
+  input.style.display = 'inline-block';
+  input.focus();
+  input.select();
+
+  function commit() {
+    const val = Number(input.value) || 0;
+    span.style.display = '';
+    input.style.display = 'none';
+    if (!state.planOverrides[id]) state.planOverrides[id] = {};
+    state.planOverrides[id][month] = val;
+    span.textContent = val > 0 ? formatNum(val) : '—';
+    updateDiff(id, month);
+    updateKPIs();
+    persist();
+  }
+  input.onblur = commit;
+  input.onkeydown = function(e) { if (e.key==='Enter') { e.preventDefault(); commit(); } };
+});
+
+// ── EDIT MODE TOGGLE ──
+document.getElementById('edit-mode-toggle').addEventListener('change', function() {
+  editMode = this.checked;
+  document.getElementById('edit-toggle-wrap').classList.toggle('active', editMode);
+  document.querySelectorAll('.plan-cell').forEach(c => {
+    c.style.cursor = editMode ? 'pointer' : 'default';
+    c.title = editMode ? '클릭하여 계획 금액 수정' : '';
+  });
+});
+
+// ── NOTE ──
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('.note-btn');
+  if (!btn) return;
+  e.stopPropagation();
+  currentNoteId = btn.dataset.id;
+  const item = ITEMS.find(x => x.id === currentNoteId);
+  document.getElementById('note-modal-desc').textContent = item ? item.desc : '';
+  document.getElementById('note-modal-input').value = state.notes[currentNoteId] || '';
+  document.getElementById('note-modal').classList.add('open');
+});
+
+function saveNote() {
+  if (!currentNoteId) return;
+  const val = document.getElementById('note-modal-input').value.trim();
+  if (val) state.notes[currentNoteId] = val;
+  else delete state.notes[currentNoteId];
+  const noteEl = document.getElementById('note-' + currentNoteId);
+  if (noteEl) noteEl.textContent = val;
+  closeModal('note-modal');
+  persist();
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+// ── TABS ──
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    this.classList.add('active');
+    document.getElementById('tab-' + this.dataset.tab).classList.add('active');
+  });
+});
+
+// ── SEARCH / FILTER ──
+function filterTable(section, query) {
+  const q = query.toLowerCase();
+  document.querySelectorAll('#' + section + '-tables tr[data-id]').forEach(tr => {
+    const desc = tr.querySelector('.desc-text')?.textContent.toLowerCase() || '';
+    const company = tr.closest('.company-group')?.querySelector('.company-name')?.textContent.toLowerCase() || '';
+    tr.style.display = (!q || desc.includes(q) || company.includes(q)) ? '' : 'none';
+  });
+}
+
+function collapseAll(section) {
+  document.querySelectorAll('#' + section + '-tables .plan-table').forEach(t => t.style.display='none');
+}
+function expandAll(section) {
+  document.querySelectorAll('#' + section + '-tables .plan-table').forEach(t => t.style.display='');
+}
+
+document.querySelectorAll('.company-header').forEach(h => {
+  h.style.cursor = 'pointer';
+  h.addEventListener('click', function() {
+    const tbl = this.nextElementSibling;
+    if (tbl) tbl.style.display = tbl.style.display === 'none' ? '' : 'none';
+  });
+});
+
+// ── KPI UPDATE ──
+function updateKPIs() {
+  // Compute actual net for 4월
+  const incItems = ITEMS.filter(x => x.section === 'income');
+  const expItems = ITEMS.filter(x => x.section === 'expense');
+  let incActual = 0, expActual = 0, hasInc = false, hasExp = false;
+  incItems.forEach(x => {
+    const v = state.actuals[x.id]?.apr;
+    if (v !== null && v !== undefined) { incActual += Number(v); hasInc = true; }
+  });
+  expItems.forEach(x => {
+    const v = state.actuals[x.id]?.apr;
+    if (v !== null && v !== undefined) { expActual += Number(v); hasExp = true; }
+  });
+  const el = document.getElementById('kpi-actual-net');
+  if (hasInc || hasExp) {
+    const net = incActual - expActual;
+    el.innerHTML = formatNum(net) + '<span class="kpi-unit">천원</span>';
+    el.className = 'kpi-val ' + (net >= 0 ? 'pos' : 'neg');
+    el.nextElementSibling.textContent = net >= 0 ? '실적 흑자' : '실적 적자';
+  } else {
+    el.innerHTML = '—<span class="kpi-unit">천원</span>';
+    el.className = 'kpi-val';
+  }
+  updateCharts();
+}
+
+// ── CHARTS ──
+let chartMonthly, chartCompany;
+
+function initCharts() {
+  // Japanese editorial palette
+  const INK     = '#1A1410';
+  const INDIGO  = '#1B3A6B';
+  const VERM    = '#BF2F15';
+  const FOREST  = '#2A5C40';
+  const STONE   = '#8A8078';
+
+  const ctxM = document.getElementById('chart-monthly').getContext('2d');
+  chartMonthly = new Chart(ctxM, {
+    type: 'bar',
+    data: {
+      labels: MONTH_LABELS,
+      datasets: [
+        { label:'수입 계획', data: PLAN_INC, backgroundColor: INDIGO, borderWidth:0, borderRadius:2 },
+        { label:'지출 계획', data: PLAN_EXP, backgroundColor: 'rgba(191,47,21,.75)', borderWidth:0, borderRadius:2 },
+        { label:'수입 실적', data: [null,null,null], backgroundColor: FOREST, borderWidth:0, borderRadius:2 },
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{ position:'bottom', labels:{ boxWidth:8, font:{size:10}, color: INK, padding:16 }},
+      },
+      scales:{
+        y:{ ticks:{ font:{size:10}, color: STONE, callback: v => v.toLocaleString('ko-KR') }, grid:{ color:'rgba(26,20,16,.06)' }, border:{display:false}},
+        x:{ ticks:{ font:{size:11}, color: INK, fontWeight:'600' }, grid:{ display:false }, border:{color: INK}}
+      }
+    }
+  });
+
+  // Company doughnut — 더빌 제외
+  const incItems = ITEMS.filter(x => x.section === 'income' && x.company !== '더빌 30056827 /!특수7061' && !x.company.includes('더빌'));
+  const companies = [...new Set(incItems.map(x => x.company))];
+  const compData  = companies.map(c => incItems.filter(x => x.company===c).reduce((s,x)=>s+(x.plan.apr||0),0));
+  // Japanese limited palette: indigo, vermillion, forest, gold, stone, charcoal
+  const compColors = [INDIGO, VERM, FOREST, '#9B6800', '#4A3728', STONE];
+
+  const ctxC = document.getElementById('chart-company').getContext('2d');
+  chartCompany = new Chart(ctxC, {
+    type: 'doughnut',
+    data: {
+      labels: companies,
+      datasets:[{ data: compData, backgroundColor: compColors.slice(0, companies.length), borderWidth:3, borderColor:'#F5F2EC' }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false, cutout:'58%',
+      plugins:{
+        legend:{ position:'right', labels:{ boxWidth:8, font:{size:10}, color: INK, padding:10 }},
+        tooltip:{ callbacks:{ label: ctx => ' ' + ctx.label + ': ' + ctx.parsed.toLocaleString('ko-KR') + ' 천원' }}
+      }
+    }
+  });
+}
+
+function updateCharts() {
+  if (!chartMonthly) return;
+  const incItems = ITEMS.filter(x => x.section === 'income');
+  const actData = MONTHS.map(m => {
+    const vals = incItems.map(x => state.actuals[x.id]?.[m]).filter(v => v !== null && v !== undefined);
+    return vals.length ? vals.reduce((s,v)=>s+Number(v),0) : null;
+  });
+  chartMonthly.data.datasets[2].data = actData;
+  chartMonthly.update();
+}
+
+// ── TICKER INIT ──
+function initTicker() {
+  const ticker = document.getElementById('alert-ticker');
+  if (!ticker) return;
+  const original = ticker.innerHTML;
+  const sep = '<span class="ticker-sep">・</span>';
+  for (let i = 0; i < 11; i++) ticker.innerHTML += sep + original;
+  requestAnimationFrame(function() {
+    const oneW = ticker.scrollWidth / 12;
+    const dur = Math.round(oneW / 38);
+    ticker.style.setProperty('--ticker-one', oneW + 'px');
+    ticker.style.setProperty('--ticker-dur', dur + 's');
+  });
+}
+
+// ── START ──
+init();
+</script>
+</body>
+</html>
