@@ -339,6 +339,29 @@ tr:hover .action-btns{opacity:1}
   .tab-btn{padding:11px 14px}
 }
 
+/* ── PIN LOCK ── */
+.pin-overlay{position:fixed;inset:0;z-index:99990;background:#0B0D14;display:flex;align-items:center;justify-content:center;flex-direction:column;transition:opacity .4s}
+.pin-overlay.hidden{opacity:0;pointer-events:none}
+.pin-box{display:flex;flex-direction:column;align-items:center;gap:28px}
+.pin-logo{font-size:11px;letter-spacing:.3em;color:rgba(255,255,255,.35);text-transform:uppercase;margin-bottom:4px}
+.pin-title{font-size:18px;font-weight:700;color:#F7F5F0;letter-spacing:.04em}
+.pin-dots{display:flex;gap:14px;margin:4px 0}
+.pin-dot{width:12px;height:12px;border-radius:50%;border:2px solid rgba(255,255,255,.3);transition:background .15s,border-color .15s}
+.pin-dot.filled{background:#F7F5F0;border-color:#F7F5F0}
+.pin-dot.error{background:var(--neg);border-color:var(--neg)}
+.pin-error{font-size:12px;color:var(--neg);height:16px;text-align:center}
+.pin-pad{display:grid;grid-template-columns:repeat(3,72px);gap:8px}
+.pin-key{height:56px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:#F7F5F0;font-size:20px;font-weight:600;font-family:inherit;cursor:pointer;transition:background .1s,transform .08s;border-radius:2px;display:flex;align-items:center;justify-content:center}
+.pin-key:hover{background:rgba(255,255,255,.12)}
+.pin-key:active{transform:scale(.93)}
+.pin-key.del{font-size:16px;color:rgba(255,255,255,.55)}
+.pin-key.empty{border:none;background:transparent;cursor:default}
+@keyframes pinShake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+.pin-dots.shake{animation:pinShake .4s ease}
+.pin-change-wrap{margin-top:12px}
+.pin-change-btn{background:none;border:none;color:rgba(255,255,255,.25);font-size:11px;cursor:pointer;font-family:inherit;letter-spacing:.05em;text-decoration:underline}
+.pin-change-btn:hover{color:rgba(255,255,255,.5)}
+
 /* ── BAL UPDATED DATE ── */
 .bal-updated-date{font-size:9px;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums;white-space:nowrap}
 
@@ -391,6 +414,40 @@ tr:hover .action-btns{opacity:1}
 <script>(function(){var e=document.getElementById('hl-splash');if(window.self!==window.top){e.remove();document.head.insertAdjacentHTML('beforeend','<style>*{cursor:none!important}#_fmc{position:fixed;z-index:99999;pointer-events:none;width:10px;height:10px;border-radius:50%;background:#1A56D6;transform:translate(-50%,-50%);transition:width .22s,height .22s}#_fmc.big{width:44px;height:44px;background:transparent;border:1px solid rgba(26,86,214,.7)}#_fmt{position:fixed;z-index:99997;pointer-events:none;width:4px;height:4px;border-radius:50%;background:rgba(26,86,214,.45);transform:translate(-50%,-50%);transition:left .16s ease,top .16s ease}</style>');var c=document.createElement('div');c.id='_fmc';var t=document.createElement('div');t.id='_fmt';document.body.appendChild(c);document.body.appendChild(t);var mx=-100,my=-100,tx=-100,ty=-100;document.addEventListener('mousemove',function(e){mx=e.clientX;my=e.clientY;c.style.left=mx+'px';c.style.top=my+'px';});setInterval(function(){tx+=(mx-tx)*.18;ty+=(my-ty)*.18;t.style.left=tx+'px';t.style.top=ty+'px';},16);setTimeout(function(){document.querySelectorAll('a,button,input,select,th,td[onclick],[onclick],.tab-btn,.filter-select').forEach(function(el){el.addEventListener('mouseenter',function(){c.classList.add('big');});el.addEventListener('mouseleave',function(){c.classList.remove('big');});});},500);return;}setTimeout(function(){e.style.opacity='0';setTimeout(function(){e.remove()},700)},1600)})();</script>
 
 <div id="toast"></div>
+
+<!-- PIN LOCK OVERLAY -->
+<div id="pin-overlay" class="pin-overlay">
+  <div class="pin-box">
+    <div>
+      <div class="pin-logo">hanQ · Finance</div>
+      <div class="pin-title">PIN 입력</div>
+    </div>
+    <div class="pin-dots" id="pin-dots">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-error" id="pin-error"></div>
+    <div class="pin-pad">
+      <button class="pin-key" onclick="pinKey('1')">1</button>
+      <button class="pin-key" onclick="pinKey('2')">2</button>
+      <button class="pin-key" onclick="pinKey('3')">3</button>
+      <button class="pin-key" onclick="pinKey('4')">4</button>
+      <button class="pin-key" onclick="pinKey('5')">5</button>
+      <button class="pin-key" onclick="pinKey('6')">6</button>
+      <button class="pin-key" onclick="pinKey('7')">7</button>
+      <button class="pin-key" onclick="pinKey('8')">8</button>
+      <button class="pin-key" onclick="pinKey('9')">9</button>
+      <div class="pin-key empty"></div>
+      <button class="pin-key" onclick="pinKey('0')">0</button>
+      <button class="pin-key del" onclick="pinBack()">⌫</button>
+    </div>
+    <div class="pin-change-wrap">
+      <button class="pin-change-btn" onclick="pinChangeMode()">PIN 변경</button>
+    </div>
+  </div>
+</div>
 
 <!-- BALANCE MODAL -->
 <div id="modal-bal" class="modal-overlay" onclick="if(event.target===this)closeModal('modal-bal')">
@@ -517,6 +574,7 @@ tr:hover .action-btns{opacity:1}
       <a class="hdr-btn" href="/api/export-excel" download>↓ Excel</a>
       <button class="hdr-btn" onclick="window.print()">⎙ 인쇄 / PDF</button>
       <button class="hdr-btn primary" onclick="openTxnModal(null)">+ 입출금 기록</button>
+      <button class="hdr-btn" onclick="pinLock()" title="화면 잠금">🔒</button>
     </div>
   </div>
 </div>
@@ -1797,6 +1855,117 @@ function updateKPIs() {
 }
 
 // ── TABS ──
+// ── PIN LOCK ──
+const PIN_KEY     = 'hanq-accounts-pin';
+const PIN_DEFAULT = '0000';
+let pinBuffer  = '';
+let pinMode    = 'unlock'; // 'unlock' | 'change-old' | 'change-new' | 'change-confirm'
+let pinNewTemp = '';
+
+function pinGetStored() { return localStorage.getItem(PIN_KEY) || PIN_DEFAULT; }
+
+function pinRender() {
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById('pd' + i);
+    dot.classList.toggle('filled', i < pinBuffer.length);
+    dot.classList.remove('error');
+  }
+}
+
+function pinKey(d) {
+  if (pinBuffer.length >= 4) return;
+  pinBuffer += d;
+  pinRender();
+  if (pinBuffer.length === 4) setTimeout(pinSubmit, 80);
+}
+
+function pinBack() {
+  pinBuffer = pinBuffer.slice(0, -1);
+  document.getElementById('pin-error').textContent = '';
+  pinRender();
+}
+
+function pinSubmit() {
+  if (pinMode === 'unlock') {
+    if (pinBuffer === pinGetStored()) {
+      pinUnlock();
+    } else {
+      pinWrong('PIN이 틀렸습니다');
+    }
+  } else if (pinMode === 'change-old') {
+    if (pinBuffer === pinGetStored()) {
+      pinMode = 'change-new';
+      document.querySelector('#pin-overlay .pin-title').textContent = '새 PIN 입력';
+      pinBuffer = ''; pinRender();
+      document.getElementById('pin-error').textContent = '';
+    } else {
+      pinWrong('현재 PIN이 틀렸습니다');
+    }
+  } else if (pinMode === 'change-new') {
+    pinNewTemp = pinBuffer;
+    pinMode = 'change-confirm';
+    document.querySelector('#pin-overlay .pin-title').textContent = '새 PIN 확인';
+    pinBuffer = ''; pinRender();
+    document.getElementById('pin-error').textContent = '';
+  } else if (pinMode === 'change-confirm') {
+    if (pinBuffer === pinNewTemp) {
+      localStorage.setItem(PIN_KEY, pinBuffer);
+      toast('✓ PIN이 변경됐습니다');
+      pinMode = 'unlock';
+      document.querySelector('#pin-overlay .pin-title').textContent = 'PIN 입력';
+      pinBuffer = ''; pinRender();
+      pinUnlock();
+    } else {
+      pinWrong('PIN이 일치하지 않습니다');
+      pinMode = 'change-new';
+      document.querySelector('#pin-overlay .pin-title').textContent = '새 PIN 입력';
+    }
+  }
+}
+
+function pinWrong(msg) {
+  document.getElementById('pin-error').textContent = msg;
+  const dots = document.getElementById('pin-dots');
+  document.querySelectorAll('.pin-dot').forEach(d => d.classList.add('error'));
+  dots.classList.add('shake');
+  setTimeout(() => {
+    dots.classList.remove('shake');
+    document.querySelectorAll('.pin-dot').forEach(d => d.classList.remove('error'));
+    pinBuffer = ''; pinRender();
+  }, 500);
+}
+
+function pinUnlock() {
+  const overlay = document.getElementById('pin-overlay');
+  overlay.classList.add('hidden');
+  setTimeout(() => overlay.style.display = 'none', 420);
+}
+
+function pinLock() {
+  pinMode = 'unlock';
+  document.querySelector('#pin-overlay .pin-title').textContent = 'PIN 입력';
+  pinBuffer = ''; pinRender();
+  document.getElementById('pin-error').textContent = '';
+  const overlay = document.getElementById('pin-overlay');
+  overlay.style.display = 'flex';
+  requestAnimationFrame(() => overlay.classList.remove('hidden'));
+}
+
+function pinChangeMode() {
+  pinMode = 'change-old';
+  document.querySelector('#pin-overlay .pin-title').textContent = '현재 PIN 입력';
+  pinBuffer = ''; pinRender();
+  document.getElementById('pin-error').textContent = '';
+}
+
+// Check PIN on load (after splash)
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(function() {
+    const overlay = document.getElementById('pin-overlay');
+    if (overlay) { overlay.style.display = 'flex'; }
+  }, 1700);
+});
+
 function switchTab(name, btn) {
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
