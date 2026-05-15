@@ -35,6 +35,11 @@ const SUMMARY_LOANS = [
   {bank:'기업튼튼보증서대출(기운분할)', balance:91652000,  maturity:'2029.11.2'},
   {bank:'농협 마이너스대출',           balance:230000000, maturity:'2026.5.20'},
 ];
+const CARD_PAYMENTS = [
+  {label:'국민 · 삼성 · 현대 · 롯데 카드 결제', payDay:25},
+  {label:'신한 카드 결제',                       payDay:10},
+  {label:'농협 · 광주 카드 결제',                payDay:6},
+];
 
 const ROUTES = {
   '/accounts': '재무계좌현황.html',
@@ -132,16 +137,28 @@ http.createServer((req, res) => {
     now.setHours(0, 0, 0, 0);
     let totalLoan = 0, urgentCount = 0;
     const alerts = [];
+
     SUMMARY_LOANS.forEach(function(loan) {
       totalLoan += (loan.balance || 0);
-      const p   = loan.maturity.split('.');
-      const mat = new Date(+p[0], +p[1] - 1, +p[2]);
+      const p    = loan.maturity.split('.');
+      const mat  = new Date(+p[0], +p[1] - 1, +p[2]);
       const days = Math.ceil((mat - now) / 86400000);
       if (days >= 0 && days <= 90) {
         urgentCount++;
         alerts.push({ text: loan.bank + ' 만기', daysLeft: days, urgency: days <= 14 ? 'urg' : 'wrn' });
       }
     });
+
+    CARD_PAYMENTS.forEach(function(cp) {
+      const d = new Date(now);
+      d.setDate(cp.payDay);
+      if (d <= now) d.setMonth(d.getMonth() + 1);
+      const days = Math.ceil((d - now) / 86400000);
+      const urg  = days <= 5 ? 'urg' : days <= 14 ? 'wrn' : 'info';
+      alerts.push({ text: cp.label, daysLeft: days, urgency: urg });
+    });
+
+    alerts.sort(function(a, b) { return a.daysLeft - b.daysLeft; });
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
