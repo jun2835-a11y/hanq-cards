@@ -1979,7 +1979,9 @@ let bulkChanged = {};
 
 function initBulkTab() {
   bulkChanged = {};
+  state.balances = state.balances || {};
   const container = document.getElementById('bulk-groups');
+  if (!container) return;
   container.innerHTML = '';
 
   // Group by bank
@@ -2070,6 +2072,7 @@ function updateBulkBadge() {
 
 function saveBulkAll() {
   if (!Object.keys(bulkChanged).length) return;
+  state.balances = state.balances || {};
   const ts = new Date().toISOString();
   state.balances = state.balances || {};
   state.history  = state.history  || [];
