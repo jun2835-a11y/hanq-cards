@@ -362,6 +362,16 @@ tr:hover .action-btns{opacity:1}
 .pin-change-btn{background:none;border:none;color:rgba(255,255,255,.25);font-size:11px;cursor:pointer;font-family:inherit;letter-spacing:.05em;text-decoration:underline}
 .pin-change-btn:hover{color:rgba(255,255,255,.5)}
 
+/* ── THRESHOLD WARNING ── */
+tr.row-threshold-warn{background:#FFFBE6!important}
+tr.row-threshold-warn:hover{background:#FFF7D6!important}
+.bal-below-thresh{color:var(--neg)!important;font-weight:800!important}
+.thresh-icon{font-size:10px;margin-left:3px;vertical-align:middle;cursor:help;opacity:.6}
+.thresh-icon.active{opacity:1;color:var(--warn)}
+.thresh-icon.breach{color:var(--neg);opacity:1}
+.thresh-warn-bar{background:var(--warn-bg);border:1px solid var(--warn-bd);color:var(--warn);font-size:11px;font-weight:700;padding:8px 16px;margin-bottom:16px;display:none;align-items:center;gap:8px}
+.thresh-warn-bar.visible{display:flex}
+
 /* ── BAL UPDATED DATE ── */
 .bal-updated-date{font-size:9px;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums;white-space:nowrap}
 
@@ -522,6 +532,13 @@ tr:hover .action-btns{opacity:1}
       <div class="form-group">
         <label class="form-label">변경 사유 (선택)</label>
         <input type="text" class="form-input" id="mb-memo" placeholder="예: 5월 입금 반영">
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="display:flex;align-items:center;gap:6px">
+          최소잔액 경고 설정 (원)
+          <span style="font-size:10px;color:var(--muted);font-weight:400">— 미만 시 주황 강조</span>
+        </label>
+        <input type="number" class="form-input" id="mb-threshold" placeholder="예: 1000000  (비우면 해제)">
       </div>
     </div>
     <div class="modal-footer">
@@ -819,6 +836,12 @@ tr:hover .action-btns{opacity:1}
 <!-- ============ 예금 탭 ============ -->
 <div id="tab-deposit" class="tab-content active">
 <div class="container">
+
+  <div class="thresh-warn-bar" id="thresh-warn-bar">
+    <span>⚠</span>
+    <span id="thresh-warn-text"></span>
+    <span style="font-weight:400;font-size:10px;margin-left:4px">— 잔액 수정 모달에서 임계값을 조정할 수 있습니다</span>
+  </div>
 
   <div class="chart-section">
     <div class="chart-box">
@@ -1631,6 +1654,46 @@ async function saveState() {
 }
 
 // ── APPLY STATE ──
+// ── THRESHOLD WARNINGS ──
+function applyThresholds() {
+  state.thresholds = state.thresholds || {};
+  state.balances   = state.balances   || {};
+  let breachCount = 0;
+  const breachNames = [];
+
+  DEPOSITS.forEach(d => {
+    const key    = d.accountNo.replace(/[^0-9]/g,'');
+    const tr     = document.querySelector('#dep-tbody tr[data-accountno="' + d.accountNo + '"]');
+    const balEl  = document.getElementById('bal-' + key);
+    const thresh = state.thresholds[d.accountNo];
+
+    if (thresh !== undefined) {
+      const bal    = state.balances[d.accountNo] !== undefined ? state.balances[d.accountNo].value : d.balance;
+      const breach = bal !== null && bal < thresh;
+      if (tr)    tr.classList.toggle('row-threshold-warn', breach);
+      if (balEl) balEl.classList.toggle('bal-below-thresh', breach);
+      if (breach) {
+        breachCount++;
+        breachNames.push(d.accountName || d.holder || d.branch || d.accountNo);
+      }
+    } else {
+      if (tr)    tr.classList.remove('row-threshold-warn');
+      if (balEl) balEl.classList.remove('bal-below-thresh');
+    }
+  });
+
+  const bar  = document.getElementById('thresh-warn-bar');
+  const text = document.getElementById('thresh-warn-text');
+  if (bar && text) {
+    if (breachCount > 0) {
+      bar.classList.add('visible');
+      text.textContent = breachCount + '개 계좌 최소잔액 미달: ' + breachNames.slice(0,3).join(', ') + (breachNames.length > 3 ? ' 외 ' + (breachNames.length-3) + '개' : '');
+    } else {
+      bar.classList.remove('visible');
+    }
+  }
+}
+
 function fmtUpdatedAt(ts) {
   if (!ts) return null;
   const d = new Date(ts);
@@ -1678,6 +1741,9 @@ function applyState() {
 
   // Update KPIs
   updateKPIs();
+
+  // Apply threshold warnings
+  applyThresholds();
 
   // Update last updated
   const hist = (state.history || []);
@@ -2223,8 +2289,10 @@ function openBalModal(accountNo, bank, name, currentBal) {
   document.getElementById('mb-no').textContent   = accountNo;
   const disp = state.balances[accountNo] !== undefined ? state.balances[accountNo].value : currentBal;
   document.getElementById('mb-curbal').textContent = '현재 잔액: ' + (disp !== null ? Math.round(disp).toLocaleString('ko-KR') + '원' : '—');
-  document.getElementById('mb-newbal').value = disp !== null ? Math.round(disp) : '';
-  document.getElementById('mb-memo').value   = '';
+  document.getElementById('mb-newbal').value   = disp !== null ? Math.round(disp) : '';
+  document.getElementById('mb-memo').value      = '';
+  const savedThresh = (state.thresholds || {})[accountNo];
+  document.getElementById('mb-threshold').value = savedThresh !== undefined ? savedThresh : '';
   document.getElementById('modal-bal').classList.add('open');
   setTimeout(() => document.getElementById('mb-newbal').focus(), 100);
 }
@@ -2258,6 +2326,17 @@ function confirmBalance() {
   if (el)  el.textContent = Math.round(newBal).toLocaleString('ko-KR');
   if (dot) dot.style.display = 'inline-block';
   setUpdatedDate(_balModal.accountNo, ts);
+
+  // Save threshold
+  const thRaw = document.getElementById('mb-threshold').value.trim();
+  state.thresholds = state.thresholds || {};
+  if (thRaw === '') {
+    delete state.thresholds[_balModal.accountNo];
+  } else {
+    const thVal = parseFloat(thRaw);
+    if (!isNaN(thVal)) state.thresholds[_balModal.accountNo] = thVal;
+  }
+  applyThresholds();
 
   saveState();
   updateKPIs();
