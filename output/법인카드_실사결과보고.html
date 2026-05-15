@@ -15,6 +15,7 @@
   --s-ok-bg: #EBF2EE;      --s-ok-fg: #2D6644;      --s-ok-bd: #A8CCBA;
   --s-transfer-bg: #EBF0FA;--s-transfer-fg: #1A4A8A; --s-transfer-bd: #A8C0E0;
   --s-stop-bg: #FDEEE9;    --s-stop-fg: #C8380A;    --s-stop-bd: #F2C4B4;
+  --s-partial-bg: #FEF5E6; --s-partial-fg: #B8820A; --s-partial-bd: #E8C87A;
 }
 body { font-family: 'Noto Sans KR','Malgun Gothic',sans-serif; background: var(--bg); color: var(--ink); font-size: 13px; line-height: 1.7; }
 
@@ -56,6 +57,7 @@ body { font-family: 'Noto Sans KR','Malgun Gothic',sans-serif; background: var(-
 .sb-val.c-pending  { color: var(--s-pending-fg); }
 .sb-val.c-transfer { color: var(--s-transfer-fg); }
 .sb-val.c-stop     { color: var(--accent); }
+.sb-val.c-partial  { color: var(--s-partial-fg); }
 .sb-unit { font-size: 14px; font-weight: 400; margin-left: 2px; }
 
 .legend-bar { background: #FAFAF7; border-bottom: 1px solid var(--border); padding: 11px 64px; display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
@@ -73,6 +75,7 @@ body { font-family: 'Noto Sans KR','Malgun Gothic',sans-serif; background: var(-
 .ld-ok       { background: var(--s-ok-bg);       border: 1px solid var(--s-ok-bd); }
 .ld-transfer { background: var(--s-transfer-bg); border: 1px solid var(--s-transfer-bd); }
 .ld-stop     { background: var(--s-stop-bg);     border: 1px solid var(--s-stop-bd); }
+.ld-partial  { background: var(--s-partial-bg);  border: 1px solid var(--s-partial-bd); }
 
 .container { max-width: 1100px; margin: 0 auto; padding: 48px 64px; }
 
@@ -97,6 +100,7 @@ tr:last-child td { border-bottom: none; }
 .row-ok       td { background: #FAFDF9; }
 .row-transfer td { background: #FAFBFD; }
 .row-stop     td { background: #FFFAF9; }
+.row-partial  td { background: #FEFAF2; }
 
 .status-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 4px 11px; white-space: nowrap; cursor: pointer; user-select: none; transition: opacity .15s; }
 .status-badge:hover { opacity: 0.8; }
@@ -109,6 +113,8 @@ tr:last-child td { border-bottom: none; }
 .sb-transfer::before { background: var(--s-transfer-fg); }
 .sb-stop     { background: var(--s-stop-bg);     color: var(--s-stop-fg);     border: 1px solid var(--s-stop-bd); }
 .sb-stop::before     { background: var(--s-stop-fg); }
+.sb-partial  { background: var(--s-partial-bg); color: var(--s-partial-fg); border: 1px solid var(--s-partial-bd); }
+.sb-partial::before  { background: var(--s-partial-fg); }
 
 .rec-type { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 7px; }
 .rec-type-dup { background: var(--accent); color: white; }
@@ -141,12 +147,12 @@ tr:last-child td { border-bottom: none; }
 
 /* 드롭다운 */
 .status-dropdown {
-  position: fixed;
+  position: absolute;
   background: white;
   border: 1px solid var(--border);
   box-shadow: 0 6px 20px rgba(0,0,0,0.12);
   z-index: 9000;
-  min-width: 130px;
+  min-width: 150px;
   animation: dropIn .1s ease;
 }
 @keyframes dropIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:none; } }
@@ -157,7 +163,8 @@ tr:last-child td { border-bottom: none; }
 .sd-pending  .sd-dot { background: var(--s-pending-fg); }
 .sd-ok       .sd-dot { background: var(--s-ok-fg); }
 .sd-transfer .sd-dot { background: var(--s-transfer-fg); }
-.sd-stop     .sd-dot { background: var(--accent); }
+.sd-stop     .sd-dot { background: var(--s-stop-fg); }
+.sd-partial  .sd-dot { background: var(--s-partial-fg); }
 
 /* 토스트 */
 #save-toast {
@@ -305,6 +312,10 @@ tr:last-child td { border-bottom: none; }
     <div class="sb-val c-transfer"><span id="cnt-transfer">3</span><span class="sb-unit">건</span></div>
   </div>
   <div class="sb-item">
+    <div class="sb-label">부분 지출 중단</div>
+    <div class="sb-val c-partial"><span id="cnt-partial">0</span><span class="sb-unit">건</span></div>
+  </div>
+  <div class="sb-item">
     <div class="sb-label">지출 중단</div>
     <div class="sb-val c-stop"><span id="cnt-stop">1</span><span class="sb-unit">건</span></div>
   </div>
@@ -323,6 +334,7 @@ tr:last-child td { border-bottom: none; }
   <div class="legend-item"><div class="legend-dot ld-pending"></div>미확인</div>
   <div class="legend-item"><div class="legend-dot ld-ok"></div>정상 사용</div>
   <div class="legend-item"><div class="legend-dot ld-transfer"></div>카드 이관</div>
+  <div class="legend-item"><div class="legend-dot ld-partial"></div>부분 지출 중단</div>
   <div class="legend-item"><div class="legend-dot ld-stop"></div>지출 중단</div>
 </div>
 <div class="filter-info-bar">
@@ -1607,10 +1619,11 @@ tr:last-child td { border-bottom: none; }
 <script>
 (function () {
   const STATUS_OPTIONS = [
-    { value: 'pending',  label: '미확인',   rowCls: 'row-pending',  bdgCls: 'sb-pending' },
-    { value: 'ok',       label: '정상 사용', rowCls: 'row-ok',       bdgCls: 'sb-ok' },
-    { value: 'transfer', label: '카드 이관', rowCls: 'row-transfer', bdgCls: 'sb-transfer' },
-    { value: 'stop',     label: '지출 중단', rowCls: 'row-stop',     bdgCls: 'sb-stop' },
+    { value: 'pending',  label: '미확인',      rowCls: 'row-pending',  bdgCls: 'sb-pending' },
+    { value: 'ok',       label: '정상 사용',    rowCls: 'row-ok',       bdgCls: 'sb-ok' },
+    { value: 'transfer', label: '카드 이관',    rowCls: 'row-transfer', bdgCls: 'sb-transfer' },
+    { value: 'partial',  label: '부분 지출 중단', rowCls: 'row-partial', bdgCls: 'sb-partial' },
+    { value: 'stop',     label: '지출 중단',    rowCls: 'row-stop',     bdgCls: 'sb-stop' },
   ];
 
   let saved = {};
@@ -1651,19 +1664,22 @@ tr:last-child td { border-bottom: none; }
   }
 
   function updateSummary() {
-    let p = 0, o = 0, tr = 0, s = 0;
+    let p = 0, o = 0, tr = 0, s = 0, pt = 0;
     document.querySelectorAll('.status-badge[data-status]').forEach(b => {
       const v = b.dataset.status;
       if (v === 'pending') p++;
       else if (v === 'ok') o++;
       else if (v === 'transfer') tr++;
       else if (v === 'stop') s++;
+      else if (v === 'partial') pt++;
     });
-    document.getElementById('cnt-total').textContent    = p + o + tr + s;
+    document.getElementById('cnt-total').textContent    = p + o + tr + s + pt;
     document.getElementById('cnt-ok').textContent       = o;
     document.getElementById('cnt-transfer').textContent = tr;
     document.getElementById('cnt-stop').textContent     = s;
     document.getElementById('cnt-pending').textContent  = p;
+    const elPt = document.getElementById('cnt-partial');
+    if (elPt) elPt.textContent = pt;
     const hdrP = document.getElementById('hdr-cnt-pending');
     if (hdrP) {
       let hp = 0;
@@ -1714,9 +1730,13 @@ tr:last-child td { border-bottom: none; }
       dd.appendChild(item);
     });
     document.body.appendChild(dd);
-    const rect = badge.getBoundingClientRect();
-    dd.style.top  = (rect.bottom + 4) + 'px';
-    dd.style.left = rect.left + 'px';
+    const rect    = badge.getBoundingClientRect();
+    const ddW     = 158;
+    const top     = rect.bottom + window.scrollY + 4;
+    const leftRaw = rect.left   + window.scrollX;
+    const left    = (rect.left + ddW > window.innerWidth) ? leftRaw - (rect.left + ddW - window.innerWidth) - 8 : leftRaw;
+    dd.style.top  = top  + 'px';
+    dd.style.left = left + 'px';
     activeDD = dd;
   }
   function closeDropdown() {
