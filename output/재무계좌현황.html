@@ -448,6 +448,10 @@ tr.row-threshold-warn:hover{background:#FFF7D6!important}
 .co-cf-won{font-size:11px;color:var(--muted);min-width:14px}
 .co-cf-save{font-size:11px;padding:7px 18px;border:1px solid var(--border);background:var(--surface);color:var(--ink2);cursor:pointer;font-family:inherit;transition:all .15s;margin-top:6px}
 .co-cf-save:hover{background:var(--ink);color:white;border-color:var(--ink)}
+.co-cf-auto-row{background:var(--bg);padding:5px 8px}
+.co-cf-auto-val{width:140px;font-size:12px;font-variant-numeric:tabular-nums;text-align:right;color:var(--ink2);padding:7px 10px;font-weight:600}
+.co-cf-auto-badge{font-size:9px;padding:2px 6px;background:#EBF2EE;color:var(--pos);border:1px solid #A8CCBA;letter-spacing:.05em;font-weight:700;white-space:nowrap;flex-shrink:0}
+.co-cf-section-lbl{font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:10px 0 4px;border-top:1px solid var(--border2);margin-top:4px}
 .co-cf-totals{display:grid;grid-template-columns:1fr 1fr;gap:2px;margin:16px 0}
 .co-cf-total-cell{background:var(--bg);border:1px solid var(--border);padding:14px 18px}
 .co-cf-total-label{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
@@ -1536,9 +1540,9 @@ tr.row-threshold-warn:hover{background:#FFF7D6!important}
 
   <div class="section-label" style="margin-top:28px"><span class="section-label-text">현금흐름 예측</span><div class="section-label-line"></div></div>
   <div class="co-cf-card">
-    <div class="co-cf-title">이번 달 예정 지출 입력</div>
+    <div class="co-cf-title">이번 달 예정 지출</div>
     <div class="co-cf-inputs" id="co-cf-inputs"></div>
-    <button class="co-cf-save" onclick="saveCfAmounts()">저장 · 분석</button>
+    <button class="co-cf-save" onclick="saveCfAmounts()">카드 금액 저장 · 분석</button>
     <div id="co-cf-result"></div>
   </div>
 </div>
@@ -1959,12 +1963,14 @@ const COMPANIES = [
   {id:'미분류', label:'미분류',            color:'#9A958F'},
 ];
 const CF_ITEMS = [
-  {id:'card_6',  label:'농협 · 광주 카드 결제 (6일)',          def:0},
-  {id:'card_10', label:'신한 카드 결제 (10일)',                  def:0},
-  {id:'card_25', label:'국민 · 삼성 · 현대 · 롯데 결제 (25일)', def:0},
-  {id:'loan_1',  label:'기업튼튼 원리금 상환',                   def:2083000},
-  {id:'loan_2',  label:'농협 마이너스 이자',                     def:850000},
-  {id:'other',   label:'기타 고정지출',                          def:0},
+  {id:'card_6',  label:'농협 · 광주 카드 결제 (6일)',          def:0, group:'card'},
+  {id:'card_10', label:'신한 카드 결제 (10일)',                  def:0, group:'card'},
+  {id:'card_25', label:'국민 · 삼성 · 현대 · 롯데 결제 (25일)', def:0, group:'card'},
+  {id:'loan_1',  label:'기업튼튼 원리금 상환', auto:true,
+    autoVal: function(){ return 2083000 + Math.round(91652000 * 0.0559 / 12); }, group:'fixed'},
+  {id:'loan_2',  label:'농협 마이너스 이자',   auto:true,
+    autoVal: function(){ return 850000; }, group:'fixed'},
+  {id:'other',   label:'기타 고정지출',  def:0, group:'fixed'},
 ];
 let coExpanded = {};
 
@@ -2043,14 +2049,35 @@ function initCompanyTab() {
 
   // Cashflow section
   const cfInputs = document.getElementById('co-cf-inputs');
+  let prevGroup = null;
   cfInputs.innerHTML = CF_ITEMS.map(item => {
-    const val = state.cashflow[item.id] !== undefined ? state.cashflow[item.id] : item.def;
-    return '<div class="co-cf-row">' +
-      '<span class="co-cf-label">' + item.label + '</span>' +
-      '<input class="co-cf-input" type="text" inputmode="numeric" id="cfi-' + item.id + '" ' +
-        'value="' + (val || '') + '" placeholder="0" autocomplete="off">' +
-      '<span class="co-cf-won">원</span>' +
-    '</div>';
+    let out = '';
+    if (item.group !== prevGroup) {
+      prevGroup = item.group;
+      if (item.group === 'card') {
+        out += '<div class="co-cf-section-lbl" style="border-top:none;padding-top:0">카드 결제</div>';
+      } else if (item.group === 'fixed') {
+        out += '<div class="co-cf-section-lbl">고정지출 (자동 계산)</div>';
+      }
+    }
+    if (item.auto) {
+      const v = item.autoVal();
+      out += '<div class="co-cf-row co-cf-auto-row">' +
+        '<span class="co-cf-label">' + item.label + '</span>' +
+        '<span class="co-cf-auto-badge">자동</span>' +
+        '<span class="co-cf-auto-val">' + v.toLocaleString('ko-KR') + '</span>' +
+        '<span class="co-cf-won">원</span>' +
+      '</div>';
+    } else {
+      const val = state.cashflow[item.id] !== undefined ? state.cashflow[item.id] : item.def;
+      out += '<div class="co-cf-row">' +
+        '<span class="co-cf-label">' + item.label + '</span>' +
+        '<input class="co-cf-input" type="text" inputmode="numeric" id="cfi-' + item.id + '" ' +
+          'value="' + (val || '') + '" placeholder="0" autocomplete="off">' +
+        '<span class="co-cf-won">원</span>' +
+      '</div>';
+    }
+    return out;
   }).join('');
 
   renderCfResult(grandTotal);
@@ -2066,6 +2093,7 @@ function toggleCoExpand(id, btn) {
 function saveCfAmounts() {
   state.cashflow = state.cashflow || {};
   CF_ITEMS.forEach(item => {
+    if (item.auto) { state.cashflow[item.id] = item.autoVal(); return; }
     const inp = document.getElementById('cfi-' + item.id);
     if (!inp) return;
     const v = parseFloat(inp.value.replace(/,/g,''));
@@ -2084,7 +2112,10 @@ function saveCfAmounts() {
 
 function renderCfResult(totalIn) {
   const cf       = state.cashflow || {};
-  const totalOut = CF_ITEMS.reduce((s, item) => s + (parseFloat(cf[item.id]) || (item.def || 0)), 0);
+  const totalOut = CF_ITEMS.reduce((s, item) => {
+    if (item.auto) return s + item.autoVal();
+    return s + (parseFloat(cf[item.id]) || (item.def || 0));
+  }, 0);
   const result   = document.getElementById('co-cf-result');
   if (!result) return;
 
