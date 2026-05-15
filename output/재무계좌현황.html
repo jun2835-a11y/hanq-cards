@@ -1966,6 +1966,14 @@ document.addEventListener('DOMContentLoaded', function() {
   }, 1700);
 });
 
+document.addEventListener('keydown', function(e) {
+  const overlay = document.getElementById('pin-overlay');
+  if (!overlay || overlay.style.display === 'none' || overlay.classList.contains('hidden')) return;
+  if (e.key >= '0' && e.key <= '9') { pinKey(e.key); }
+  else if (e.key === 'Backspace') { pinBack(); }
+  else if (e.key === 'Escape') { document.getElementById('pin-error').textContent = ''; pinBuffer = ''; pinRender(); }
+});
+
 function switchTab(name, btn) {
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
