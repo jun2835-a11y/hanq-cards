@@ -375,6 +375,45 @@ tr.row-threshold-warn:hover{background:#FFF7D6!important}
 /* ── BAL UPDATED DATE ── */
 .bal-updated-date{font-size:9px;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums;white-space:nowrap}
 
+/* ── LOAN SCHEDULE ── */
+.ls-wrap{padding:0 0 32px}
+.ls-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:2px;margin-top:24px}
+.ls-card{background:var(--surface);padding:28px}
+.ls-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:12px}
+.ls-info{}
+.ls-name{font-size:14px;font-weight:700}
+.ls-type{font-size:10px;color:var(--muted);margin-top:3px;letter-spacing:.03em}
+.ls-dday-box{text-align:right;flex-shrink:0}
+.ls-dday{font-size:32px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
+.ls-dday.ok{color:var(--pos)}
+.ls-dday.warn{color:var(--warn)}
+.ls-dday.urgent{color:var(--neg)}
+.ls-dday-label{font-size:10px;color:var(--muted);margin-top:3px}
+.ls-renewal{background:var(--neg-bg);border:1px solid var(--neg-bd);padding:12px 16px;margin-bottom:18px;display:flex;align-items:flex-start;gap:10px}
+.ls-renewal-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+.ls-renewal-main{font-size:12px;font-weight:700;color:var(--neg)}
+.ls-renewal-sub{font-size:10px;color:var(--neg);opacity:.75;margin-top:2px}
+.ls-prog-wrap{margin-bottom:18px}
+.ls-prog-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:5px}
+.ls-prog-bar{height:8px;background:var(--border);overflow:hidden}
+.ls-prog-fill{height:100%;background:var(--pos);transition:width .6s ease}
+.ls-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);margin-bottom:20px}
+.ls-stat{background:var(--surface);padding:11px 14px}
+.ls-stat-lbl{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.ls-stat-val{font-size:14px;font-weight:700;font-variant-numeric:tabular-nums}
+.ls-stat-val.neg{color:var(--neg)}
+.ls-sch-title{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:10px}
+.ls-sch-row{display:grid;grid-template-columns:52px 1fr 88px;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border2)}
+.ls-sch-row:last-child{border-bottom:none}
+.ls-sch-month{font-size:11px;font-weight:700;color:var(--ink2)}
+.ls-sch-bars{display:flex;height:7px;gap:1px;overflow:hidden}
+.ls-sch-bar-p{background:var(--pos);height:100%}
+.ls-sch-bar-i{background:#E8D080;height:100%}
+.ls-sch-total{font-size:11px;font-variant-numeric:tabular-nums;text-align:right;color:var(--ink2);font-weight:600}
+.ls-sch-legend{display:flex;gap:14px;margin-top:10px}
+.ls-sch-leg{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted)}
+.ls-sch-leg-dot{width:8px;height:8px;flex-shrink:0}
+
 /* ── COMPANY TAB ── */
 .co-wrap{padding:32px 60px;max-width:1400px;margin:0 auto}
 .co-prop-bar{display:flex;height:8px;gap:2px;margin-bottom:24px;border-radius:1px;overflow:hidden}
@@ -1482,6 +1521,9 @@ tr.row-threshold-warn:hover{background:#FFF7D6!important}
     </table>
     </div>
   </div>
+  <div class="ls-wrap">
+    <div id="ls-grid" class="ls-grid"></div>
+  </div>
 </div>
 </div>
 
@@ -2090,6 +2132,115 @@ function switchTab(name, btn) {
   btn.classList.add('active');
   if (name === 'bulk')    initBulkTab();
   if (name === 'company') initCompanyTab();
+  if (name === 'loan')    initLoanTab();
+}
+
+// ── LOAN SCHEDULE ──
+function initLoanTab() {
+  const grid = document.getElementById('ls-grid');
+  if (!grid || grid.innerHTML.trim()) return;
+
+  const now = new Date(); now.setHours(0,0,0,0);
+
+  const LOANS = [
+    { name:'기업튼튼보증서대출', type:'(기운분할) · 기업은행', accountNo:'1220-028-524235',
+      totalAmount:100000000, balance:91652000, rate:0.0559,
+      maturity:new Date(2029,10,2), monthlyPrincipal:2083000, isDraw:false },
+    { name:'농협 마이너스대출', type:'마이너스 통장 · 농협', accountNo:'352-1990-4632-53',
+      totalAmount:230000000, balance:230000000, rate:0.0505,
+      maturity:new Date(2026,4,20), monthlyInterest:850000, isDraw:true },
+  ];
+
+  const fmt = n => n.toLocaleString('ko-KR');
+  const fmtWan = n => (n/10000).toFixed(1) + '만원';
+
+  LOANS.forEach(loan => {
+    const daysLeft  = Math.ceil((loan.maturity - now) / 86400000);
+    const ddayClass = daysLeft <= 14 ? 'urgent' : daysLeft <= 90 ? 'warn' : 'ok';
+    const ddayText  = daysLeft >= 0 ? 'D-' + daysLeft : 'D+' + Math.abs(daysLeft);
+    const matLabel  = loan.maturity.getFullYear() + '년 ' + (loan.maturity.getMonth()+1) + '월 ' + loan.maturity.getDate() + '일 만기';
+
+    let inner = `<div class="ls-top">
+      <div class="ls-info">
+        <div class="ls-name">${loan.name}</div>
+        <div class="ls-type">${loan.type}</div>
+      </div>
+      <div class="ls-dday-box">
+        <div class="ls-dday ${ddayClass}">${ddayText}</div>
+        <div class="ls-dday-label">${matLabel}</div>
+      </div>
+    </div>`;
+
+    if (loan.isDraw) {
+      const mi = loan.monthlyInterest || Math.round(loan.balance * loan.rate / 12);
+      inner += `<div class="ls-renewal">
+        <div class="ls-renewal-icon">🔴</div>
+        <div>
+          <div class="ls-renewal-main">만기 갱신 필요 — ${daysLeft}일 후</div>
+          <div class="ls-renewal-sub">만기일 전 은행 방문 또는 전화 연장 신청 필요</div>
+        </div>
+      </div>
+      <div class="ls-stats">
+        <div class="ls-stat"><div class="ls-stat-lbl">대출 잔액</div><div class="ls-stat-val neg">${fmt(loan.balance)}원</div></div>
+        <div class="ls-stat"><div class="ls-stat-lbl">금리 (연)</div><div class="ls-stat-val">${(loan.rate*100).toFixed(2)}%</div></div>
+        <div class="ls-stat"><div class="ls-stat-lbl">월 이자</div><div class="ls-stat-val">${fmtWan(mi)}</div></div>
+      </div>`;
+    } else {
+      const repaid = loan.totalAmount - loan.balance;
+      const pct    = (repaid / loan.totalAmount * 100).toFixed(1);
+      const mi     = Math.round(loan.balance * loan.rate / 12);
+      const total  = loan.monthlyPrincipal + mi;
+
+      inner += `<div class="ls-prog-wrap">
+        <div class="ls-prog-labels">
+          <span>상환: ${fmt(repaid)}원 (${pct}%)</span>
+          <span>잔액: ${fmt(loan.balance)}원</span>
+        </div>
+        <div class="ls-prog-bar"><div class="ls-prog-fill" style="width:${pct}%"></div></div>
+      </div>
+      <div class="ls-stats">
+        <div class="ls-stat"><div class="ls-stat-lbl">월 원금</div><div class="ls-stat-val">${fmtWan(loan.monthlyPrincipal)}</div></div>
+        <div class="ls-stat"><div class="ls-stat-lbl">월 이자</div><div class="ls-stat-val">${fmtWan(mi)}</div></div>
+        <div class="ls-stat"><div class="ls-stat-lbl">월 합계</div><div class="ls-stat-val neg">${fmtWan(total)}</div></div>
+      </div>`;
+
+      // 6-month schedule
+      inner += `<div class="ls-sch-title">향후 6개월 상환 계획</div>`;
+      let curBal = loan.balance;
+      const months = [];
+      for (let i = 1; i <= 6; i++) {
+        const d = new Date(now); d.setMonth(d.getMonth() + i);
+        const label    = (d.getMonth()+1) + '월';
+        const interest = Math.round(curBal * loan.rate / 12);
+        const principal= Math.min(loan.monthlyPrincipal, curBal);
+        months.push({label, principal, interest, total: principal + interest});
+        curBal -= principal;
+        if (curBal <= 0) break;
+      }
+      const maxT = Math.max(...months.map(m => m.total));
+      months.forEach(m => {
+        const pPct = (m.principal / maxT * 100).toFixed(1);
+        const iPct = (m.interest  / maxT * 100).toFixed(1);
+        inner += `<div class="ls-sch-row">
+          <div class="ls-sch-month">${m.label}</div>
+          <div class="ls-sch-bars">
+            <div class="ls-sch-bar-p" style="width:${pPct}%"></div>
+            <div class="ls-sch-bar-i" style="width:${iPct}%"></div>
+          </div>
+          <div class="ls-sch-total">${fmtWan(m.total)}</div>
+        </div>`;
+      });
+      inner += `<div class="ls-sch-legend">
+        <div class="ls-sch-leg"><div class="ls-sch-leg-dot" style="background:var(--pos)"></div>원금</div>
+        <div class="ls-sch-leg"><div class="ls-sch-leg-dot" style="background:#E8D080"></div>이자</div>
+      </div>`;
+    }
+
+    const card = document.createElement('div');
+    card.className = 'ls-card';
+    card.innerHTML = inner;
+    grid.appendChild(card);
+  });
 }
 
 // ── BULK INPUT ──
