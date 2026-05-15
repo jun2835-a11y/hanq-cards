@@ -339,6 +339,9 @@ tr:hover .action-btns{opacity:1}
   .tab-btn{padding:11px 14px}
 }
 
+/* ── BAL UPDATED DATE ── */
+.bal-updated-date{font-size:9px;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums;white-space:nowrap}
+
 /* ── BULK INPUT TAB ── */
 .bulk-wrap{padding:32px 60px;max-width:900px;margin:0 auto}
 .bulk-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;gap:12px;flex-wrap:wrap}
@@ -1718,6 +1721,30 @@ async function saveState() {
 }
 
 // ── APPLY STATE ──
+function fmtUpdatedAt(ts) {
+  if (!ts) return null;
+  const d = new Date(ts);
+  return (d.getMonth()+1) + '/' + d.getDate() + ' ' +
+    String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+}
+
+function setUpdatedDate(accountNo, ts) {
+  const numKey = accountNo.replace(/[^0-9]/g,'');
+  const balEl = document.getElementById('bal-' + numKey);
+  if (!balEl) return;
+  const cell = balEl.closest('.bal-cell');
+  if (!cell) return;
+  let dateEl = document.getElementById('upd-' + numKey);
+  if (!dateEl) {
+    dateEl = document.createElement('div');
+    dateEl.id = 'upd-' + numKey;
+    dateEl.className = 'bal-updated-date';
+    cell.appendChild(dateEl);
+  }
+  const fmt = fmtUpdatedAt(ts);
+  dateEl.textContent = fmt ? '업데이트 ' + fmt : '';
+}
+
 function applyState() {
   // Apply balances
   DEPOSITS.forEach(d => {
@@ -1728,6 +1755,7 @@ function applyState() {
       const v = state.balances[key].value;
       el.textContent = v === null || v === '' ? '—' : Math.abs(Math.round(v)).toLocaleString('ko-KR');
       if (dot) dot.style.display = 'inline-block';
+      setUpdatedDate(key, state.balances[key].updatedAt);
     }
   });
 
@@ -1899,6 +1927,7 @@ function saveBulkAll() {
     const dot = document.getElementById('dot-' + key);
     if (el)  el.textContent = Math.abs(Math.round(newVal)).toLocaleString('ko-KR');
     if (dot) dot.style.display = 'inline-block';
+    setUpdatedDate(accountNo, ts);
   });
 
   saveState();
@@ -2004,6 +2033,7 @@ function confirmBalance() {
   const dot = document.getElementById('dot-' + key);
   if (el)  el.textContent = Math.round(newBal).toLocaleString('ko-KR');
   if (dot) dot.style.display = 'inline-block';
+  setUpdatedDate(_balModal.accountNo, ts);
 
   saveState();
   updateKPIs();
@@ -2127,6 +2157,7 @@ function confirmTxn() {
     const dot = document.getElementById('dot-' + key);
     if (el)  el.textContent = Math.round(newBal).toLocaleString('ko-KR');
     if (dot) dot.style.display = 'inline-block';
+    setUpdatedDate(accountNo, ts);
   }
 
   saveState();
