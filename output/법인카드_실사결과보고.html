@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>법인카드 실사조사 결과 보고</title>
+<title>반복/중복지출관리 분석결과</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -18,11 +18,20 @@
 }
 body { font-family: 'Noto Sans KR','Malgun Gothic',sans-serif; background: var(--bg); color: var(--ink); font-size: 13px; line-height: 1.7; }
 
-.header { background: var(--ink); color: #F7F5F0; padding: 48px 64px 40px; display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:16px; }
-.header-eyebrow { font-size: 10px; letter-spacing: 5px; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
-.header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
-.header-meta { font-size: 12px; color: #9A958F; display: flex; gap: 24px; flex-wrap: wrap; }
-.header-meta span::before { content: '— '; }
+.header { background: var(--ink); color: #F7F5F0; padding: 40px 60px 32px; display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:16px; }
+.header-eyebrow { font-size: 9px; letter-spacing: 5px; text-transform: uppercase; color: #6A6460; margin-bottom: 10px; }
+.header h1 { font-size: 24px; font-weight: 700; margin-bottom: 6px; }
+.header-sub { font-size: 11px; color: #9A958F; }
+.header-kpi { display:flex; gap:0; flex-shrink:0; }
+.hkpi { padding:0 24px; border-left:1px solid rgba(255,255,255,.1); text-align:right; }
+.hkpi:first-child { border-left:none; }
+.hkpi-label { font-size:9px; letter-spacing:.2em; text-transform:uppercase; color:#5A5650; margin-bottom:5px; }
+.hkpi-val { font-size:20px; font-weight:700; color:#F7F5F0; line-height:1; }
+.hkpi-val.accent { color:#D4632A; }
+.hkpi-unit { font-size:10px; font-weight:400; color:#5A5650; margin-left:2px; }
+.hdr-right { display:flex; align-items:center; gap:8px; }
+.hdr-btn { font-size:11px; padding:6px 14px; border:1px solid #3A3530; background:none; cursor:pointer; color:#9A958F; font-family:inherit; transition:all .15s; white-space:nowrap; }
+.hdr-btn:hover { border-color:#9A958F; color:#F7F5F0; }
 
 .edit-toolbar {
   background: #2C2820; padding: 10px 64px;
@@ -222,6 +231,12 @@ tr:last-child td { border-bottom: none; }
 .dup-advice.warn {
   color: var(--accent); background: var(--s-stop-bg); border-color: var(--s-stop-bd);
 }
+.dup-memo-wrap { display:flex; align-items:center; gap:6px; margin-left:auto; flex-shrink:0; }
+.dup-memo-label { font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); white-space:nowrap; }
+.dup-memo { min-width:240px; font-size:12px; color:var(--ink2); outline:none; cursor:text; padding:2px 4px; }
+.dup-memo:empty::before { content:attr(data-placeholder); color:var(--muted); font-style:italic; pointer-events:none; }
+.dup-memo:hover { background:#F2EFEA; }
+.dup-memo:focus { background:#FFFEF5; outline:1px solid #C8B860; outline-offset:-2px; }
 
 /* ── 월별 결제 칼럼 ── */
 .month-cell { min-width: 180px; }
@@ -241,17 +256,33 @@ tr:last-child td { border-bottom: none; }
 <div id="save-toast">✓ 저장됨</div>
 
 <div class="header">
-  <div class="header-eyebrow">Field Investigation Report</div>
-  <h1>법인카드 실사조사 결과 보고</h1>
-  <div class="header-meta">
-    <span>분석 기간: 2026년 1월 — 3월</span>
-    <span>조사 기준일: 2026년 5월</span>
-    <span>월 절감 추정 합계: 16,579,946원</span>
+  <div>
+    <div class="header-eyebrow">Recurring &amp; Duplicate Expense Analysis</div>
+    <h1>반복/중복지출관리 분석결과</h1>
+    <div class="header-sub">법인카드 구독성 지출 전수 조사 · 2026년 1월 — 3월 · 총 72건</div>
   </div>
-  <div class="hdr-right" style="display:flex;align-items:center;gap:8px">
-    <span id="hdr-date" style="font-size:11px;color:var(--ink2,#888);letter-spacing:.05em"></span>
-    <button class="hdr-btn" onclick="window.print()" style="font-size:11px;padding:5px 12px;border:1px solid var(--border,#ddd);background:none;cursor:pointer;color:var(--ink2,#888)">🖨 인쇄</button>
-    <button class="hdr-btn" onclick="exportExcel()" style="font-size:11px;padding:5px 12px;border:1px solid var(--border,#ddd);background:none;cursor:pointer;color:var(--ink2,#888)">↓ Excel</button>
+  <div class="header-kpi">
+    <div class="hkpi">
+      <div class="hkpi-label">조사 항목</div>
+      <div class="hkpi-val">72<span class="hkpi-unit">건</span></div>
+    </div>
+    <div class="hkpi">
+      <div class="hkpi-label">중복결제 탐지</div>
+      <div class="hkpi-val accent">11<span class="hkpi-unit">건</span></div>
+    </div>
+    <div class="hkpi">
+      <div class="hkpi-label">미확인</div>
+      <div class="hkpi-val"><span id="hdr-cnt-pending">63</span><span class="hkpi-unit">건</span></div>
+    </div>
+    <div class="hkpi">
+      <div class="hkpi-label">월 절감 추정</div>
+      <div class="hkpi-val" style="font-size:14px">16,579,946<span class="hkpi-unit">원</span></div>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <span id="hdr-date" style="font-size:11px;color:#5A5650;letter-spacing:.05em"></span>
+    <button class="hdr-btn" onclick="window.print()">🖨 인쇄</button>
+    <button class="hdr-btn" onclick="exportExcel()">↓ Excel</button>
   </div>
 </div>
 
@@ -283,7 +314,7 @@ tr:last-child td { border-bottom: none; }
   </div>
   <div class="sb-item">
     <div class="sb-label">중복결제 탐지</div>
-    <div class="sb-val" style="color:#C8380A">5<span class="sb-unit">건</span></div>
+    <div class="sb-val" style="color:#C8380A">11<span class="sb-unit">건</span></div>
   </div>
 </div>
 
@@ -332,8 +363,8 @@ tr:last-child td { border-bottom: none; }
   <div class="dup-section">
     <div class="dup-section-header">
       <div class="dup-section-title">중복결제 탐지</div>
-      <span class="dup-count-badge">5건 탐지</span>
-      <span class="dup-section-desc">동일 가맹점에서 2개 이상의 카드로 결제된 내역</span>
+      <span class="dup-count-badge">11건 탐지</span>
+      <span class="dup-section-desc">동일·유사 서비스가 2개 이상의 카드에서 중복 결제된 내역</span>
     </div>
 
     <!-- 1. 코우텐동 -->
@@ -379,6 +410,7 @@ tr:last-child td { border-bottom: none; }
       </div>
       <div class="dup-item-footer">
         <span class="dup-advice">카드 통합 검토 필요</span>
+        <div class="dup-memo-wrap"><span class="dup-memo-label">메모</span><div class="dup-memo td-editable" data-placeholder="메모 입력" data-dup-memo="dup-1"></div></div>
       </div>
     </div>
 
@@ -419,6 +451,7 @@ tr:last-child td { border-bottom: none; }
       </div>
       <div class="dup-item-footer">
         <span class="dup-advice">카드 통합 검토 필요</span>
+        <div class="dup-memo-wrap"><span class="dup-memo-label">메모</span><div class="dup-memo td-editable" data-placeholder="메모 입력" data-dup-memo="dup-2"></div></div>
       </div>
     </div>
 
@@ -459,6 +492,7 @@ tr:last-child td { border-bottom: none; }
       </div>
       <div class="dup-item-footer">
         <span class="dup-advice">카드 통합 검토 필요</span>
+        <div class="dup-memo-wrap"><span class="dup-memo-label">메모</span><div class="dup-memo td-editable" data-placeholder="메모 입력" data-dup-memo="dup-3"></div></div>
       </div>
     </div>
 
@@ -505,6 +539,7 @@ tr:last-child td { border-bottom: none; }
       </div>
       <div class="dup-item-footer">
         <span class="dup-advice">카드 통합 검토 필요</span>
+        <div class="dup-memo-wrap"><span class="dup-memo-label">메모</span><div class="dup-memo td-editable" data-placeholder="메모 입력" data-dup-memo="dup-4"></div></div>
       </div>
     </div>
 
@@ -545,6 +580,154 @@ tr:last-child td { border-bottom: none; }
       </div>
       <div class="dup-item-footer">
         <span class="dup-advice warn">동일 카드 동일일 이중 결제 — 환불 또는 취소 확인 필요</span>
+        <div class="dup-memo-wrap"><span class="dup-memo-label">메모</span><div class="dup-memo td-editable" data-placeholder="메모 입력" data-dup-memo="dup-5"></div></div>
+      </div>
+    </div>
+
+
+    <!-- 6. KT통신요금 자동납부 -->
+    <div class="dup-item" id="dup-6">
+      <div class="dup-item-header">
+        <span class="dup-merchant">KT통신요금 자동납부</span>
+        <span class="dup-cat-badge">통신비</span>
+        <div class="dup-item-meta">
+          <span>2건 · 2개 카드</span>
+          <span class="dup-total">합계 260,940원</span>
+          <span class="status-badge sb-pending" data-status="pending" onclick="event.stopPropagation();toggleDupStatus(this)" style="cursor:pointer"><span class="badge-text">미확인</span></span>
+        </div>
+      </div>
+      <div class="dup-item-body">
+        <table class="dup-table"><thead><tr><th>결제일</th><th>카드명</th><th>카드 담당자</th><th style="text-align:right">결제금액</th></tr></thead>
+        <tbody>
+          <tr><td class="dup-date">월정기</td><td class="dup-card-name">LG전자 스페셜롯데</td><td class="dup-card-holder">손용진</td><td class="num">167,230원</td></tr>
+          <tr><td class="dup-date">월정기</td><td class="dup-card-name">SUPER할부-KT</td><td class="dup-card-holder">이승학</td><td class="num">93,710원</td></tr>
+        </tbody></table>
+      </div>
+      <div class="dup-item-footer">
+        <span class="dup-advice warn">동일 통신요금이 2개 카드에 분산 청구 — 단일 카드로 통합 필요</span>
+        <div class="dup-memo-wrap"><span class="dup-memo-label">메모</span><div class="dup-memo td-editable" data-placeholder="메모 입력" data-dup-memo="dup-6"></div></div>
+      </div>
+    </div>
+
+    <!-- 7. KT스카이라이프 -->
+    <div class="dup-item" id="dup-7">
+      <div class="dup-item-header">
+        <span class="dup-merchant">KT스카이라이프</span>
+        <span class="dup-cat-badge">통신비</span>
+        <div class="dup-item-meta">
+          <span>2건 · 2개 카드</span>
+          <span class="dup-total">합계 122,739원</span>
+          <span class="status-badge sb-pending" data-status="pending" onclick="event.stopPropagation();toggleDupStatus(this)" style="cursor:pointer"><span class="badge-text">미확인</span></span>
+        </div>
+      </div>
+      <div class="dup-item-body">
+        <table class="dup-table"><thead><tr><th>결제일</th><th>카드명</th><th>카드 담당자</th><th style="text-align:right">결제금액</th></tr></thead>
+        <tbody>
+          <tr><td class="dup-date">월정기</td><td class="dup-card-name">LG전자 스페셜롯데</td><td class="dup-card-holder">손용진</td><td class="num">99,000원</td></tr>
+          <tr><td class="dup-date">월정기</td><td class="dup-card-name">SUPER할부-KT</td><td class="dup-card-holder">이승학</td><td class="num">23,739원</td></tr>
+        </tbody></table>
+      </div>
+      <div class="dup-item-footer">
+        <span class="dup-advice warn">위성방송 요금 2개 카드에 중복 등록 — 카드 이관 또는 해지 검토</span>
+        <div class="dup-memo-wrap"><span class="dup-memo-label">메모</span><div class="dup-memo td-editable" data-placeholder="메모 입력" data-dup-memo="dup-7"></div></div>
+      </div>
+    </div>
+
+    <!-- 8. OPENAI -->
+    <div class="dup-item" id="dup-8">
+      <div class="dup-item-header">
+        <span class="dup-merchant">OPENAI</span>
+        <span class="dup-cat-badge">AI/SaaS</span>
+        <div class="dup-item-meta">
+          <span>2건 · 2개 카드</span>
+          <span class="dup-total">합계 72,012원</span>
+          <span class="status-badge sb-pending" data-status="pending" onclick="event.stopPropagation();toggleDupStatus(this)" style="cursor:pointer"><span class="badge-text">미확인</span></span>
+        </div>
+      </div>
+      <div class="dup-item-body">
+        <table class="dup-table"><thead><tr><th>결제일</th><th>카드명</th><th>카드 담당자</th><th style="text-align:right">결제금액</th></tr></thead>
+        <tbody>
+          <tr><td class="dup-date">월정기</td><td class="dup-card-name">SUPER할부-KT</td><td class="dup-card-holder">이승학</td><td class="num">55,648원</td></tr>
+          <tr><td class="dup-date">월정기</td><td class="dup-card-name">M BOOST VISA</td><td class="dup-card-holder">2층공용 / 개발팀</td><td class="num">16,364원</td></tr>
+        </tbody></table>
+      </div>
+      <div class="dup-item-footer">
+        <span class="dup-advice warn">OpenAI 구독이 2개 카드에 중복 — 단일 계정·카드로 통합 필요</span>
+        <div class="dup-memo-wrap"><span class="dup-memo-label">메모</span><div class="dup-memo td-editable" data-placeholder="메모 입력" data-dup-memo="dup-8"></div></div>
+      </div>
+    </div>
+
+    <!-- 9. 쿠쿠홈시스 -->
+    <div class="dup-item" id="dup-9">
+      <div class="dup-item-header">
+        <span class="dup-merchant">쿠쿠홈시스</span>
+        <span class="dup-cat-badge">렌탈/구독</span>
+        <div class="dup-item-meta">
+          <span>4건 · 3개 카드</span>
+          <span class="dup-total">합계 113,050원</span>
+          <span class="status-badge sb-pending" data-status="pending" onclick="event.stopPropagation();toggleDupStatus(this)" style="cursor:pointer"><span class="badge-text">미확인</span></span>
+        </div>
+      </div>
+      <div class="dup-item-body">
+        <table class="dup-table"><thead><tr><th>결제일</th><th>카드명</th><th>카드 담당자</th><th style="text-align:right">결제금액</th></tr></thead>
+        <tbody>
+          <tr><td class="dup-date">월정기</td><td class="dup-card-name">LG전자 스페셜롯데</td><td class="dup-card-holder">손용진</td><td class="num">16,900원</td></tr>
+          <tr><td class="dup-date">월정기</td><td class="dup-card-name">LG전자 스페셜롯데</td><td class="dup-card-holder">손용진</td><td class="num">15,900원</td></tr>
+          <tr><td class="dup-date">월정기</td><td class="dup-card-name">SUPER할부-KT</td><td class="dup-card-holder">이승학</td><td class="num">64,350원</td></tr>
+          <tr><td class="dup-date">월정기</td><td class="dup-card-name">M BOOST VISA</td><td class="dup-card-holder">2층공용 / 개발팀</td><td class="num">15,900원</td></tr>
+        </tbody></table>
+      </div>
+      <div class="dup-item-footer">
+        <span class="dup-advice">동일 렌탈사 3개 카드 분산 — 렌탈 기기 목록 전수 확인 필요</span>
+        <div class="dup-memo-wrap"><span class="dup-memo-label">메모</span><div class="dup-memo td-editable" data-placeholder="메모 입력" data-dup-memo="dup-9"></div></div>
+      </div>
+    </div>
+
+    <!-- 10. 유튜브프리미엄 -->
+    <div class="dup-item" id="dup-10">
+      <div class="dup-item-header">
+        <span class="dup-merchant">유튜브프리미엄</span>
+        <span class="dup-cat-badge">AI/SaaS</span>
+        <div class="dup-item-meta">
+          <span>2건 · 동일카드 중복</span>
+          <span class="dup-total">합계 26,890원</span>
+          <span class="status-badge sb-pending" data-status="pending" onclick="event.stopPropagation();toggleDupStatus(this)" style="cursor:pointer"><span class="badge-text">미확인</span></span>
+        </div>
+      </div>
+      <div class="dup-item-body">
+        <table class="dup-table"><thead><tr><th>결제일</th><th>카드명</th><th>카드 담당자</th><th style="text-align:right">결제금액</th></tr></thead>
+        <tbody>
+          <tr><td class="dup-date">월정기</td><td class="dup-card-name">M BOOST VISA</td><td class="dup-card-holder">2층공용 / 개발팀</td><td class="num">14,900원</td></tr>
+          <tr><td class="dup-date">월정기</td><td class="dup-card-name">M BOOST VISA</td><td class="dup-card-holder">2층공용 / 개발팀</td><td class="num">11,990원</td></tr>
+        </tbody></table>
+      </div>
+      <div class="dup-item-footer">
+        <span class="dup-advice warn">동일 카드에 2개 계정 결제 — 중복 계정 확인 및 해지 필요</span>
+        <div class="dup-memo-wrap"><span class="dup-memo-label">메모</span><div class="dup-memo td-editable" data-placeholder="메모 입력" data-dup-memo="dup-10"></div></div>
+      </div>
+    </div>
+
+    <!-- 11. 구글페이먼트코리아 -->
+    <div class="dup-item" id="dup-11">
+      <div class="dup-item-header">
+        <span class="dup-merchant">구글페이먼트코리아</span>
+        <span class="dup-cat-badge">AI/SaaS</span>
+        <div class="dup-item-meta">
+          <span>2건 · 2개 카드</span>
+          <span class="dup-total">합계 58,000원</span>
+          <span class="status-badge sb-pending" data-status="pending" onclick="event.stopPropagation();toggleDupStatus(this)" style="cursor:pointer"><span class="badge-text">미확인</span></span>
+        </div>
+      </div>
+      <div class="dup-item-body">
+        <table class="dup-table"><thead><tr><th>결제일</th><th>카드명</th><th>카드 담당자</th><th style="text-align:right">결제금액</th></tr></thead>
+        <tbody>
+          <tr><td class="dup-date">월정기</td><td class="dup-card-name">SUPER할부-KT</td><td class="dup-card-holder">이승학</td><td class="num">29,000원</td></tr>
+          <tr><td class="dup-date">월정기</td><td class="dup-card-name">M BOOST VISA</td><td class="dup-card-holder">2층공용 / 개발팀</td><td class="num">29,000원</td></tr>
+        </tbody></table>
+      </div>
+      <div class="dup-item-footer">
+        <span class="dup-advice">동일 금액 Google Play 결제 2개 카드 — 계정 분리 여부 확인 필요</span>
+        <div class="dup-memo-wrap"><span class="dup-memo-label">메모</span><div class="dup-memo td-editable" data-placeholder="메모 입력" data-dup-memo="dup-11"></div></div>
       </div>
     </div>
 
@@ -1481,6 +1664,12 @@ tr:last-child td { border-bottom: none; }
     document.getElementById('cnt-transfer').textContent = tr;
     document.getElementById('cnt-stop').textContent     = s;
     document.getElementById('cnt-pending').textContent  = p;
+    const hdrP = document.getElementById('hdr-cnt-pending');
+    if (hdrP) {
+      let hp = 0;
+      document.querySelectorAll('tr[data-row-id] .status-badge[data-status]').forEach(b => { if (b.dataset.status === 'pending') hp++; });
+      hdrP.textContent = hp;
+    }
 
     document.querySelectorAll('.holder-section').forEach(sec => {
       let hConf = 0, hPend = 0;
@@ -1557,6 +1746,17 @@ tr:last-child td { border-bottom: none; }
       tr.querySelector('.assignee-cell').textContent = tr.dataset.defaultAssignees;
       tr.querySelector('.site-cell').textContent     = tr.dataset.defaultSite;
     });
+    document.querySelectorAll('.dup-item').forEach(dupItem => {
+      const badge = dupItem.querySelector('.status-badge');
+      if (badge) {
+        STATUS_OPTIONS.forEach(o => badge.classList.remove(o.bdgCls));
+        badge.classList.add('sb-pending');
+        badge.querySelector('.badge-text').textContent = '미확인';
+        badge.dataset.status = 'pending';
+      }
+      const memo = dupItem.querySelector('.dup-memo');
+      if (memo) memo.textContent = '';
+    });
     updateSummary();
     showToast();
   };
@@ -1601,7 +1801,7 @@ tr:last-child td { border-bottom: none; }
       });
     });
 
-    // 중복결제 섹션 저장 상태 복원
+    // 중복결제 섹션 저장 상태 복원 + 메모 바인딩
     document.querySelectorAll('.dup-item').forEach(dupItem => {
       const dupId = 'dup_' + dupItem.id;
       if (saved[dupId] && saved[dupId].status) {
@@ -1615,6 +1815,16 @@ tr:last-child td { border-bottom: none; }
             badge.dataset.status = saved[dupId].status;
           }
         }
+      }
+      const memo = dupItem.querySelector('.dup-memo');
+      if (memo) {
+        if (saved[dupId] && saved[dupId].memo !== undefined) memo.textContent = saved[dupId].memo;
+        memo.contentEditable = 'true';
+        memo.addEventListener('blur', () => persist(dupId, 'memo', memo.textContent.trim()));
+        memo.addEventListener('keydown', e => {
+          if (e.key === 'Enter') { e.preventDefault(); memo.blur(); }
+          if (e.key === 'Escape') { memo.blur(); }
+        });
       }
     });
 
