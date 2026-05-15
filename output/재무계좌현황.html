@@ -365,6 +365,61 @@ tr:hover .action-btns{opacity:1}
 /* ── BAL UPDATED DATE ── */
 .bal-updated-date{font-size:9px;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums;white-space:nowrap}
 
+/* ── COMPANY TAB ── */
+.co-wrap{padding:32px 60px;max-width:1400px;margin:0 auto}
+.co-prop-bar{display:flex;height:8px;gap:2px;margin-bottom:24px;border-radius:1px;overflow:hidden}
+.co-prop-seg{height:100%;transition:width .5s ease;min-width:3px}
+.co-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:2px;margin-bottom:2px}
+.co-card{background:var(--surface);padding:24px 28px;border-top:3px solid var(--co-color,#ccc);position:relative}
+.co-co-id{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.co-name{font-size:12px;font-weight:700;margin-bottom:14px;color:var(--ink)}
+.co-total{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1;color:var(--ink)}
+.co-total.co-zero{color:var(--muted);font-size:20px}
+.co-unit{font-size:11px;font-weight:400;color:var(--muted);margin-left:2px}
+.co-sub{font-size:10px;color:var(--muted);margin-top:6px}
+.co-expand-btn{margin-top:12px;background:none;border:none;font-size:10px;color:var(--muted);cursor:pointer;font-family:inherit;padding:0;display:flex;align-items:center;gap:4px;letter-spacing:.05em}
+.co-expand-btn:hover{color:var(--ink2)}
+.co-acct-list{display:none;border-top:1px solid var(--border);margin-top:12px;padding-top:10px}
+.co-acct-list.open{display:block}
+.co-acct-row{display:flex;justify-content:space-between;align-items:baseline;gap:6px;padding:5px 0;border-bottom:1px solid var(--border2)}
+.co-acct-row:last-child{border-bottom:none}
+.co-acct-name{font-size:11px;color:var(--ink2);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.co-acct-no{font-size:9px;color:var(--muted);font-family:monospace}
+.co-acct-bal{font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.co-acct-bal.neg{color:var(--neg)}
+.co-acct-bal.null-val{color:var(--muted);font-weight:400}
+.co-section{margin-bottom:2px}
+.co-cf-card{background:var(--surface);padding:28px}
+.co-cf-title{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:20px}
+.co-cf-inputs{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.co-cf-row{display:flex;align-items:center;gap:10px}
+.co-cf-label{font-size:11px;color:var(--ink2);flex:1}
+.co-cf-input{width:140px;border:1px solid var(--border);border-bottom:1.5px solid var(--ink2);background:var(--surface);padding:7px 10px;font-family:inherit;font-size:12px;text-align:right;font-variant-numeric:tabular-nums;outline:none;transition:border-color .15s}
+.co-cf-input:focus{border-bottom-color:var(--accent)}
+.co-cf-won{font-size:11px;color:var(--muted);min-width:14px}
+.co-cf-save{font-size:11px;padding:7px 18px;border:1px solid var(--border);background:var(--surface);color:var(--ink2);cursor:pointer;font-family:inherit;transition:all .15s;margin-top:6px}
+.co-cf-save:hover{background:var(--ink);color:white;border-color:var(--ink)}
+.co-cf-totals{display:grid;grid-template-columns:1fr 1fr;gap:2px;margin:16px 0}
+.co-cf-total-cell{background:var(--bg);border:1px solid var(--border);padding:14px 18px}
+.co-cf-total-label{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.co-cf-total-val{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.co-cf-total-val.out{color:var(--neg)}
+.co-cf-total-val.in{color:var(--pos)}
+.co-signal{display:flex;align-items:flex-start;gap:12px;padding:16px 20px;border:1px solid;margin-top:0}
+.co-signal.safe{background:#EBF2EE;border-color:#A8CCBA}
+.co-signal.warn{background:#FDF5E0;border-color:#E8D080}
+.co-signal.danger{background:#FDEEE9;border-color:#F2C4B4}
+.co-signal-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:3px}
+.co-signal.safe .co-signal-dot{background:#2D6644}
+.co-signal.warn .co-signal-dot{background:#8B5E14}
+.co-signal.danger .co-signal-dot{background:#C8380A}
+.co-signal-main{font-size:13px;font-weight:700}
+.co-signal.safe .co-signal-main{color:#2D6644}
+.co-signal.warn .co-signal-main{color:#8B5E14}
+.co-signal.danger .co-signal-main{color:#C8380A}
+.co-signal-sub{font-size:10px;color:var(--muted);margin-top:3px}
+@media(max-width:600px){.co-wrap{padding:20px 16px}.co-grid{grid-template-columns:1fr 1fr}.co-total{font-size:18px}}
+
 /* ── BULK INPUT TAB ── */
 .bulk-wrap{padding:32px 60px;max-width:900px;margin:0 auto}
 .bulk-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;gap:12px;flex-wrap:wrap}
@@ -753,6 +808,7 @@ tr:hover .action-btns{opacity:1}
 <!-- ============ TABS ============ -->
 <div class="tab-bar">
   <button class="tab-btn active" onclick="switchTab('deposit',this)">예금 계좌</button>
+  <button class="tab-btn" onclick="switchTab('company',this)">🏢 사업자별</button>
   <button class="tab-btn" onclick="switchTab('loan',this)">대출</button>
   <button class="tab-btn" onclick="switchTab('calendar',this)">만기 캘린더</button>
   <button class="tab-btn" onclick="switchTab('trend',this)">잔액 추이</button>
@@ -1406,6 +1462,23 @@ tr:hover .action-btns{opacity:1}
 </div>
 </div>
 
+<!-- ============ 사업자별 탭 ============ -->
+<div id="tab-company" class="tab-content">
+<div class="co-wrap">
+  <div class="section-label"><span class="section-label-text">사업자별 자금 현황</span><div class="section-label-line"></div></div>
+  <div class="co-prop-bar" id="co-prop-bar"></div>
+  <div class="co-grid" id="co-grid"></div>
+
+  <div class="section-label" style="margin-top:28px"><span class="section-label-text">현금흐름 예측</span><div class="section-label-line"></div></div>
+  <div class="co-cf-card">
+    <div class="co-cf-title">이번 달 예정 지출 입력</div>
+    <div class="co-cf-inputs" id="co-cf-inputs"></div>
+    <button class="co-cf-save" onclick="saveCfAmounts()">저장 · 분석</button>
+    <div id="co-cf-result"></div>
+  </div>
+</div>
+</div>
+
 <!-- ============ 만기 캘린더 탭 ============ -->
 <div id="tab-calendar" class="tab-content">
 <div class="cal-wrap">
@@ -1753,12 +1826,204 @@ document.addEventListener('keydown', function(e) {
   else if (e.key === 'Escape') { document.getElementById('pin-error').textContent = ''; pinBuffer = ''; pinRender(); }
 });
 
+// ── COMPANY DATA ──
+const COMPANY_MAP = {
+  '301-0237-9325-41':'수복지','301-0240-3659-61':'수복지',
+  '302-0410-2086-51':'수복지','302-0945-7796-21':'수복지',
+  '302-0958-9854-31':'수복지','302-1018-0299-01':'수복지',
+  '302-1102-7562-71':'수복지','302-1727-0656-01':'수복지',
+  '312-0051-7301-21':'한솔',
+  '352-1078-0700-13':'광주365',
+  '352-1619-4468-83':'수복지','352-1990-4632-53':'수복지',
+  '789401-01-862390':'수복지','789402-01-148178':'한솔',
+  '780302-00-032068':'한솔',
+  '110-489-553043':'수복지','110-547-773536':'수복지',
+  '110-621-424679':'교육원',
+  '110-506802904':'미분류','110-465-289239':'미분류','110-513-398282':'미분류',
+  '1107-021-926465':'교육원',
+  '069-121-660047':'한솔','1121-031-712452':'한솔',
+};
+const COMPANIES = [
+  {id:'수복지', label:'(수)복지용구의료기', color:'#2D6644'},
+  {id:'한솔',   label:'한솔',              color:'#1A4A8A'},
+  {id:'교육원', label:'순천에덴교육원',     color:'#8B5E14'},
+  {id:'광주365',label:'광주-365',          color:'#6B3A7D'},
+  {id:'미분류', label:'미분류',            color:'#9A958F'},
+];
+const CF_ITEMS = [
+  {id:'card_6',  label:'농협 · 광주 카드 결제 (6일)',          def:0},
+  {id:'card_10', label:'신한 카드 결제 (10일)',                  def:0},
+  {id:'card_25', label:'국민 · 삼성 · 현대 · 롯데 결제 (25일)', def:0},
+  {id:'loan_1',  label:'기업튼튼 원리금 상환',                   def:2083000},
+  {id:'loan_2',  label:'농협 마이너스 이자',                     def:850000},
+  {id:'other',   label:'기타 고정지출',                          def:0},
+];
+let coExpanded = {};
+
+function getAcctBal(accountNo) {
+  const s = state.balances || {};
+  const d = DEPOSITS.find(x => x.accountNo === accountNo);
+  return s[accountNo] !== undefined ? s[accountNo].value : (d ? d.balance : null);
+}
+
+function initCompanyTab() {
+  state.balances  = state.balances  || {};
+  state.cashflow  = state.cashflow  || {};
+
+  // Build company totals & account lists
+  const totals = {}, lists = {};
+  COMPANIES.forEach(c => { totals[c.id] = 0; lists[c.id] = []; });
+  DEPOSITS.forEach(d => {
+    const co  = COMPANY_MAP[d.accountNo] || '미분류';
+    const bal = getAcctBal(d.accountNo);
+    if (bal !== null && bal > 0) totals[co] = (totals[co] || 0) + bal;
+    (lists[co] = lists[co] || []).push({...d, curBal: bal});
+  });
+  const grandTotal = Object.values(totals).reduce((a,b)=>a+b,0);
+
+  // Proportion bar
+  const propBar = document.getElementById('co-prop-bar');
+  propBar.innerHTML = '';
+  COMPANIES.forEach(c => {
+    const pct = grandTotal > 0 ? totals[c.id] / grandTotal * 100 : 0;
+    if (pct > 0) {
+      const seg = document.createElement('div');
+      seg.className = 'co-prop-seg';
+      seg.style.cssText = 'background:' + c.color + ';width:' + pct.toFixed(1) + '%';
+      seg.title = c.label + ': ' + Math.round(totals[c.id]).toLocaleString('ko-KR') + '원 (' + pct.toFixed(1) + '%)';
+      propBar.appendChild(seg);
+    }
+  });
+
+  // Company cards
+  const grid = document.getElementById('co-grid');
+  grid.innerHTML = '';
+  COMPANIES.forEach(c => {
+    const accts   = lists[c.id] || [];
+    const total   = totals[c.id] || 0;
+    const posCnt  = accts.filter(a => a.curBal !== null && a.curBal > 0).length;
+    const card    = document.createElement('div');
+    card.className = 'co-card';
+    card.style.setProperty('--co-color', c.color);
+
+    const rows = accts.map(a => {
+      const bal = a.curBal;
+      const cls = bal === null ? 'null-val' : bal < 0 ? 'neg' : '';
+      const txt = bal === null ? '—' : (bal < 0 ? '△ ' : '') + Math.abs(Math.round(bal)).toLocaleString('ko-KR');
+      const nm  = a.accountName || a.holder || a.branch || '—';
+      return '<div class="co-acct-row">' +
+        '<span class="co-acct-name" title="' + a.accountNo + '">' + nm + '</span>' +
+        '<span class="co-acct-bal ' + cls + '">' + txt + '</span>' +
+      '</div>';
+    }).join('');
+
+    const isOpen = !!coExpanded[c.id];
+    card.innerHTML =
+      '<div class="co-co-id">' + c.id + '</div>' +
+      '<div class="co-name">' + c.label + '</div>' +
+      '<div class="co-total' + (total === 0 ? ' co-zero' : '') + '">' +
+        (total > 0 ? Math.round(total).toLocaleString('ko-KR') : '—') +
+        (total > 0 ? '<span class="co-unit">원</span>' : '') +
+      '</div>' +
+      '<div class="co-sub">' + accts.length + '개 계좌 · 잔액보유 ' + posCnt + '개</div>' +
+      '<button class="co-expand-btn" onclick="toggleCoExpand(\'' + c.id + '\',this)">' +
+        (isOpen ? '▲ 접기' : '▼ 계좌 목록') +
+      '</button>' +
+      '<div class="co-acct-list' + (isOpen ? ' open' : '') + '" id="co-list-' + c.id + '">' + rows + '</div>';
+    grid.appendChild(card);
+  });
+
+  // Cashflow section
+  const cfInputs = document.getElementById('co-cf-inputs');
+  cfInputs.innerHTML = CF_ITEMS.map(item => {
+    const val = state.cashflow[item.id] !== undefined ? state.cashflow[item.id] : item.def;
+    return '<div class="co-cf-row">' +
+      '<span class="co-cf-label">' + item.label + '</span>' +
+      '<input class="co-cf-input" type="text" inputmode="numeric" id="cfi-' + item.id + '" ' +
+        'value="' + (val || '') + '" placeholder="0" autocomplete="off">' +
+      '<span class="co-cf-won">원</span>' +
+    '</div>';
+  }).join('');
+
+  renderCfResult(grandTotal);
+}
+
+function toggleCoExpand(id, btn) {
+  coExpanded[id] = !coExpanded[id];
+  const list = document.getElementById('co-list-' + id);
+  if (list) list.classList.toggle('open', coExpanded[id]);
+  btn.textContent = coExpanded[id] ? '▲ 접기' : '▼ 계좌 목록';
+}
+
+function saveCfAmounts() {
+  state.cashflow = state.cashflow || {};
+  CF_ITEMS.forEach(item => {
+    const inp = document.getElementById('cfi-' + item.id);
+    if (!inp) return;
+    const v = parseFloat(inp.value.replace(/,/g,''));
+    state.cashflow[item.id] = isNaN(v) ? 0 : v;
+  });
+  saveState();
+
+  let totalIn = 0;
+  DEPOSITS.forEach(d => {
+    const bal = getAcctBal(d.accountNo);
+    if (bal !== null && bal > 0) totalIn += bal;
+  });
+  renderCfResult(totalIn);
+  toast('✓ 현금흐름 분석이 완료됐습니다');
+}
+
+function renderCfResult(totalIn) {
+  const cf       = state.cashflow || {};
+  const totalOut = CF_ITEMS.reduce((s, item) => s + (parseFloat(cf[item.id]) || (item.def || 0)), 0);
+  const result   = document.getElementById('co-cf-result');
+  if (!result) return;
+
+  if (totalOut === 0) {
+    result.innerHTML = '<div style="font-size:11px;color:var(--muted);margin-top:14px;padding:12px;border:1px solid var(--border)">예정 지출 금액을 입력하고 저장하면 현금흐름을 분석합니다.</div>';
+    return;
+  }
+
+  const diff  = totalIn - totalOut;
+  const ratio = totalIn > 0 ? totalIn / totalOut : 0;
+  const level = ratio >= 2 ? 'safe' : ratio >= 1.1 ? 'warn' : 'danger';
+  const icon  = {safe:'🟢', warn:'🟡', danger:'🔴'}[level];
+  const lbl   = {safe:'안전', warn:'주의', danger:'위험'}[level];
+  const msg   = level === 'danger'
+    ? (diff < 0 ? Math.abs(diff).toLocaleString('ko-KR') + '원 부족 — 자금 확보 필요' : '예정 지출 대비 여유가 매우 부족합니다')
+    : level === 'warn'
+    ? '자금은 충분하나 여유가 크지 않습니다. 흐름을 확인하세요'
+    : '예정 지출을 충분히 커버할 수 있습니다';
+
+  result.innerHTML =
+    '<div class="co-cf-totals">' +
+      '<div class="co-cf-total-cell">' +
+        '<div class="co-cf-total-label">예정 지출 합계</div>' +
+        '<div class="co-cf-total-val out">' + Math.round(totalOut).toLocaleString('ko-KR') + '<span style="font-size:11px;font-weight:400;color:var(--muted)">원</span></div>' +
+      '</div>' +
+      '<div class="co-cf-total-cell">' +
+        '<div class="co-cf-total-label">현재 예금 합계</div>' +
+        '<div class="co-cf-total-val in">' + Math.round(totalIn).toLocaleString('ko-KR') + '<span style="font-size:11px;font-weight:400;color:var(--muted)">원</span></div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="co-signal ' + level + '">' +
+      '<div class="co-signal-dot"></div>' +
+      '<div>' +
+        '<div class="co-signal-main">' + icon + ' ' + lbl + ' — ' + msg + '</div>' +
+        '<div class="co-signal-sub">예금 / 예정지출 = ' + ratio.toFixed(1) + '배 · 차액 ' +
+          (diff >= 0 ? '+' : '') + Math.round(diff).toLocaleString('ko-KR') + '원</div>' +
+      '</div>' +
+    '</div>';
+}
+
 function switchTab(name, btn) {
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
   btn.classList.add('active');
-  if (name === 'bulk') initBulkTab();
+  if (name === 'bulk')    initBulkTab();
+  if (name === 'company') initCompanyTab();
 }
 
 // ── BULK INPUT ──
