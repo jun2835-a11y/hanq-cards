@@ -59,6 +59,8 @@ body { font-family: 'Noto Sans KR','Malgun Gothic',sans-serif; background: var(-
 .sb-val.c-stop     { color: var(--accent); }
 .sb-val.c-partial  { color: var(--s-partial-fg); }
 .sb-unit { font-size: 14px; font-weight: 400; margin-left: 2px; }
+.sb-saving { font-size: 22px; font-weight: 700; color: var(--s-ok-fg); line-height: 1; font-variant-numeric: tabular-nums; }
+.sb-saving-sub { font-size: 10px; color: var(--muted); margin-top: 4px; }
 
 .legend-bar { background: #FAFAF7; border-bottom: 1px solid var(--border); padding: 11px 64px; display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
 .filter-info-bar { background: #F4F2ED; border-bottom: 1px solid var(--border); padding: 10px 64px; display: flex; gap: 32px; align-items: flex-start; flex-wrap: wrap; }
@@ -282,8 +284,8 @@ tr:last-child td { border-bottom: none; }
       <div class="hkpi-val"><span id="hdr-cnt-pending">63</span><span class="hkpi-unit">건</span></div>
     </div>
     <div class="hkpi">
-      <div class="hkpi-label">월 절감 추정</div>
-      <div class="hkpi-val" style="font-size:14px">16,579,946<span class="hkpi-unit">원</span></div>
+      <div class="hkpi-label">월 절약액 (지출 중단 합산)</div>
+      <div class="hkpi-val" style="font-size:14px;color:var(--s-ok-fg)"><span id="hdr-saving-val">0</span><span class="hkpi-unit">원</span></div>
     </div>
   </div>
   <div class="hdr-right">
@@ -326,6 +328,11 @@ tr:last-child td { border-bottom: none; }
   <div class="sb-item">
     <div class="sb-label">중복결제 탐지</div>
     <div class="sb-val" style="color:#C8380A">11<span class="sb-unit">건</span></div>
+  </div>
+  <div class="sb-item" style="margin-left:auto;border-right:none;border-left:2px solid var(--s-ok-bd);padding-left:32px">
+    <div class="sb-label">월 절약액 <span style="color:var(--s-ok-fg);letter-spacing:0;text-transform:none">지출 중단 합산</span></div>
+    <div class="sb-saving"><span id="sb-saving-wan">0</span><span style="font-size:14px;font-weight:400;margin-left:2px">만원</span></div>
+    <div class="sb-saving-sub">= <span id="sb-saving-exact">0</span>원 / 월</div>
   </div>
 </div>
 
@@ -1697,6 +1704,29 @@ tr:last-child td { border-bottom: none; }
       if (ce) ce.firstChild.textContent = hConf;
       if (pe) pe.firstChild.textContent = hPend;
     });
+    updateSavings();
+  }
+
+  // ── 월 절약액 합산 ──────────────────────────────────
+  function updateSavings() {
+    let total = 0;
+    document.querySelectorAll('tr[data-row-id]').forEach(tr => {
+      const badge = tr.querySelector('.status-badge[data-status]');
+      if (!badge) return;
+      const st = badge.dataset.status;
+      if (st !== 'stop' && st !== 'partial') return;
+      const cell = tr.querySelector('.saving-cell');
+      if (!cell) return;
+      const val = parseInt(cell.textContent.replace(/[^0-9]/g, ''), 10);
+      if (!isNaN(val)) total += val;
+    });
+    const wan = Math.round(total / 10000);
+    const hdr = document.getElementById('hdr-saving-val');
+    if (hdr) hdr.textContent = total.toLocaleString('ko-KR');
+    const sbWan = document.getElementById('sb-saving-wan');
+    if (sbWan) sbWan.textContent = wan.toLocaleString('ko-KR');
+    const sbEx = document.getElementById('sb-saving-exact');
+    if (sbEx) sbEx.textContent = total.toLocaleString('ko-KR');
   }
 
   // ── 드롭다운 ──────────────────────────────────
