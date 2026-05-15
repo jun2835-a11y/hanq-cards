@@ -47,6 +47,7 @@ const ROUTES = {
   '/inspect':  '법인카드_실사결과보고.html',
   '/spend':    '법인카드_일회성지출관리.html',
   '/report':   '법인카드_분석리포트.html',
+  '/quick':    '빠른입력.html',
 };
 
 function serveHTML(res, file) {
@@ -183,6 +184,7 @@ http.createServer((req, res) => {
   console.log(`  /inspect   카드 실사결과보고`);
   console.log(`  /spend     일회성지출관리`);
   console.log(`  /report    분석리포트`);
+  console.log(`  /quick     모바일 빠른입력`);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('');
 });

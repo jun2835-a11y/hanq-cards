@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>hanQ · 빠른 입력</title>
+<style>
+:root {
+  --bg:#F5F4F1; --surface:#FFFFFF; --ink:#1A1916; --ink2:#4A4843;
+  --muted:#9A958F; --border:#E5E2DC; --border2:#F0EDE8;
+  --pos:#2D6644; --neg:#C8380A; --neg-bg:#FDF1EC; --neg-bd:#F5C4B0;
+  --warn:#B8820A;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Apple SD Gothic Neo','Noto Sans KR',-apple-system,sans-serif;
+  background:var(--bg);color:var(--ink);max-width:480px;margin:0 auto;min-height:100vh}
+
+/* ── Header ── */
+.qk-header{background:var(--ink);color:white;padding:14px 20px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100}
+.qk-logo{font-size:13px;font-weight:700;letter-spacing:.08em}
+.qk-logo span{opacity:.5;font-weight:400;margin-left:8px;font-size:11px}
+.qk-hbtns{display:flex;gap:8px;align-items:center}
+.qk-save-btn{background:white;color:var(--ink);border:none;padding:8px 16px;
+  font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;
+  display:flex;align-items:center;gap:6px}
+.qk-save-btn:active{opacity:.75}
+.qk-save-badge{background:#E8380A;color:white;border-radius:10px;
+  padding:1px 6px;font-size:10px;display:none}
+.qk-lock-btn{background:rgba(255,255,255,.12);border:none;color:white;
+  padding:8px 11px;font-size:15px;cursor:pointer}
+
+/* ── Summary ── */
+.qk-summary{background:var(--surface);border-bottom:1px solid var(--border);
+  padding:13px 20px;display:flex;gap:0}
+.qk-sum-cell{flex:1;text-align:center}
+.qk-sum-cell+.qk-sum-cell{border-left:1px solid var(--border2)}
+.qk-sum-label{font-size:9px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:4px}
+.qk-sum-val{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+.qk-sum-val.pos{color:var(--pos)}
+.qk-sum-val.changed{color:var(--pos)}
+
+/* ── Bank group ── */
+.qk-bank-lbl{font-size:9px;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--muted);font-weight:700;padding:10px 20px 5px;background:var(--bg)}
+
+/* ── Account row ── */
+.qk-row{background:var(--surface);border-bottom:1px solid var(--border2);
+  padding:13px 18px;display:flex;align-items:center;gap:10px;
+  cursor:pointer;border-left:3px solid transparent;transition:background .1s}
+.qk-row:active{background:#F8F7F5}
+.qk-row.changed{border-left-color:var(--pos)}
+.qk-row-info{flex:1;min-width:0}
+.qk-row-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qk-row-acct{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:1px}
+.qk-row-right{text-align:right;flex-shrink:0}
+.qk-row-bal{font-size:14px;font-weight:700;font-variant-numeric:tabular-nums}
+.qk-row-bal.pos{color:var(--pos)}
+.qk-row-bal.neg{color:var(--neg)}
+.qk-row-bal.nil{color:var(--muted);font-weight:400;font-size:12px}
+.qk-row-date{font-size:9px;color:var(--muted);margin-top:2px}
+.qk-chevron{color:var(--muted);font-size:14px;flex-shrink:0}
+
+/* ── Bottom sheet ── */
+.qk-overlay{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.45)}
+.qk-overlay.open{display:block}
+.qk-sheet{position:fixed;bottom:0;left:50%;
+  transform:translateX(-50%) translateY(100%);
+  transition:transform .26s cubic-bezier(.4,0,.2,1);
+  width:100%;max-width:480px;background:var(--surface);
+  border-radius:16px 16px 0 0;padding:16px 22px 36px;z-index:201}
+.qk-sheet.open{transform:translateX(-50%) translateY(0)}
+.qk-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px}
+.sh-bank{font-size:9px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:3px}
+.sh-name{font-size:16px;font-weight:700;margin-bottom:2px}
+.sh-acct{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums;margin-bottom:22px}
+.sh-inp-wrap{position:relative;margin-bottom:6px}
+.sh-inp{width:100%;border:none;border-bottom:2px solid var(--ink);
+  background:transparent;font-family:inherit;
+  font-size:30px;font-weight:700;font-variant-numeric:tabular-nums;
+  padding:6px 44px 6px 0;outline:none;color:var(--ink);text-align:right}
+.sh-inp:focus{border-bottom-color:var(--pos)}
+.sh-won{position:absolute;right:0;bottom:8px;font-size:15px;color:var(--muted)}
+.sh-prev{font-size:11px;color:var(--muted);text-align:right;margin-bottom:22px}
+.sh-btns{display:flex;gap:8px}
+.sh-cancel{flex:1;padding:15px;border:1px solid var(--border);
+  background:var(--bg);color:var(--ink2);font-size:14px;font-weight:600;
+  font-family:inherit;cursor:pointer}
+.sh-confirm{flex:2;padding:15px;border:none;
+  background:var(--ink);color:white;font-size:14px;font-weight:700;
+  font-family:inherit;cursor:pointer}
+.sh-cancel:active,.sh-confirm:active{opacity:.75}
+
+/* ── PIN overlay ── */
+.pin-ov{position:fixed;inset:0;z-index:300;background:var(--ink);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px}
+.pin-ov.hidden{display:none}
+.pin-logo{font-size:15px;font-weight:700;color:white;letter-spacing:.1em}
+.pin-dots{display:flex;gap:12px}
+.pin-dot{width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,.2);transition:background .12s}
+.pin-dot.on{background:white}
+.pin-err{font-size:11px;color:#E8380A;min-height:16px;text-align:center}
+.pin-pad{display:grid;grid-template-columns:repeat(3,68px);gap:8px}
+.pin-key{height:68px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.08);
+  color:white;font-size:22px;font-weight:600;font-family:inherit;cursor:pointer;
+  border-radius:4px;transition:background .1s}
+.pin-key:active{background:rgba(255,255,255,.22)}
+.pin-key.del{font-size:16px}
+.pin-key.spc{background:transparent;border-color:transparent;cursor:default}
+
+/* ── Toast ── */
+.qk-toast{position:fixed;bottom:88px;left:50%;transform:translateX(-50%);
+  background:var(--ink);color:white;padding:10px 22px;font-size:12px;font-weight:600;
+  z-index:400;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}
+.qk-toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<!-- PIN -->
+<div class="pin-ov hidden" id="pin-ov">
+  <div class="pin-logo">hanQ · Quick</div>
+  <div class="pin-dots">
+    <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div>
+    <div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
+  </div>
+  <div class="pin-err" id="pin-err"></div>
+  <div class="pin-pad">
+    <button class="pin-key" onclick="pinKey('1')">1</button>
+    <button class="pin-key" onclick="pinKey('2')">2</button>
+    <button class="pin-key" onclick="pinKey('3')">3</button>
+    <button class="pin-key" onclick="pinKey('4')">4</button>
+    <button class="pin-key" onclick="pinKey('5')">5</button>
+    <button class="pin-key" onclick="pinKey('6')">6</button>
+    <button class="pin-key" onclick="pinKey('7')">7</button>
+    <button class="pin-key" onclick="pinKey('8')">8</button>
+    <button class="pin-key" onclick="pinKey('9')">9</button>
+    <button class="pin-key spc" disabled></button>
+    <button class="pin-key" onclick="pinKey('0')">0</button>
+    <button class="pin-key del" onclick="pinBack()">⌫</button>
+  </div>
+</div>
+
+<!-- Header -->
+<div class="qk-header">
+  <div class="qk-logo">hanQ <span>빠른 입력</span></div>
+  <div class="qk-hbtns">
+    <button class="qk-save-btn" onclick="saveAll()">
+      저장 <span class="qk-save-badge" id="save-badge">0</span>
+    </button>
+    <button class="qk-lock-btn" onclick="lockPin()">🔒</button>
+  </div>
+</div>
+
+<!-- Summary -->
+<div class="qk-summary">
+  <div class="qk-sum-cell">
+    <div class="qk-sum-label">총 예금</div>
+    <div class="qk-sum-val pos" id="sum-dep">—</div>
+  </div>
+  <div class="qk-sum-cell">
+    <div class="qk-sum-label">변경됨</div>
+    <div class="qk-sum-val" id="sum-cnt" style="color:var(--muted)">0건</div>
+  </div>
+  <div class="qk-sum-cell">
+    <div class="qk-sum-label">기준일</div>
+    <div class="qk-sum-val" id="sum-date" style="font-size:12px;color:var(--ink2)">—</div>
+  </div>
+</div>
+
+<!-- List -->
+<div id="acct-list"></div>
+
+<!-- Sheet overlay + sheet -->
+<div class="qk-overlay" id="qk-overlay" onclick="closeSheet()"></div>
+<div class="qk-sheet" id="qk-sheet">
+  <div class="qk-handle"></div>
+  <div class="sh-bank" id="sh-bank"></div>
+  <div class="sh-name" id="sh-name"></div>
+  <div class="sh-acct" id="sh-acct"></div>
+  <div class="sh-inp-wrap">
+    <input class="sh-inp" type="text" inputmode="decimal" id="sh-inp"
+      placeholder="0" autocomplete="off" autocorrect="off">
+    <span class="sh-won">원</span>
+  </div>
+  <div class="sh-prev" id="sh-prev"></div>
+  <div class="sh-btns">
+    <button class="sh-cancel" onclick="closeSheet()">취소</button>
+    <button class="sh-confirm" onclick="confirmEdit()">확인</button>
+  </div>
+</div>
+
+<div class="qk-toast" id="toast"></div>
+
+<script>
+const DEPOSITS = [
+  {bank:'농협',    accountNo:'301-0237-9325-41', name:'수복지 수입'},
+  {bank:'농협',    accountNo:'301-0240-3659-61', name:'정종각 한기협'},
+  {bank:'농협',    accountNo:'302-0410-2086-51', name:'수메디복지용구'},
+  {bank:'농협',    accountNo:'302-0945-7796-21', name:'방문간호청구'},
+  {bank:'농협',    accountNo:'302-0958-9854-31', name:'3번기관후원임시'},
+  {bank:'농협',    accountNo:'302-1018-0299-01', name:'간호본인부담 CMS'},
+  {bank:'농협',    accountNo:'302-1102-7562-71', name:'테크노도연'},
+  {bank:'농협',    accountNo:'302-1727-0656-01', name:'수복지용구'},
+  {bank:'농협',    accountNo:'312-0051-7301-21', name:'일곡동 (한솔)'},
+  {bank:'농축협',  accountNo:'352-1078-0700-13', name:'Adco (광주365)'},
+  {bank:'농축협',  accountNo:'352-1619-4468-83', name:'수복지 본인부담금'},
+  {bank:'농축협',  accountNo:'352-1990-4632-53', name:'마이너스대출'},
+  {bank:'국민(KB)',accountNo:'789401-01-862390', name:'수복지 KB사업자'},
+  {bank:'국민(KB)',accountNo:'789402-01-148178', name:'정재승 KB PLUSSTAR'},
+  {bank:'국민(KB)',accountNo:'780302-00-032068', name:'정재승 KB 2'},
+  {bank:'신한',    accountNo:'110-489-553043',   name:'수복지 주거래'},
+  {bank:'신한',    accountNo:'110-547-773536',   name:'수복지 저축'},
+  {bank:'신한',    accountNo:'110-621-424679',   name:'교육원 SOHO'},
+  {bank:'신한',    accountNo:'110-506802904',    name:'신한 저축 1'},
+  {bank:'신한',    accountNo:'110-465-289239',   name:'신한 저축 2'},
+  {bank:'신한',    accountNo:'110-513-398282',   name:'신한 저축 3'},
+  {bank:'광주',    accountNo:'1107-021-926465',  name:'광주 교육원'},
+  {bank:'광주',    accountNo:'069-121-660047',   name:'광주 동림'},
+  {bank:'광주',    accountNo:'1121-031-712452',  name:'광주 신대'},
+];
+
+const PIN_KEY = 'hanq-accounts-pin';
+let state = { balances: {}, updatedDates: {} };
+let changes = {};
+let activeAcct = null;
+
+// ── PIN ──
+let pinBuf = '';
+function pinKey(d) {
+  if (pinBuf.length >= 4) return;
+  pinBuf += d;
+  renderDots();
+  if (pinBuf.length === 4) setTimeout(tryPin, 80);
+}
+function pinBack() { pinBuf = pinBuf.slice(0,-1); renderDots(); document.getElementById('pin-err').textContent = ''; }
+function renderDots() { for (let i=0;i<4;i++) document.getElementById('pd'+i).classList.toggle('on', i<pinBuf.length); }
+function tryPin() {
+  if (pinBuf === (localStorage.getItem(PIN_KEY) || '0000')) {
+    document.getElementById('pin-ov').classList.add('hidden');
+  } else {
+    document.getElementById('pin-err').textContent = '핀 번호가 틀렸습니다';
+    pinBuf = ''; renderDots();
+  }
+}
+function lockPin() {
+  pinBuf = ''; renderDots();
+  document.getElementById('pin-err').textContent = '';
+  document.getElementById('pin-ov').classList.remove('hidden');
+}
+document.addEventListener('keydown', e => {
+  if (document.getElementById('pin-ov').classList.contains('hidden')) return;
+  if (e.key >= '0' && e.key <= '9') pinKey(e.key);
+  else if (e.key === 'Backspace') pinBack();
+});
+
+// ── STATE ──
+async function loadState() {
+  try { const r = await fetch('/api/finance-state'); if (r.ok) state = await r.json(); } catch(e) {}
+  state.balances    = state.balances    || {};
+  state.updatedDates = state.updatedDates || {};
+  renderList();
+  renderSummary();
+}
+async function persistState() {
+  try {
+    await fetch('/api/finance-state', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(state)
+    });
+  } catch(e) {}
+}
+
+// ── HELPERS ──
+function getBal(accountNo) {
+  const s = state.balances[accountNo];
+  return s !== undefined ? s.value : null;
+}
+function fmtBal(v) { return v < 0 ? '-' + Math.abs(v).toLocaleString('ko-KR') : v.toLocaleString('ko-KR'); }
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return (d.getMonth()+1) + '/' + d.getDate() + ' ' + d.getHours() + ':' + String(d.getMinutes()).padStart(2,'0');
+}
+
+// ── RENDER ──
+function renderList() {
+  const groups = {};
+  DEPOSITS.forEach(d => { (groups[d.bank] = groups[d.bank] || []).push(d); });
+
+  document.getElementById('acct-list').innerHTML = Object.entries(groups).map(([bank, accts]) => {
+    const rows = accts.map(d => {
+      const pendingVal = changes[d.accountNo];
+      const bal        = pendingVal !== undefined ? pendingVal : getBal(d.accountNo);
+      const isChanged  = pendingVal !== undefined;
+      const dateStr    = fmtDate(state.updatedDates?.[d.accountNo]);
+
+      let balHtml, balCls;
+      if (bal === null)      { balHtml = '미입력'; balCls = 'nil'; }
+      else if (bal < 0)      { balHtml = fmtBal(bal) + '원'; balCls = 'neg'; }
+      else                   { balHtml = fmtBal(bal) + '원'; balCls = 'pos'; }
+
+      return `<div class="qk-row${isChanged?' changed':''}" onclick="openSheet('${d.accountNo}','${d.bank}','${d.name}')">
+        <div class="qk-row-info">
+          <div class="qk-row-name">${d.name}</div>
+          <div class="qk-row-acct">${d.accountNo}</div>
+          ${dateStr ? `<div class="qk-row-date">${dateStr}</div>` : ''}
+        </div>
+        <div class="qk-row-right">
+          <div class="qk-row-bal ${balCls}">${balHtml}</div>
+        </div>
+        <div class="qk-chevron">›</div>
+      </div>`;
+    }).join('');
+    return `<div><div class="qk-bank-lbl">${bank}은행</div>${rows}</div>`;
+  }).join('');
+}
+
+function renderSummary() {
+  let total = 0;
+  DEPOSITS.forEach(d => {
+    const bal = changes[d.accountNo] !== undefined ? changes[d.accountNo] : getBal(d.accountNo);
+    if (bal !== null && bal > 0) total += bal;
+  });
+  const cnt = Object.keys(changes).length;
+
+  document.getElementById('sum-dep').textContent =
+    (total/10000).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',') + '만원';
+  document.getElementById('sum-cnt').textContent = cnt + '건';
+  document.getElementById('sum-cnt').style.color = cnt > 0 ? 'var(--pos)' : 'var(--muted)';
+
+  const badge = document.getElementById('save-badge');
+  badge.textContent = cnt;
+  badge.style.display = cnt > 0 ? 'inline' : 'none';
+
+  const now = new Date();
+  document.getElementById('sum-date').textContent =
+    now.getFullYear() + '.' + (now.getMonth()+1) + '.' + now.getDate();
+}
+
+// ── SHEET ──
+function openSheet(accountNo, bank, name) {
+  activeAcct = accountNo;
+  const cur = changes[accountNo] !== undefined ? changes[accountNo] : getBal(accountNo);
+
+  document.getElementById('sh-bank').textContent = bank + '은행';
+  document.getElementById('sh-name').textContent = name;
+  document.getElementById('sh-acct').textContent = accountNo;
+  document.getElementById('sh-inp').value = cur !== null ? cur : '';
+  document.getElementById('sh-prev').textContent = cur !== null
+    ? '현재 잔액: ' + fmtBal(cur) + '원' : '현재: 미입력';
+
+  document.getElementById('qk-overlay').classList.add('open');
+  document.getElementById('qk-sheet').classList.add('open');
+  setTimeout(() => {
+    const inp = document.getElementById('sh-inp');
+    inp.focus();
+    inp.select();
+  }, 280);
+}
+function closeSheet() {
+  document.getElementById('qk-overlay').classList.remove('open');
+  document.getElementById('qk-sheet').classList.remove('open');
+  document.getElementById('sh-inp').blur();
+  activeAcct = null;
+}
+function confirmEdit() {
+  if (!activeAcct) return;
+  const raw = document.getElementById('sh-inp').value.replace(/,/g,'').trim();
+  const v   = parseFloat(raw);
+  if (raw === '' || isNaN(v)) delete changes[activeAcct];
+  else changes[activeAcct] = v;
+  closeSheet();
+  renderList();
+  renderSummary();
+}
+
+document.getElementById('sh-inp').addEventListener('keydown', e => {
+  if (e.key === 'Enter') confirmEdit();
+  else if (e.key === 'Escape') closeSheet();
+});
+
+// ── SAVE ──
+async function saveAll() {
+  if (!Object.keys(changes).length) { toast('변경 사항이 없습니다'); return; }
+  const ts = new Date().toISOString();
+  Object.entries(changes).forEach(([acct, val]) => {
+    state.balances[acct]     = { value: val };
+    state.updatedDates[acct] = ts;
+  });
+  changes = {};
+  await persistState();
+  renderList();
+  renderSummary();
+  toast('✓ 저장 완료');
+}
+
+// ── TOAST ──
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+// ── INIT ──
+loadState();
+setTimeout(() => document.getElementById('pin-ov').classList.remove('hidden'), 400);
+</script>
+</body>
+</html>
