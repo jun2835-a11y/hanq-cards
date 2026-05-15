@@ -122,7 +122,9 @@ http.createServer((req, res) => {
   }
 
   // 재무 요약 API
-  if (url === '/api/finance-summary' && req.method === 'GET') {
+  if (req.url.split('?')[0] === '/api/finance-summary' && req.method === 'GET') {
+    const qs      = new URLSearchParams(req.url.includes('?') ? req.url.split('?')[1] : '');
+    const horizon = Math.min(Math.max(parseInt(qs.get('days') || '90', 10), 1), 730);
     const st       = readJSON('finance-state.json');
     const balances = (st && st.balances) ? st.balances : {};
 
@@ -143,7 +145,7 @@ http.createServer((req, res) => {
       const p    = loan.maturity.split('.');
       const mat  = new Date(+p[0], +p[1] - 1, +p[2]);
       const days = Math.ceil((mat - now) / 86400000);
-      if (days >= 0 && days <= 90) {
+      if (days >= 0 && days <= horizon) {
         urgentCount++;
         alerts.push({ text: loan.bank + ' 만기', daysLeft: days, urgency: days <= 14 ? 'urg' : 'wrn' });
       }
