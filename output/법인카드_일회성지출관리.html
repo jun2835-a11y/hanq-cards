@@ -134,6 +134,35 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 @keyframes barGrow{from{width:0}to{width:var(--target-width)}}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes vennFade{0%{opacity:0;transform:scale(.9)}100%{opacity:1;transform:scale(1)}}
+
+/* ── REPLAN TAB ── */
+.rp-toolbar{display:flex;align-items:center;gap:8px;margin-left:auto}
+.rp-btn{font-size:11px;padding:5px 12px;border:1px solid var(--border);background:none;cursor:pointer;color:var(--ink2);font-family:inherit;transition:all .15s;letter-spacing:.03em}
+.rp-btn:hover{border-color:var(--ink);color:var(--ink)}
+.rp-btn.rp-primary{background:var(--ink);color:#F7F5F0;border-color:var(--ink)}
+.rp-btn.rp-primary:hover{background:#333}
+.rp-select{font-size:11px;border:1px solid var(--border);background:var(--surface);color:var(--ink);padding:3px 6px;font-family:inherit;cursor:pointer;max-width:130px;transition:border-color .15s}
+.rp-select:focus{outline:1px solid var(--accent);outline-offset:0}
+.rp-cell{outline:none;display:block;padding:2px 4px;min-width:50px;transition:background .1s}
+.rp-cell:hover{background:#F2EFEA}
+.rp-cell:focus{background:#FFFEF5;outline:1px solid var(--warn);outline-offset:-1px}
+.rp-cell:empty::before{content:attr(data-ph);color:var(--muted);font-style:italic;pointer-events:none}
+.rp-del-btn{width:24px;height:24px;border:1px solid var(--border);background:none;cursor:pointer;color:var(--muted);font-size:15px;line-height:24px;text-align:center;transition:all .15s}
+.rp-del-btn:hover{border-color:var(--neg);color:var(--neg);background:var(--neg-bg)}
+.s-chip{font-size:9px;font-weight:700;padding:2px 6px;border:1px solid;white-space:nowrap;display:inline-block;flex-shrink:0}
+.rp-bucket-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin-top:4px}
+.rp-bucket{background:var(--surface);border:1px solid var(--border);padding:14px 16px}
+.rp-bucket-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border2)}
+.rp-bucket-name{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.rp-bucket-cnt{font-size:11px;color:var(--muted)}
+.rp-bucket-card{font-size:11px;color:var(--ink2);padding:5px 0;border-bottom:1px solid var(--border2);display:flex;align-items:center;gap:6px}
+.rp-bucket-card:last-child{border-bottom:none}
+.rp-bucket-card-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rp-sum-bar{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);margin-top:12px;border:1px solid var(--border)}
+.rp-sum-cell{background:var(--surface);padding:14px 18px;text-align:center}
+.rp-sum-label{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.rp-sum-val{font-size:22px;font-weight:700;line-height:1}
+.rp-sum-sub{font-size:10px;color:var(--muted);margin-top:3px}
 </style>
 </head>
 <body>
@@ -172,6 +201,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
   <button class="tab-btn" onclick="switchTab('cards',this)">💳 카드별 분석</button>
   <button class="tab-btn" onclick="switchTab('category',this)">🏷️ 카테고리 분석</button>
   <button class="tab-btn" onclick="switchTab('savings',this)">💡 절감 분석</button>
+  <button class="tab-btn" onclick="switchTab('replan',this)">🔧 카드 재편</button>
 </div>
 
 <!-- ══════════════════════════════════════════
@@ -490,6 +520,44 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 </div>
 </div>
 
+<!-- ══════════════════════════════════════════
+     TAB 6: REPLAN
+══════════════════════════════════════════ -->
+<div id="tab-replan" class="tab-content">
+<div class="container">
+
+  <div class="section">
+    <div class="section-hd">
+      <div class="section-title">카드 현황</div>
+      <span class="section-sub">전체 법인카드 · 용도 및 상태 편집 가능 · 클릭하여 수정</span>
+      <div class="rp-toolbar">
+        <button class="rp-btn rp-primary" onclick="rpAddCard()">+ 카드 추가</button>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>카드명</th><th>카드사</th><th>담당자</th><th>회사</th>
+          <th style="text-align:center">결제일</th><th>용도</th><th>상태</th><th>메모</th>
+          <th style="width:32px"></th>
+        </tr></thead>
+        <tbody id="rpBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" style="margin-top:8px">
+    <div class="section-hd">
+      <div class="section-title">재편 플랜 — 용도별 배치</div>
+      <span class="section-sub">위 현황의 용도 분류 기준으로 자동 생성</span>
+    </div>
+    <div class="rp-bucket-grid" id="rpBuckets"></div>
+    <div id="rpSumBar"></div>
+  </div>
+
+</div>
+</div>
+
 <script>
 // ═══════════════════════════════════════════════════════════
 // DATA
@@ -775,6 +843,7 @@ function switchTab(name, btn) {
     if (name==='cards') initCardsTab();
     if (name==='category') initCategoryTab();
     if (name==='savings') { updateSavings(); }
+    if (name==='replan') initReplanTab();
   }
 }
 
@@ -1174,6 +1243,159 @@ function updateSavings() {
   document.getElementById('totalSavings').textContent=grandTotal.toLocaleString('ko-KR')+'원';
 }
 updateSavings();
+
+// ═══════════════════════════════════════════════════════════
+// REPLAN TAB
+// ═══════════════════════════════════════════════════════════
+const RP_KEY      = 'hanq-card-replan';
+const RP_PURPOSES = ['사무실공통','물류·배송','교육원','연구소·개발','대표·개인','광고·마케팅','미분류'];
+const RP_STATUSES = [
+  {v:'유지',    c:'#2D6644',bg:'#EBF2EE',bd:'#A8CCBA'},
+  {v:'축소검토', c:'#8B5E14',bg:'#FDF5E0',bd:'#E8D080'},
+  {v:'폐기예정', c:'#C8380A',bg:'#FDEEE9',bd:'#F2C4B4'},
+  {v:'대체예정', c:'#1A4A8A',bg:'#EBF0FA',bd:'#A8C0E0'},
+];
+const RP_PURPOSE_COLORS = {
+  '사무실공통':'#1A4A8A','물류·배송':'#8B5E14','교육원':'#2D6644',
+  '연구소·개발':'#6B3A7D','대표·개인':'#C8380A','광고·마케팅':'#C86420','미분류':'#9A958F'
+};
+const RP_DEFAULT_CARDS = [
+  {id:'rp1', cardName:'농협카드 1 (1874401)',   cardCo:'농협카드',     holder:'정재승',        company:'(수)복지용구', payDay:'6일',  purpose:'사무실공통',  status:'유지',    memo:''},
+  {id:'rp2', cardName:'국민카드 (4429764)',     cardCo:'국민카드',     holder:'송다윗',        company:'(수)복지용구', payDay:'25일', purpose:'물류·배송',   status:'유지',    memo:'후불하이패스'},
+  {id:'rp3', cardName:'V2 BIZ AMEX',           cardCo:'삼성카드',     holder:'반유환',        company:'순천에덴',    payDay:'25일', purpose:'교육원',     status:'유지',    memo:'TO BE 교육원 공통경비'},
+  {id:'rp4', cardName:'KT청구할인형',           cardCo:'현대카드 1',   holder:'정재승',        company:'(수)복지용구', payDay:'25일', purpose:'대표·개인',   status:'유지',    memo:''},
+  {id:'rp5', cardName:'KT가족만족할부',         cardCo:'신한카드',     holder:'정재승/이승학',  company:'한솔',       payDay:'10일', purpose:'사무실공통',  status:'축소검토', memo:''},
+  {id:'rp6', cardName:'오토빌CORPORATE',        cardCo:'광주(임직원)', holder:'정재승',        company:'한솔',       payDay:'6일',  purpose:'대표·개인',   status:'유지',    memo:''},
+  {id:'rp7', cardName:'SUPER할부-KT',           cardCo:'롯데카드 1',   holder:'이승학',        company:'한솔',       payDay:'25일', purpose:'연구소·개발', status:'유지',    memo:'렌탈/구독 전용 검토'},
+  {id:'rp8', cardName:'M BOOST VISA',           cardCo:'현대카드 2',   holder:'2층공용(당번)', company:'한솔',       payDay:'25일', purpose:'연구소·개발', status:'유지',    memo:''},
+  {id:'rp9', cardName:'LG스페셜롯데 (손용진)',   cardCo:'롯데카드 2',   holder:'손용진',        company:'순천에덴',   payDay:'25일', purpose:'교육원',     status:'대체예정', memo:'→ 한솔 개발팀 카드로 이전 예정'},
+  {id:'rp10',cardName:'LG스페셜롯데 (조승현)',   cardCo:'롯데카드 2',   holder:'조승현',        company:'한솔',       payDay:'10일', purpose:'광고·마케팅', status:'유지',    memo:'2026.05 신규'},
+  {id:'rp11',cardName:'올바른 have체크',         cardCo:'농협카드 2',   holder:'정재승',        company:'(수)복지용구', payDay:'6일',  purpose:'사무실공통',  status:'축소검토', memo:''},
+  {id:'rp12',cardName:'라이언치즈체크',          cardCo:'농협카드 3',   holder:'정재승',        company:'(수)복지용구', payDay:'25일', purpose:'사무실공통',  status:'축소검토', memo:''},
+];
+
+let rpCards = [];
+
+function rpLoad() {
+  try {
+    const s = JSON.parse(localStorage.getItem(RP_KEY));
+    rpCards = (s && s.length) ? s : JSON.parse(JSON.stringify(RP_DEFAULT_CARDS));
+  } catch { rpCards = JSON.parse(JSON.stringify(RP_DEFAULT_CARDS)); }
+}
+function rpSave() { localStorage.setItem(RP_KEY, JSON.stringify(rpCards)); }
+function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function rpRenderTable() {
+  const tbody = document.getElementById('rpBody');
+  if (!tbody) return;
+  tbody.innerHTML = rpCards.map(c => {
+    const si = RP_STATUSES.find(x => x.v === c.status) || RP_STATUSES[0];
+    return `<tr data-rp="${c.id}">
+      <td style="font-weight:600"><div class="rp-cell" contenteditable="true" data-rp="${c.id}" data-f="cardName" data-ph="카드명">${escHtml(c.cardName)}</div></td>
+      <td style="color:var(--muted);font-size:11px"><div class="rp-cell" contenteditable="true" data-rp="${c.id}" data-f="cardCo" data-ph="카드사">${escHtml(c.cardCo)}</div></td>
+      <td><div class="rp-cell" contenteditable="true" data-rp="${c.id}" data-f="holder" data-ph="담당자">${escHtml(c.holder)}</div></td>
+      <td style="color:var(--muted);font-size:11px"><div class="rp-cell" contenteditable="true" data-rp="${c.id}" data-f="company" data-ph="회사">${escHtml(c.company)}</div></td>
+      <td style="text-align:center"><div class="rp-cell" contenteditable="true" data-rp="${c.id}" data-f="payDay" data-ph="결제일" style="text-align:center">${escHtml(c.payDay)}</div></td>
+      <td><select class="rp-select" data-rp="${c.id}" data-f="purpose" onchange="rpChange(this)">${RP_PURPOSES.map(p=>`<option value="${p}"${p===c.purpose?' selected':''}>${p}</option>`).join('')}</select></td>
+      <td><select class="rp-select" data-rp="${c.id}" data-f="status" style="color:${si.c}" onchange="rpChange(this)">${RP_STATUSES.map(s=>`<option value="${s.v}"${s.v===c.status?' selected':''}>${s.v}</option>`).join('')}</select></td>
+      <td><div class="rp-cell" contenteditable="true" data-rp="${c.id}" data-f="memo" data-ph="메모 입력" style="min-width:100px;font-size:11px">${escHtml(c.memo)}</div></td>
+      <td><button class="rp-del-btn" onclick="rpDelete('${c.id}')" title="삭제">×</button></td>
+    </tr>`;
+  }).join('');
+  tbody.querySelectorAll('.rp-cell').forEach(el => {
+    el.addEventListener('blur', () => {
+      const card = rpCards.find(c => c.id === el.dataset.rp);
+      if (card) { card[el.dataset.f] = el.textContent.trim(); rpSave(); }
+      if (el.dataset.f === 'cardName') rpRenderBuckets();
+    });
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
+      if (e.key === 'Escape') el.blur();
+    });
+  });
+  rpRenderBuckets();
+}
+
+function rpChange(sel) {
+  const card = rpCards.find(c => c.id === sel.dataset.rp);
+  if (!card) return;
+  card[sel.dataset.f] = sel.value;
+  if (sel.dataset.f === 'status') {
+    const si = RP_STATUSES.find(s => s.v === sel.value) || RP_STATUSES[0];
+    sel.style.color = si.c;
+  }
+  rpSave();
+  rpRenderBuckets();
+}
+
+function rpDelete(id) {
+  if (!confirm('이 카드를 목록에서 삭제하시겠습니까?')) return;
+  rpCards = rpCards.filter(c => c.id !== id);
+  rpSave();
+  rpRenderTable();
+}
+
+function rpAddCard() {
+  const id = 'rp' + Date.now();
+  rpCards.push({id, cardName:'새 카드', cardCo:'', holder:'', company:'', payDay:'', purpose:'미분류', status:'유지', memo:''});
+  rpSave();
+  rpRenderTable();
+  const newRow = document.querySelector(`tr[data-rp="${id}"]`);
+  if (newRow) {
+    newRow.scrollIntoView({behavior:'smooth', block:'nearest'});
+    const cell = newRow.querySelector('.rp-cell');
+    if (cell) setTimeout(() => {
+      cell.focus();
+      const r = document.createRange(); r.selectNodeContents(cell);
+      const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    }, 80);
+  }
+}
+
+function rpRenderBuckets() {
+  const grid   = document.getElementById('rpBuckets');
+  const sumBar = document.getElementById('rpSumBar');
+  if (!grid) return;
+  const groups = {};
+  RP_PURPOSES.forEach(p => { groups[p] = []; });
+  rpCards.forEach(c => { (groups[c.purpose] || groups['미분류']).push(c); });
+  grid.innerHTML = RP_PURPOSES.map(p => {
+    const cards = groups[p] || [];
+    const col   = RP_PURPOSE_COLORS[p] || '#9A958F';
+    return `<div class="rp-bucket">
+      <div class="rp-bucket-hd">
+        <span class="rp-bucket-name" style="color:${col}">${p}</span>
+        <span class="rp-bucket-cnt">${cards.length}장</span>
+      </div>
+      ${cards.length
+        ? cards.map(c => {
+            const si = RP_STATUSES.find(s => s.v === c.status) || RP_STATUSES[0];
+            return `<div class="rp-bucket-card">
+              <span class="rp-bucket-card-name" title="${escHtml(c.cardName)}">${escHtml(c.cardName)}</span>
+              <span class="s-chip" style="color:${si.c};background:${si.bg};border-color:${si.bd}">${si.v}</span>
+            </div>`;
+          }).join('')
+        : `<div style="font-size:11px;color:var(--muted);padding:8px 0;text-align:center">카드 없음</div>`}
+    </div>`;
+  }).join('');
+  const total  = rpCards.length;
+  const keep   = rpCards.filter(c => c.status === '유지').length;
+  const review = rpCards.filter(c => c.status === '축소검토').length;
+  const retire = rpCards.filter(c => c.status === '폐기예정' || c.status === '대체예정').length;
+  const grps   = RP_PURPOSES.filter(p => (groups[p]||[]).length > 0).length;
+  sumBar.innerHTML = `<div class="rp-sum-bar">
+    <div class="rp-sum-cell"><div class="rp-sum-label">전체 카드</div><div class="rp-sum-val">${total}</div><div class="rp-sum-sub">장</div></div>
+    <div class="rp-sum-cell"><div class="rp-sum-label">유지</div><div class="rp-sum-val" style="color:#2D6644">${keep}</div><div class="rp-sum-sub">장</div></div>
+    <div class="rp-sum-cell"><div class="rp-sum-label">축소 검토</div><div class="rp-sum-val" style="color:#8B5E14">${review}</div><div class="rp-sum-sub">장</div></div>
+    <div class="rp-sum-cell"><div class="rp-sum-label">폐기·대체</div><div class="rp-sum-val" style="color:#C8380A">${retire}</div><div class="rp-sum-sub">장</div></div>
+    <div class="rp-sum-cell"><div class="rp-sum-label">활성 용도</div><div class="rp-sum-val">${grps}</div><div class="rp-sum-sub">카테고리</div></div>
+  </div>`;
+}
+
+function initReplanTab() {
+  rpLoad();
+  rpRenderTable();
+}
 
 // ═══════════════════════════════════════════════════════════
 // EXCEL EXPORT
