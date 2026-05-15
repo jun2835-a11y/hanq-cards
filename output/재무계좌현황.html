@@ -338,6 +338,41 @@ tr:hover .action-btns{opacity:1}
   .hdr-btns{gap:6px}
   .tab-btn{padding:11px 14px}
 }
+
+/* ── BULK INPUT TAB ── */
+.bulk-wrap{padding:32px 60px;max-width:900px;margin:0 auto}
+.bulk-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;gap:12px;flex-wrap:wrap}
+.bulk-title{font-size:14px;font-weight:700;letter-spacing:.05em}
+.bulk-meta{font-size:11px;color:var(--muted)}
+.bulk-actions{display:flex;align-items:center;gap:8px}
+.bulk-changed-badge{font-size:11px;color:var(--warn);font-weight:700;padding:4px 10px;border:1px solid var(--warn-bd);background:var(--warn-bg);display:none}
+.bulk-changed-badge.visible{display:inline-flex;align-items:center;gap:5px}
+.bulk-save-btn{font-size:12px;font-weight:700;padding:9px 22px;border:none;background:var(--accent);color:white;cursor:pointer;font-family:inherit;transition:background .15s}
+.bulk-save-btn:hover{background:#B02D08}
+.bulk-save-btn:disabled{background:var(--muted);cursor:not-allowed}
+.bulk-bank-group{margin-bottom:20px}
+.bulk-bank-label{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:0 0 8px;border-bottom:2px solid var(--ink);margin-bottom:0;display:flex;align-items:center;gap:8px}
+.bulk-bank-label-cnt{font-size:9px;color:var(--muted);font-weight:400;letter-spacing:0}
+.bulk-row{display:grid;grid-template-columns:1fr 1fr 140px;align-items:center;gap:0;border-bottom:1px solid var(--border2);padding:0}
+.bulk-row:last-child{border-bottom:none}
+.bulk-cell{padding:9px 12px;font-size:12px}
+.bulk-cell-name{font-weight:600;color:var(--ink)}
+.bulk-cell-name .bulk-acct-no{font-size:10px;font-weight:400;color:var(--muted);font-family:monospace;margin-top:1px}
+.bulk-cell-cur{text-align:right;color:var(--ink2);font-variant-numeric:tabular-nums}
+.bulk-cell-cur.neg{color:var(--neg)}
+.bulk-cell-cur.null-bal{color:var(--muted);font-style:italic}
+.bulk-cell-input{padding:6px 8px}
+.bulk-input{width:100%;border:1px solid var(--border);border-bottom:1.5px solid var(--ink2);background:var(--surface);padding:7px 10px;font-family:inherit;font-size:12px;font-variant-numeric:tabular-nums;color:var(--ink);text-align:right;outline:none;transition:border-color .15s,background .15s}
+.bulk-input:focus{border-bottom-color:var(--accent)}
+.bulk-input.changed{background:#FFFBE6;border-bottom-color:var(--warn)}
+.bulk-reset-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0 4px;line-height:1;display:none;vertical-align:middle}
+.bulk-reset-btn.visible{display:inline}
+.bulk-reset-btn:hover{color:var(--neg)}
+@media(max-width:600px){
+  .bulk-wrap{padding:20px 16px}
+  .bulk-row{grid-template-columns:1fr 120px}
+  .bulk-cell-cur{display:none}
+}
 </style>
 </head>
 <body>
@@ -661,6 +696,7 @@ tr:hover .action-btns{opacity:1}
   <button class="tab-btn" onclick="switchTab('card',this)">기업카드</button>
   <button class="tab-btn" onclick="switchTab('calendar',this)">만기 캘린더</button>
   <button class="tab-btn" onclick="switchTab('trend',this)">잔액 추이</button>
+  <button class="tab-btn" onclick="switchTab('bulk',this)">⚡ 일괄 입력</button>
   <button class="tab-btn" onclick="switchTab('txn',this)">입출금 기록 <span id="txn-count-badge" style="font-size:10px;background:var(--accent);color:white;padding:1px 5px;margin-left:4px;display:none"></span></button>
 </div>
 
@@ -1633,6 +1669,23 @@ tr:hover .action-btns{opacity:1}
 </div>
 </div>
 
+<!-- ============ 일괄 입력 탭 ============ -->
+<div id="tab-bulk" class="tab-content">
+<div class="bulk-wrap">
+  <div class="bulk-header">
+    <div>
+      <div class="bulk-title">⚡ 일괄 잔액 입력</div>
+      <div class="bulk-meta">변경할 계좌 잔액을 입력하고 전체 저장을 누르세요</div>
+    </div>
+    <div class="bulk-actions">
+      <span class="bulk-changed-badge" id="bulk-changed-badge">0개 변경됨</span>
+      <button class="bulk-save-btn" id="bulk-save-btn" onclick="saveBulkAll()" disabled>전체 저장</button>
+    </div>
+  </div>
+  <div id="bulk-groups"></div>
+</div>
+</div>
+
 <script>
 // ── BASE DATA ──
 const DEPOSITS = [{"no":1,"bank":"농협","holder":"복지용구의료기정재승","accountName":"","opened":"2018.9.11","branch":"순천시지부","accountNo":"301-0237-9325-41","balance":null,"balanceRaw":"-","usageOut":"-.삼성생명:월3.2 -.SK텔레콤:월2.2만 -.SKT단말기:1.1만 -.루리소프트:9천/월 카드 단말기 16009690","usageIn":"-.케이씨피28건:총82만 카페24 서류 -.김화순:1만/월 -.희망일자리장려금/월50만 6월달 마무리 -.11번가: 월7만 서류"},{"no":2,"bank":"농협","holder":"정종각","accountName":"한기협순천지회","opened":"2018.11.08","branch":"수방문간호센터","accountNo":"301-0240-3659-61","balance":255800,"balanceRaw":255800,"usageOut":"-.(사)한국재가장기요양 4.4만","usageIn":"-.폰카카오 전남지부"},{"no":3,"bank":"농협","holder":"정종각(수메디복지용구)","accountName":"한방에큐ERP","opened":"2011.6.14","branch":"","accountNo":"302-0410-2086-51","balance":18910255,"balanceRaw":18910255,"usageOut":"-.SKT01220851815:1.1만/지로 -.건강보험료 -.더빌관리비 -.네이버페이충전 -.아파트관리비","usageIn":"-.더빌가상/이체 2.4억 -.NICE정보통신"},{"no":4,"bank":"농협","holder":"정재승","accountName":"방문간호청구비용","opened":"2015.3.11","branch":"동순천-키움증권","accountNo":"302-0945-7796-21","balance":26,"balanceRaw":26,"usageOut":"","usageIn":"-.예금이자만 발생중"},{"no":5,"bank":"농협","holder":"정재승","accountName":"3번기관후원임시","opened":"2015.4.6","branch":"동순천-SK증권","accountNo":"302-0958-9854-31","balance":162,"balanceRaw":162,"usageOut":"-.Y25.9자금대체후 거래없음","usageIn":"-.Y25.7~9월까지 주로노인복지센터"},{"no":6,"bank":"농협","holder":"정재승","accountName":"간호본인부담금 CMS","opened":"2015.10.14","branch":"동순천-DB증권","accountNo":"302-1018-0299-01","balance":34158,"balanceRaw":34158,"usageOut":"-.대체출금만 있음","usageIn":"-.NICE정보통:월3.5만/월"},{"no":7,"bank":"농협","holder":"정재승","accountName":"테크노도연","opened":"2016.6.30","branch":"동순천-NH투자증권","accountNo":"302-1102-7562-71","balance":62,"balanceRaw":62,"usageOut":"-.이후 거래내용없음","usageIn":"-.Y25 1-2월인건비처리 단건"},{"no":8,"bank":"농협","holder":"정재승","accountName":"(수)복지용구의료기","opened":"2018.6.29","branch":"동순천","accountNo":"302-1727-0656-01","balance":288900,"balanceRaw":288900,"usageOut":"-.UMS수수료 -.건강서현아","usageIn":"-.순천사복과"},{"no":9,"bank":"농협","holder":"정재승","accountName":"","opened":"2010.12.30","branch":"일곡동","accountNo":"312-0051-7301-21","balance":414557,"balanceRaw":414557,"usageOut":"-.카카오페이 -.하이브리드샵:월22만","usageIn":"-.동방케어광주:7백/월 -.또하나의가족;월3.4백/월 -.고혜진, -.곽희동, -. -.더빌가상, -.정상희.- -.배건우(명성H),-오봉엽 "},{"no":10,"bank":"농.축협","holder":"정재승","accountName":"Adco","opened":"2016.2.17","branch":"광양축협남부","accountNo":"352-1078-0700-13","balance":null,"balanceRaw":"-","usageOut":"","usageIn":""},{"no":11,"bank":"농.축협","holder":"정재승","accountName":"(수)복지용구의료기본인부담금","opened":"2019.5.23","branch":"순천농협봉화","accountNo":"352-1619-4468-83","balance":3091,"balanceRaw":3091,"usageOut":"","usageIn":"-.윤명화:월3.090원"},{"no":12,"bank":"농.축협","holder":"정재승","accountName":"자립예탁마이너스","opened":"2022.5.16","branch":"광양축협강남","accountNo":"352-1990-4632-53","balance":-229762167,"balanceRaw":-229762167,"usageOut":"-.운전자금-대체 -.홍길임(월10만)","usageIn":"-.운전자금등 자금차입 -.UMS수수료 -.이자비용상환:월 85만"},{"no":13,"bank":"KB-기업","holder":"정재승(수)복지용구의료기","accountName":"ONE KB사업자통장","opened":"2024.12.10","branch":"순천종합금융","accountNo":"789401-01-862390","balance":1319063,"balanceRaw":1319063,"usageOut":"-.KB카드결재","usageIn":"-.카드매출/고용노동부"},{"no":14,"bank":"KB-개인","holder":"정재승","accountName":"KB PLUSSTAR","opened":"2007.2.22","branch":"순천종합금융","accountNo":"789402-01-148178","balance":6147575,"balanceRaw":6147575,"usageOut":"-.급여(위탁포함) -.사랑의띠복지협회:월5만 -삼성카드 -.현대카드대금 -.호남권스타트업정회원비:월5만 -.신한카드대금 -순광로214 2층전기","usageIn":""},{"no":15,"bank":"KB-개인","holder":"정재승","accountName":"KB PLUSSTAR","opened":"2015.4.30","branch":"순천종합금융","accountNo":"780302-00-032068","balance":57,"balanceRaw":57,"usageOut":"-.자금대체","usageIn":""},{"no":16,"bank":"신한 기업(주거래)","holder":"정재승","accountName":"","opened":"2018.4.18","branch":"디지털금융센터","accountNo":"110-489-553043","balance":null,"balanceRaw":"-","usageOut":", -.개인부담금일괄이체 -.SKT 01224285731(카드단말기) -.노란우산공제(월20만) 25일 -.KB손보:월3.4만 - 삼성화재 수복","usageIn":"-.웰더스스마트케어3건:58만/월 -.카드매출/고용노동부 -.보조기기 /월43만 -.기업은행산소:월10.8만,29만"},{"no":17,"bank":"신한 저축","holder":"정재승","accountName":"","opened":"2023.2.10","branch":"순천금융센터","accountNo":"110-547-773536","balance":29658549,"balanceRaw":29658549,"usageOut":"-.티에이치케이컴, -.(주)케어맥스코리아/주매입대금 -.한큐이용수수료대금","usageIn":"-.재가복지의료/용구/공단매출"},{"no":18,"bank":"신한주거래-SOHO","holder":"정재승(순천에덴교육원)","accountName":"순천에덴요양보호사교육원","opened":"2026.2.2","branch":"순천금융센터","accountNo":"110-621-424679","balance":16802,"balanceRaw":16802,"usageOut":"-.에덴요양보호사교육원","usageIn":""},{"no":19,"bank":"신한 저축","holder":"","accountName":"","opened":"2023.1.18","branch":"저축","accountNo":"110-506802904","balance":null,"balanceRaw":"-","usageOut":"","usageIn":""},{"no":20,"bank":"신한 저축","holder":"","accountName":"","opened":"2019.07.29","branch":"U드림(인턴넷전용)","accountNo":"110-465-289239","balance":null,"balanceRaw":"-","usageOut":"","usageIn":""},{"no":21,"bank":"신한 저축","holder":"","accountName":"","opened":"2023.11.28","branch":"저축","accountNo":"110-513-398282","balance":null,"balanceRaw":"-","usageOut":"","usageIn":""},{"no":22,"bank":"광주-기업","holder":"정재승","accountName":"","opened":"2026.1.5","branch":"연향동/사장님매출UP","accountNo":"1107-021-926465","balance":null,"balanceRaw":"-","usageOut":"-.대출원리금(3~4월출금됨)","usageIn":"-.대체입금 -교육원카드 결재수입 4월17백예정"},{"no":23,"bank":"광주-기업","holder":"정재승","accountName":"","opened":"2008.3.18","branch":"동림","accountNo":"069-121-660047","balance":1403,"balanceRaw":1403,"usageOut":"","usageIn":""},{"no":24,"bank":"광주-기업","holder":"정재승","accountName":"","opened":"2024.11.05","branch":"신대","accountNo":"1121-031-712452","balance":180573,"balanceRaw":180573,"usageOut":"-.KJB카드대금 -.더빌관리비 -.아이샵케어 -.원리금524235 -전기료 에덴2층","usageIn":"-.더빌가상9778 -.74486936B -.NH카드매출, -.현대카드"}];
@@ -1721,6 +1774,145 @@ function switchTab(name, btn) {
   document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
   btn.classList.add('active');
+  if (name === 'bulk') initBulkTab();
+}
+
+// ── BULK INPUT ──
+let bulkChanged = {};
+
+function initBulkTab() {
+  bulkChanged = {};
+  const container = document.getElementById('bulk-groups');
+  container.innerHTML = '';
+
+  // Group by bank
+  const groups = {};
+  DEPOSITS.forEach(d => {
+    const b = d.bank;
+    if (!groups[b]) groups[b] = [];
+    groups[b].push(d);
+  });
+
+  Object.entries(groups).forEach(([bank, deposits]) => {
+    const grp = document.createElement('div');
+    grp.className = 'bulk-bank-group';
+
+    const lbl = document.createElement('div');
+    lbl.className = 'bulk-bank-label';
+    lbl.innerHTML = bank + '<span class="bulk-bank-label-cnt">' + deposits.length + '개 계좌</span>';
+    grp.appendChild(lbl);
+
+    deposits.forEach(d => {
+      const curBal = state.balances[d.accountNo] !== undefined
+        ? state.balances[d.accountNo].value
+        : d.balance;
+      const isMinus = curBal !== null && curBal < 0;
+      const dispBal = curBal === null ? '—' : Math.abs(Math.round(curBal)).toLocaleString('ko-KR') + '원';
+      const label = d.accountName || d.holder || d.branch || '—';
+      const key = d.accountNo.replace(/[^0-9]/g, '');
+
+      const row = document.createElement('div');
+      row.className = 'bulk-row';
+      row.innerHTML =
+        '<div class="bulk-cell bulk-cell-name">' +
+          '<div>' + label + '</div>' +
+          '<div class="bulk-acct-no">' + d.accountNo + '</div>' +
+        '</div>' +
+        '<div class="bulk-cell bulk-cell-cur' + (isMinus ? ' neg' : '') + (curBal === null ? ' null-bal' : '') + '">' + dispBal + '</div>' +
+        '<div class="bulk-cell bulk-cell-input">' +
+          '<input type="text" inputmode="numeric" class="bulk-input" id="binp-' + key + '" ' +
+            'data-accountno="' + d.accountNo + '" ' +
+            'placeholder="' + (curBal !== null ? Math.round(curBal) : '') + '" ' +
+            'autocomplete="off">' +
+        '</div>';
+      grp.appendChild(row);
+    });
+
+    container.appendChild(grp);
+  });
+
+  // Attach events
+  container.querySelectorAll('.bulk-input').forEach(inp => {
+    inp.addEventListener('input', function() {
+      const raw = this.value.replace(/,/g, '');
+      const accountNo = this.dataset.accountno;
+      if (raw === '' || raw === '-') {
+        delete bulkChanged[accountNo];
+        this.classList.remove('changed');
+      } else if (!isNaN(parseFloat(raw))) {
+        bulkChanged[accountNo] = parseFloat(raw);
+        this.classList.add('changed');
+      }
+      updateBulkBadge();
+    });
+    inp.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const inputs = Array.from(container.querySelectorAll('.bulk-input'));
+        const idx = inputs.indexOf(this);
+        if (idx < inputs.length - 1) inputs[idx + 1].focus();
+        else saveBulkAll();
+      }
+    });
+  });
+}
+
+function updateBulkBadge() {
+  const cnt = Object.keys(bulkChanged).length;
+  const badge = document.getElementById('bulk-changed-badge');
+  const btn   = document.getElementById('bulk-save-btn');
+  if (cnt > 0) {
+    badge.textContent = cnt + '개 변경됨';
+    badge.classList.add('visible');
+    btn.disabled = false;
+  } else {
+    badge.classList.remove('visible');
+    btn.disabled = true;
+  }
+}
+
+function saveBulkAll() {
+  if (!Object.keys(bulkChanged).length) return;
+  const ts = new Date().toISOString();
+  state.balances = state.balances || {};
+  state.history  = state.history  || [];
+
+  Object.entries(bulkChanged).forEach(([accountNo, newVal]) => {
+    const d = DEPOSITS.find(x => x.accountNo === accountNo);
+    const oldVal = state.balances[accountNo]?.value ?? (d ? d.balance : null);
+    state.balances[accountNo] = { value: Math.round(newVal), updatedAt: ts };
+    state.history.push({
+      id: Date.now().toString() + Math.random(),
+      accountNo,
+      accountName: d ? (d.accountName || d.holder || d.branch) : accountNo,
+      bank: d ? d.bank : '',
+      oldVal,
+      newVal: Math.round(newVal),
+      diff: Math.round(newVal) - (oldVal || 0),
+      memo: '일괄 입력',
+      ts
+    });
+
+    // Sync balance display in deposit tab
+    const key = accountNo.replace(/[^0-9]/g, '');
+    const el  = document.getElementById('bal-' + key);
+    const dot = document.getElementById('dot-' + key);
+    if (el)  el.textContent = Math.abs(Math.round(newVal)).toLocaleString('ko-KR');
+    if (dot) dot.style.display = 'inline-block';
+  });
+
+  saveState();
+  updateKPIs();
+  updateLastUpdated(ts);
+  toast('✓ ' + Object.keys(bulkChanged).length + '개 계좌 잔액이 저장됐습니다');
+
+  bulkChanged = {};
+  document.querySelectorAll('.bulk-input').forEach(inp => {
+    inp.value = '';
+    inp.classList.remove('changed');
+  });
+  updateBulkBadge();
+  initBulkTab(); // re-render with new values
 }
 
 // ── SEARCH / FILTER ──
