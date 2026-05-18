@@ -247,6 +247,42 @@ tr:last-child td { border-bottom: none; }
 .dup-memo:hover { background:#F2EFEA; }
 .dup-memo:focus { background:#FFFEF5; outline:1px solid #C8B860; outline-offset:-2px; }
 
+/* ── 검색창 ── */
+.search-bar {
+  background: #1E1C18; padding: 10px 64px;
+  display: flex; align-items: center; gap: 12px;
+  position: sticky; top: 0; z-index: 800;
+  border-bottom: 1px solid #2E2C28;
+}
+.search-wrap { position: relative; flex: 1; max-width: 520px; }
+.search-wrap input {
+  width: 100%; background: #2A2822; border: 1px solid #3A3830;
+  color: #E8E4DE; font-family: inherit; font-size: 13px;
+  padding: 8px 36px 8px 14px; outline: none;
+  transition: border-color .15s;
+}
+.search-wrap input::placeholder { color: #5A5650; }
+.search-wrap input:focus { border-color: var(--accent2); }
+.search-clear {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; color: #5A5650; font-size: 16px;
+  cursor: pointer; line-height: 1; padding: 0; display: none;
+}
+.search-clear.vis { display: block; }
+.search-clear:hover { color: #E8E4DE; }
+.search-count { font-size: 11px; color: #6A6460; white-space: nowrap; min-width: 60px; }
+.search-count .sc-match { color: var(--accent2); font-weight: 700; }
+.search-jump-btn {
+  font-size: 11px; padding: 6px 14px; border: 1px solid #3A3830;
+  background: none; color: #9A958F; cursor: pointer;
+  font-family: inherit; transition: all .15s; white-space: nowrap;
+}
+.search-jump-btn:hover { border-color: #9A958F; color: #E8E4DE; }
+.search-jump-btn:disabled { opacity: .3; cursor: default; }
+.search-highlight { background: rgba(212,99,42,.25); border-radius: 1px; }
+tr.search-hidden { display: none !important; }
+.dup-item.search-hidden { display: none !important; }
+
 /* ── 월별 결제 칼럼 ── */
 .month-cell { min-width: 180px; }
 .month-dots { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
@@ -298,6 +334,15 @@ tr:last-child td { border-bottom: none; }
 <div class="edit-toolbar">
   <span class="et-label">조사 결과 <span>클릭하여 변경</span> &nbsp;·&nbsp; 조치 내용·담당자 <span>클릭하여 직접 편집</span> &nbsp;·&nbsp; 변경사항은 <span>서버에 자동 저장 · 모든 팀원에게 즉시 반영</span>됩니다</span>
   <button class="et-btn danger" onclick="resetAll()">초기화</button>
+</div>
+
+<div class="search-bar" id="inspectSearchBar">
+  <div class="search-wrap">
+    <input type="text" id="inspectSearchInput" placeholder="명세 검색 (서비스명, 담당자, 카드사 ...)" autocomplete="off">
+    <button class="search-clear" id="inspectSearchClear" onclick="inspectClearSearch()" title="검색어 지우기">×</button>
+  </div>
+  <span class="search-count" id="inspectSearchCount"></span>
+  <button class="search-jump-btn" id="inspectSearchJump" onclick="inspectScrollFirst()" disabled>첫 결과로 ↓</button>
 </div>
 
 <div class="summary-bar">
@@ -1923,6 +1968,73 @@ tr:last-child td { border-bottom: none; }
 <script>
 // Date display
 (function(){var d=new Date();document.getElementById('hdr-date')&&(document.getElementById('hdr-date').textContent=d.getFullYear()+'.'+(d.getMonth()+1)+'.'+d.getDate());})();
+
+// ── 검색 ─────────────────────────────────────────
+(function(){
+  var input  = document.getElementById('inspectSearchInput');
+  var clrBtn = document.getElementById('inspectSearchClear');
+  var cntEl  = document.getElementById('inspectSearchCount');
+  var jmpBtn = document.getElementById('inspectSearchJump');
+  if (!input) return;
+
+  function getSearchableText(el) {
+    return el.textContent || el.innerText || '';
+  }
+
+  function doSearch() {
+    var q = input.value.trim();
+    clrBtn.classList.toggle('vis', q.length > 0);
+
+    if (!q) {
+      // Show everything
+      document.querySelectorAll('tr[data-row-id]').forEach(function(tr){ tr.classList.remove('search-hidden'); });
+      document.querySelectorAll('.dup-item').forEach(function(el){ el.classList.remove('search-hidden'); });
+      cntEl.innerHTML = '';
+      jmpBtn.disabled = true;
+      return;
+    }
+
+    var lower = q.toLowerCase();
+    var matchCount = 0;
+
+    // Filter inspection rows
+    document.querySelectorAll('tr[data-row-id]').forEach(function(tr) {
+      var text = getSearchableText(tr).toLowerCase();
+      var match = text.includes(lower);
+      tr.classList.toggle('search-hidden', !match);
+      if (match) matchCount++;
+    });
+
+    // Filter dup-items (duplicate payment blocks)
+    document.querySelectorAll('.dup-item').forEach(function(item) {
+      var text = getSearchableText(item).toLowerCase();
+      var match = text.includes(lower);
+      item.classList.toggle('search-hidden', !match);
+      if (match) matchCount++;
+    });
+
+    cntEl.innerHTML = matchCount > 0
+      ? '<span class="sc-match">' + matchCount + '</span>건 일치'
+      : '<span style="color:#C8380A">결과 없음</span>';
+    jmpBtn.disabled = matchCount === 0;
+  }
+
+  input.addEventListener('input', doSearch);
+  input.addEventListener('keydown', function(e){
+    if (e.key === 'Enter') inspectScrollFirst();
+  });
+
+  window.inspectClearSearch = function() {
+    input.value = '';
+    doSearch();
+    input.focus();
+  };
+
+  window.inspectScrollFirst = function() {
+    var first = document.querySelector('tr[data-row-id]:not(.search-hidden), .dup-item:not(.search-hidden)');
+    if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+})();
 
 // Excel export
 function exportExcel(){
