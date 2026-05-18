@@ -26,10 +26,12 @@ body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;background:var(--bg);
 .header h1{font-size:22px;font-weight:700;margin-bottom:6px}
 .header-sub{font-size:11px;color:#9A958F}
 .header-kpi{display:flex;gap:0;flex-shrink:0}
-.hkpi{padding:0 28px;border-left:1px solid rgba(255,255,255,.1);text-align:right}
+.hkpi{padding:0 28px;border-left:1px solid rgba(255,255,255,.1);text-align:right;cursor:default;transition:opacity .15s}
+.hkpi:hover{opacity:.85}
 .hkpi:first-child{border-left:none}
 .hkpi-label{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:#5A5650;margin-bottom:5px}
 .hkpi-val{font-size:20px;font-weight:700;color:#F7F5F0;line-height:1}
+.hkpi:hover .hkpi-val{animation:numPop .45s cubic-bezier(.25,0,.25,1)}
 .hkpi-val.accent{color:#D4632A}
 .hkpi-unit{font-size:10px;font-weight:400;color:#5A5650;margin-left:2px}
 .hdr-right{display:flex;align-items:center;gap:8px}
@@ -51,21 +53,24 @@ body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;background:var(--bg);
 
 .section{margin-bottom:36px}
 .section-hd{display:flex;align-items:center;gap:12px;margin-bottom:18px;padding-bottom:10px;border-bottom:1px solid var(--border)}
-.section-title{font-size:14px;font-weight:700}
+.section-title{font-size:14px;font-weight:700;display:inline-block;background-image:linear-gradient(var(--accent),var(--accent));background-size:0 2px;background-repeat:no-repeat;background-position:0 100%;transition:background-size .35s ease;padding-bottom:2px}
+.section-hd:hover .section-title{background-size:100% 2px}
 .section-sub{font-size:11px;color:var(--muted);margin-left:4px}
 
 /* CHARTS */
 .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px}
 .chart-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-bottom:24px}
 @media(max-width:900px){.chart-grid,.chart-grid-3{grid-template-columns:1fr}}
-.chart-box{background:var(--surface);border:1px solid var(--border);padding:22px 20px}
+.chart-box{background:var(--surface);border:1px solid var(--border);padding:22px 20px;transition:box-shadow .25s,border-color .25s}
+.chart-box:hover{box-shadow:0 6px 28px rgba(0,0,0,.07);border-color:rgba(0,0,0,.12)}
 .chart-title{font-size:9px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-bottom:16px}
 
 /* KPI */
 .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
 @media(max-width:800px){.kpi-row{grid-template-columns:1fr 1fr}}
-.kpi-card{background:var(--surface);border:1px solid var(--border);padding:18px 20px;transition:box-shadow .2s}
-.kpi-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08)}
+.kpi-card{background:var(--surface);border:1px solid var(--border);padding:18px 20px;transition:box-shadow .25s,border-color .25s}
+.kpi-card:hover{box-shadow:0 6px 24px rgba(0,0,0,.09);border-color:rgba(200,56,10,.25)}
+.kpi-card:hover .kpi-card-val{animation:numPop .45s cubic-bezier(.25,0,.25,1)}
 .kpi-card-label{font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:9px}
 .kpi-card-val{font-size:22px;font-weight:700;color:var(--ink);line-height:1;margin-bottom:4px}
 .kpi-card-val .unit{font-size:11px;font-weight:400;color:var(--muted);margin-left:2px}
@@ -97,8 +102,9 @@ tr:hover td{background:#F9F7F3;transition:background .1s}
 .card-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
 @media(max-width:900px){.card-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:600px){.card-grid{grid-template-columns:1fr}}
-.card-item{background:var(--surface);border:1px solid var(--border);padding:20px;cursor:pointer;transition:all .15s}
-.card-item:hover{border-color:var(--accent);box-shadow:0 2px 12px rgba(200,56,10,.1)}
+.card-item{background:var(--surface);border:1px solid var(--border);padding:20px;cursor:pointer;transition:all .2s}
+.card-item:hover{border-color:var(--accent);box-shadow:0 4px 20px rgba(200,56,10,.12);transform:translateY(-2px)}
+.card-item:hover .card-item-amount{animation:numPop .4s cubic-bezier(.25,0,.25,1)}
 .card-item.selected{border-color:var(--accent);border-left-width:4px}
 .card-item-meta{display:flex;gap:6px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
 .ci-corp{font-size:9px;font-weight:700;letter-spacing:.08em;padding:2px 8px;background:var(--border2);color:var(--ink2);border-radius:2px}
@@ -116,8 +122,9 @@ tr:hover td{background:#F9F7F3;transition:background .1s}
 .mini-bar-label{font-size:8px;color:var(--muted);white-space:nowrap}
 
 /* VEN DIAGRAM */
-.venn-wrap{padding:20px;display:flex;justify-content:center;align-items:center;flex-direction:column}
-.venn-svg{max-width:500px;width:100%}
+.venn-wrap{padding:20px;display:flex;justify-content:center;align-items:center;flex-direction:column;cursor:pointer}
+.venn-svg{max-width:500px;width:100%;transition:transform .2s ease}
+.venn-wrap:hover .venn-svg{transform:scale(1.015)}
 .venn-legend{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:12px}
 .venn-leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--ink2)}
 .venn-leg-dot{width:10px;height:10px;border-radius:50%}
@@ -142,6 +149,10 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 @keyframes barGrow{from{width:0}to{width:var(--target-width)}}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes vennFade{0%{opacity:0;transform:scale(.9)}100%{opacity:1;transform:scale(1)}}
+@keyframes numPop{0%{transform:scale(1)}35%{transform:scale(1.09)}70%{transform:scale(.97)}100%{transform:scale(1)}}
+@keyframes glowBorder{0%,100%{box-shadow:none}50%{box-shadow:0 0 0 3px rgba(200,56,10,.18),0 6px 24px rgba(0,0,0,.08)}}
+@keyframes shimmerSlide{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes dotRise{0%{transform:scaleY(0);transform-origin:bottom;opacity:.3}100%{transform:scaleY(1);transform-origin:bottom;opacity:1}}
 
 /* ── REPLAN TAB ── */
 .rp-toolbar{display:flex;align-items:center;gap:8px;margin-left:auto}
@@ -1819,21 +1830,52 @@ const RP_DEFAULT_CARDS = [
 let rpCards = [];
 rpLoad(); // 대시보드 렌더링 전에 카드 재편 데이터 로드
 
+// ── 차트 전역 참조 (호버 재생용) ─────────────────────────
+let chartDonutCard, chartCatHBar, chartStackedMonth, chartCatDonut, chartBubble;
+
+// 차트 호버 재생 헬퍼
+function hoverReplay(chart, canvasId) {
+  let cd = 0;
+  const el = document.getElementById(canvasId);
+  if (!el) return;
+  el.parentElement.addEventListener('mouseenter', () => {
+    if (Date.now() - cd < 900) return; cd = Date.now();
+    chart.reset(); chart.update();
+  });
+}
+
 // ═══════════════════════════════════════════════════════════
 // DASHBOARD INIT
 // ═══════════════════════════════════════════════════════════
 (function initDashboard(){
-  // KPI countup
+  // KPI countup + 호버 재생
+  const kpiDefs = [
+    {id:'kpi-total', val:24790421, dur:1000},
+    {id:'kpi-count', val:1139,     dur:600,  prefix:''},
+    {id:'kpi-avg',   val:93903,    dur:1000},
+  ];
   setTimeout(()=>{
-    countUp(document.getElementById('kpi-total'), 24790421);
-    countUp(document.getElementById('kpi-count'), 264, 600, '');
-    countUp(document.getElementById('kpi-avg'), 93903);
+    kpiDefs.forEach(({id,val,dur,prefix})=>{
+      const el = document.getElementById(id);
+      if (!el) return;
+      prefix !== undefined ? countUp(el,val,dur,prefix) : countUp(el,val,dur);
+    });
   }, 200);
+  // KPI 카드 호버 → countUp 재생
+  kpiDefs.forEach(({id,val,dur,prefix})=>{
+    const el = document.getElementById(id); if(!el) return;
+    const card = el.closest('.kpi-card'); if(!card) return;
+    let cd = 0;
+    card.addEventListener('mouseenter',()=>{
+      if(Date.now()-cd < 1100) return; cd = Date.now();
+      prefix !== undefined ? countUp(el,val,dur,prefix) : countUp(el,val,dur);
+    });
+  });
 
   // Donut card
   const cardLabels = Object.keys(CARD_COLORS);
   const cardAmounts = [7742576,7270061,6219280,2682404,875200,900];
-  new Chart(document.getElementById('donutCard'),{
+  chartDonutCard = new Chart(document.getElementById('donutCard'),{
     type:'doughnut',
     data:{
       labels:cardLabels,
@@ -1853,7 +1895,7 @@ rpLoad(); // 대시보드 렌더링 전에 카드 재편 데이터 로드
   // Category horizontal bar
   const catKeys = Object.keys(CAT_AMOUNTS);
   const catVals = Object.values(CAT_AMOUNTS);
-  new Chart(document.getElementById('catHBar'),{
+  chartCatHBar = new Chart(document.getElementById('catHBar'),{
     type:'bar',
     data:{
       labels:catKeys,
@@ -1878,7 +1920,7 @@ rpLoad(); // 대시보드 렌더링 전에 카드 재편 데이터 로드
     const mi = months.indexOf(t.date.substring(0,7));
     if(mi>=0 && monthlyByCard[t.card]) monthlyByCard[t.card][mi]+=t.amount;
   });
-  new Chart(document.getElementById('stackedMonth'),{
+  chartStackedMonth = new Chart(document.getElementById('stackedMonth'),{
     type:'bar',
     data:{
       labels:months,
@@ -1901,11 +1943,24 @@ rpLoad(); // 대시보드 렌더링 전에 카드 재편 데이터 로드
     }
   });
 
+  // 차트 호버 재생 연결
+  hoverReplay(chartDonutCard,   'donutCard');
+  hoverReplay(chartCatHBar,     'catHBar');
+  hoverReplay(chartStackedMonth,'stackedMonth');
+
   // Card holder mapping table
   renderCardHolderTable();
 
-  // Venn diagram
+  // Venn diagram + 호버 재생
   buildVenn();
+  const vennEl = document.getElementById('vennSvg');
+  if (vennEl) {
+    let vcd = 0;
+    vennEl.closest('.venn-wrap, .chart-box, div').addEventListener('mouseenter', ()=>{
+      if (Date.now()-vcd < 800) return; vcd = Date.now();
+      buildVenn();
+    });
+  }
 })();
 
 // ═══════════════════════════════════════════════════════════
@@ -2133,6 +2188,32 @@ function initCardsTab() {
       <div class="mini-chart-wrap">${spark}</div>
     </div>`;
   }).join('');
+
+  // 카드 아이템 호버 → 바 성장 + 미니바 파동 재생
+  document.querySelectorAll('.card-item').forEach(item => {
+    item.addEventListener('mouseenter', function() {
+      // 메인 바 재성장
+      const fill = this.querySelector('.card-bar-fill');
+      if (fill) {
+        const tw = fill.style.width;
+        fill.style.transition = 'none'; fill.style.width = '0';
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          fill.style.transition = 'width .85s cubic-bezier(.4,0,.2,1)';
+          fill.style.width = tw;
+        }));
+      }
+      // 미니바 순차 파동
+      this.querySelectorAll('.mini-bar').forEach((bar, i) => {
+        const th = bar.style.height;
+        const op = bar.style.opacity;
+        bar.style.transition = 'none'; bar.style.height = '0'; bar.style.opacity = '.2';
+        setTimeout(() => {
+          bar.style.transition = `height .4s cubic-bezier(.4,0,.2,1) ${i*70}ms, opacity .3s ${i*70}ms`;
+          bar.style.height = th; bar.style.opacity = op;
+        }, 10);
+      });
+    });
+  });
 }
 
 function showCardDetail(cardName) {
@@ -2161,7 +2242,7 @@ function initCategoryTab() {
   const catKeys = Object.keys(CAT_AMOUNTS);
   const catVals = Object.values(CAT_AMOUNTS);
 
-  new Chart(document.getElementById('catDonut'),{
+  chartCatDonut = new Chart(document.getElementById('catDonut'),{
     type:'doughnut',
     data:{
       labels:catKeys,
@@ -2177,6 +2258,7 @@ function initCategoryTab() {
       cutout:'55%'
     }
   });
+  hoverReplay(chartCatDonut, 'catDonut');
 
   // Bubble chart
   const total = Object.values(CAT_AMOUNTS).reduce((s,v)=>s+v,0);
@@ -2190,7 +2272,7 @@ function initCategoryTab() {
     backgroundColor:CAT_COLORS[k]+'99',
     borderColor:CAT_COLORS[k],borderWidth:1
   }));
-  new Chart(document.getElementById('bubbleChart'),{
+  chartBubble = new Chart(document.getElementById('bubbleChart'),{
     type:'bubble',
     data:{datasets:bubbleData},
     options:{
@@ -2208,6 +2290,7 @@ function initCategoryTab() {
       }
     }
   });
+  hoverReplay(chartBubble, 'bubbleChart');
 
   // Add label overlays via plugin — done via annotation approach with simple textareas
   // Render category labels over bubble
