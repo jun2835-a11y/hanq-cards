@@ -366,6 +366,17 @@ tr:hover td { background: #F2EFEA !important; }
   </div>
 </div>
 
+<!-- 검색바 — sticky -->
+<div id="searchBar" style="position:sticky;top:0;z-index:50;background:#1A1814;border-bottom:1px solid rgba(255,255,255,.08);padding:10px 60px;display:flex;align-items:center;gap:10px">
+  <span style="font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:#5A5650;white-space:nowrap">Search</span>
+  <input id="reportSearch" type="text" placeholder="가맹점명 · 카드 · 카테고리 검색…"
+    style="flex:1;font-size:12px;font-family:inherit;border:1px solid rgba(255,255,255,.12);padding:6px 11px;outline:none;background:rgba(255,255,255,.06);color:#F7F5F0;min-width:0"
+    oninput="reportFilter()" onkeydown="if(event.key==='Enter')reportScrollFirst()">
+  <span id="searchCount" style="font-size:11px;color:#6A6460;white-space:nowrap"></span>
+  <button onclick="reportScrollFirst()" style="font-size:11px;padding:5px 13px;border:1px solid rgba(255,255,255,.2);background:none;color:#C8C4BF;cursor:pointer;font-family:inherit;white-space:nowrap;transition:all .15s" onmouseover="this.style.color='#F7F5F0'" onmouseout="this.style.color='#C8C4BF'">↓ 첫 결과</button>
+  <button onclick="reportClearSearch()" style="font-size:11px;padding:5px 10px;border:1px solid rgba(255,255,255,.1);background:none;cursor:pointer;font-family:inherit;color:#5A5650;transition:all .15s" onmouseover="this.style.color='#F7F5F0'" onmouseout="this.style.color='#5A5650'">✕</button>
+</div>
+
 <div class="container">
 
   <!-- KPI -->
@@ -538,17 +549,6 @@ tr:hover td { background: #F2EFEA !important; }
       <td class="num td-total">900</td>
     </tr></tbody>
     </table>
-  </div>
-
-  <!-- 검색 -->
-  <div id="searchBar" style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:14px 20px;background:#FFF;border:1px solid #E2DED7">
-    <span style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:#9A958F;white-space:nowrap">명세 검색</span>
-    <input id="reportSearch" type="text" placeholder="가맹점명 · 카드 · 카테고리 등 검색…"
-      style="flex:1;font-size:12px;font-family:inherit;border:1px solid #E2DED7;padding:7px 11px;outline:none;background:#FAFAF8;color:#1A1814;min-width:0"
-      oninput="reportFilter()" onkeydown="if(event.key==='Enter')reportScrollFirst()">
-    <span id="searchCount" style="font-size:11px;color:#9A958F;white-space:nowrap"></span>
-    <button onclick="reportScrollFirst()" style="font-size:11px;padding:6px 14px;border:1px solid #1A1814;background:#1A1814;color:#F7F5F0;cursor:pointer;font-family:inherit;white-space:nowrap">↓ 첫 결과로</button>
-    <button onclick="reportClearSearch()" style="font-size:11px;padding:6px 12px;border:1px solid #E2DED7;background:none;cursor:pointer;font-family:inherit;color:#9A958F">✕</button>
   </div>
 
   <!-- 구독/정기결제 -->
