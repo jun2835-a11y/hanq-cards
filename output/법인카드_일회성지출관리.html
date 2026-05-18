@@ -157,6 +157,11 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .rp-cell:empty::before{content:attr(data-ph);color:var(--muted);font-style:italic;pointer-events:none}
 .rp-del-btn{width:24px;height:24px;border:1px solid var(--border);background:none;cursor:pointer;color:var(--muted);font-size:15px;line-height:24px;text-align:center;transition:all .15s}
 .rp-del-btn:hover{border-color:var(--neg);color:var(--neg);background:var(--neg-bg)}
+.rp-drag-handle{cursor:grab;color:var(--muted);text-align:center;font-size:15px;user-select:none;padding:0 6px;opacity:.45;transition:opacity .15s}
+.rp-drag-handle:hover{opacity:1;color:var(--ink)}
+.rp-drag-handle:active{cursor:grabbing}
+.rp-drag-over{outline:2px solid var(--accent)!important;outline-offset:-2px}
+.rp-dragging{opacity:.35}
 .s-chip{font-size:9px;font-weight:700;padding:2px 6px;border:1px solid;white-space:nowrap;display:inline-block;flex-shrink:0}
 .rp-bucket-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin-top:4px}
 .rp-bucket{background:var(--surface);border:1px solid var(--border);padding:14px 16px}
@@ -538,6 +543,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
     <div class="tbl-wrap">
       <table>
         <thead><tr>
+          <th style="width:24px"></th>
           <th>카드명</th><th>카드사</th><th>담당자</th><th>회사</th>
           <th style="text-align:center">결제일</th><th>용도</th><th>상태</th><th>메모</th>
           <th style="width:32px"></th>
@@ -2303,12 +2309,15 @@ function rpSave() {
 }
 function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+let rpDragSrcId = null;
+
 function rpRenderTable() {
   const tbody = document.getElementById('rpBody');
   if (!tbody) return;
   tbody.innerHTML = rpCards.map(c => {
     const si = RP_STATUSES.find(x => x.v === c.status) || RP_STATUSES[0];
     return `<tr data-rp="${c.id}">
+      <td class="rp-drag-handle" title="드래그하여 순서 변경">⠿</td>
       <td style="font-weight:600"><div class="rp-cell" contenteditable="true" data-rp="${c.id}" data-f="cardName" data-ph="카드명">${escHtml(c.cardName)}</div></td>
       <td style="color:var(--muted);font-size:11px"><div class="rp-cell" contenteditable="true" data-rp="${c.id}" data-f="cardCo" data-ph="카드사">${escHtml(c.cardCo)}</div></td>
       <td><div class="rp-cell" contenteditable="true" data-rp="${c.id}" data-f="holder" data-ph="담당자">${escHtml(c.holder)}</div></td>
@@ -2320,6 +2329,54 @@ function rpRenderTable() {
       <td><button class="rp-del-btn" onclick="rpDelete('${c.id}')" title="삭제">×</button></td>
     </tr>`;
   }).join('');
+
+  // ── 드래그 핸들 — mousedown 시에만 row를 draggable로 전환 ──
+  tbody.querySelectorAll('.rp-drag-handle').forEach(handle => {
+    handle.addEventListener('mousedown', function() {
+      const row = this.closest('tr');
+      row.setAttribute('draggable', 'true');
+    });
+    handle.addEventListener('mouseup', function() {
+      const row = this.closest('tr');
+      row.removeAttribute('draggable');
+    });
+  });
+  tbody.querySelectorAll('tr[data-rp]').forEach(row => {
+    row.addEventListener('dragstart', function(e) {
+      rpDragSrcId = this.dataset.rp;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', rpDragSrcId);
+      setTimeout(() => this.classList.add('rp-dragging'), 0);
+    });
+    row.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      tbody.querySelectorAll('tr').forEach(r => r.classList.remove('rp-drag-over'));
+      this.classList.add('rp-drag-over');
+    });
+    row.addEventListener('dragleave', function() {
+      this.classList.remove('rp-drag-over');
+    });
+    row.addEventListener('drop', function(e) {
+      e.preventDefault();
+      const targetId = this.dataset.rp;
+      if (!rpDragSrcId || rpDragSrcId === targetId) return;
+      const si = rpCards.findIndex(c => c.id === rpDragSrcId);
+      const ti = rpCards.findIndex(c => c.id === targetId);
+      if (si < 0 || ti < 0) return;
+      const [moved] = rpCards.splice(si, 1);
+      rpCards.splice(ti, 0, moved);
+      rpSave();
+      rpRenderTable();
+    });
+    row.addEventListener('dragend', function() {
+      this.removeAttribute('draggable');
+      tbody.querySelectorAll('tr').forEach(r => r.classList.remove('rp-drag-over', 'rp-dragging'));
+      rpDragSrcId = null;
+    });
+  });
+
+  // ── contenteditable 블러 저장 ──
   tbody.querySelectorAll('.rp-cell').forEach(el => {
     el.addEventListener('blur', () => {
       const card = rpCards.find(c => c.id === el.dataset.rp);
@@ -2452,7 +2509,7 @@ function exportExcel(){
     var mx=-100,my=-100,tx=-100,ty=-100,first=true;
     document.addEventListener('mousemove',function(e){mx=e.clientX;my=e.clientY;c.style.left=mx+'px';c.style.top=my+'px';if(first){tx=mx;ty=my;first=false;}});
     setInterval(function(){tx+=(mx-tx)*.18;ty+=(my-ty)*.18;t.style.left=tx+'px';t.style.top=ty+'px';},16);
-    setTimeout(function(){document.querySelectorAll('a,button,input,select,.tab-btn,[onclick]').forEach(function(el){el.addEventListener('mouseenter',function(){c.classList.add('big');});el.addEventListener('mouseleave',function(){c.classList.remove('big');});});},500);
+    setTimeout(function(){document.querySelectorAll('a,button,input,select,.tab-btn,[onclick]').forEach(function(el){el.addEventListener('mouseenter',function(){c.classList.add('big');t.style.opacity='0';});el.addEventListener('mouseleave',function(){c.classList.remove('big');t.style.opacity='1';});});},500);
   }
 })();
 </script>
