@@ -1994,6 +1994,7 @@ window.addEventListener('message', function(e) {
    typeof chartStackedMonth!=='undefined'&&chartStackedMonth
   ].forEach(function(c){if(c){try{c.reset();c.update();}catch(ex){}}});
 });
+try { window.parent.postMessage({type:'hq-ready'}, '*'); } catch(_) {}
 
 // ═══════════════════════════════════════════════════════════
 // CARD HOLDER TABLE — standalone so rpSave() can refresh it

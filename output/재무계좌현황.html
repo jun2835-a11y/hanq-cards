@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>재무 계좌 관리</title>
+<title>계좌관리</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -723,7 +723,7 @@ tr.row-threshold-warn:hover{background:#FFF7D6!important}
 <div class="header">
   <div class="header-left">
     <div class="eyebrow">Financial Account Management</div>
-    <h1>재무 계좌 관리</h1>
+    <h1>계좌관리</h1>
     <div class="sub">기준일: 2026년 5월 12일 &nbsp;·&nbsp; 예금 24개 &nbsp;·&nbsp; 대출 2건 &nbsp;·&nbsp; 카드 10장</div>
   </div>
   <div class="header-right">
@@ -736,7 +736,7 @@ tr.row-threshold-warn:hover{background:#FFF7D6!important}
       <span class="hdr-weather-desc" id="hdr-wdesc">서울</span>
     </div>
     <div class="hdr-btns">
-      <a class="hdr-btn" href="/api/export-excel" download>↓ Excel</a>
+      <button class="hdr-btn" onclick="exportExcel()">↓ Excel</button>
       <button class="hdr-btn" onclick="window.print()">⎙ 인쇄 / PDF</button>
       <button class="hdr-btn primary" onclick="openTxnModal(null)">+ 입출금 기록</button>
       <button class="hdr-btn" onclick="pinLock()" title="화면 잠금">🔒</button>
@@ -3165,6 +3165,7 @@ window.addEventListener('message', function(e) {
   if (ov && ov.style.display !== 'none' && !ov.classList.contains('hidden')) return;
   playEnterAnims();
 });
+try { window.parent.postMessage({type:'hq-ready'}, '*'); } catch(_) {}
 </script>
 
 <!-- ── ACTIVITY LOG POPUP ── -->
