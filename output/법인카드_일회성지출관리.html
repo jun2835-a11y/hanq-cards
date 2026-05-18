@@ -1893,13 +1893,11 @@ function renderDashboard() {
   const totalAmt = TRANSACTIONS.reduce((s,t)=>s+t.amount,0);
   const totalCnt = TRANSACTIONS.length;
   const avgAmt   = totalCnt > 0 ? Math.round(totalAmt/totalCnt) : 0;
-  if (window.self === window.top) {
-    setTimeout(()=>{
-      const e1=document.getElementById('kpi-total'); if(e1) countUp(e1,totalAmt,1000);
-      const e2=document.getElementById('kpi-count'); if(e2) countUp(e2,totalCnt,600,'');
-      const e3=document.getElementById('kpi-avg');   if(e3) countUp(e3,avgAmt,1000);
-    }, 200);
-  }
+  setTimeout(()=>{
+    const e1=document.getElementById('kpi-total'); if(e1) countUp(e1,totalAmt,1000);
+    const e2=document.getElementById('kpi-count'); if(e2) countUp(e2,totalCnt,600,'');
+    const e3=document.getElementById('kpi-avg');   if(e3) countUp(e3,avgAmt,1000);
+  }, 200);
 
   // KPI 호버 (최초 1회만 바인딩)
   if (!_dashHooked) {
@@ -1926,7 +1924,7 @@ function renderDashboard() {
   chartDonutCard=new Chart(document.getElementById('donutCard'),{
     type:'doughnut',
     data:{labels:cardLabels,datasets:[{data:cardAmounts,backgroundColor:cardLabels.map(n=>cardColors[n]||'#9A958F'),borderWidth:2,borderColor:'#F7F5F0'}]},
-    options:{responsive:true,animation:{duration:window.self===window.top?800:0,easing:'easeOutQuart'},plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12,padding:10}},tooltip:{callbacks:{label:ctx=>ctx.label+': '+ctx.raw.toLocaleString('ko-KR')+'원'}}},cutout:'60%'}
+    options:{responsive:true,animation:{duration:800,easing:'easeOutQuart'},plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12,padding:10}},tooltip:{callbacks:{label:ctx=>ctx.label+': '+ctx.raw.toLocaleString('ko-KR')+'원'}}},cutout:'60%'}
   });
 
   // 카테고리 가로 바 — TRANSACTIONS에서 실시간 계산
@@ -1937,7 +1935,7 @@ function renderDashboard() {
   chartCatHBar=new Chart(document.getElementById('catHBar'),{
     type:'bar',
     data:{labels:catKeys,datasets:[{data:catVals,backgroundColor:catKeys.map(k=>CAT_COLORS[k]||'#9A958F'),borderWidth:0,borderRadius:2}]},
-    options:{indexAxis:'y',responsive:true,animation:{duration:window.self===window.top?900:0,easing:'easeOutQuart'},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.raw.toLocaleString('ko-KR')+'원'}}},scales:{x:{ticks:{callback:v=>(v/10000).toFixed(0)+'만'},grid:{color:'rgba(0,0,0,.04)'}},y:{grid:{display:false},ticks:{font:{size:11}}}}}
+    options:{indexAxis:'y',responsive:true,animation:{duration:900,easing:'easeOutQuart'},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.raw.toLocaleString('ko-KR')+'원'}}},scales:{x:{ticks:{callback:v=>(v/10000).toFixed(0)+'만'},grid:{color:'rgba(0,0,0,.04)'}},y:{grid:{display:false},ticks:{font:{size:11}}}}}
   });
 
   // 월별 누적 바 — 기간 TRANSACTIONS에서 자동 도출
@@ -1953,7 +1951,7 @@ function renderDashboard() {
   chartStackedMonth=new Chart(document.getElementById('stackedMonth'),{
     type:'bar',
     data:{labels:months,datasets:cardLabels.map(c=>({label:c,data:monthlyByCard[c],backgroundColor:cardColors[c]||'#9A958F',borderWidth:0,borderRadius:2}))},
-    options:{responsive:true,animation:{duration:window.self===window.top?1000:0,easing:'easeOutQuart'},plugins:{legend:{position:'bottom',labels:{font:{size:11},boxWidth:12,padding:16}},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.raw.toLocaleString('ko-KR')+'원'}}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,ticks:{callback:v=>(v/10000).toFixed(0)+'만'},grid:{color:'rgba(0,0,0,.04)'}}}}
+    options:{responsive:true,animation:{duration:1000,easing:'easeOutQuart'},plugins:{legend:{position:'bottom',labels:{font:{size:11},boxWidth:12,padding:16}},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.raw.toLocaleString('ko-KR')+'원'}}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,ticks:{callback:v=>(v/10000).toFixed(0)+'만'},grid:{color:'rgba(0,0,0,.04)'}}}}
   });
 
   // 차트 호버 재생 (idempotent)
