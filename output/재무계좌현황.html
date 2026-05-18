@@ -378,6 +378,30 @@ tr:hover .action-btns{opacity:1}
 .pin-key.empty{border:none;background:transparent;cursor:default}
 @keyframes pinShake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
 .pin-dots.shake{animation:pinShake .4s ease}
+
+/* ── 애니메이션 추가 ── */
+@keyframes fadeSlideUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes sectionSlideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
+@keyframes kpiCountPop{0%{transform:scale(1)}40%{transform:scale(1.06)}100%{transform:scale(1)}}
+@keyframes barGrow{from{width:0!important}to{width:var(--bar-target,100%)}}
+@keyframes rowStagger{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:none}}
+/* KPI 카드 호버 */
+.kpi{transition:background .2s,box-shadow .2s,transform .18s}
+.kpi:hover{background:#F8FBF8;box-shadow:inset 0 -2px 0 var(--pos);transform:translateY(-1px)}
+/* 섹션 타이틀 호버 언더라인 */
+.section-title{
+  background-image:linear-gradient(var(--accent),var(--accent));
+  background-size:0 2px;background-repeat:no-repeat;background-position:0 100%;
+  transition:background-size .35s ease;padding-bottom:1px;display:inline;
+}
+.section-header:hover .section-title{background-size:100% 2px}
+/* 차트박스 호버 글로우 */
+.chart-box,.trend-chart-box{transition:box-shadow .25s}
+.chart-box:hover,.trend-chart-box:hover{box-shadow:0 0 0 1px var(--pos-bd),0 4px 18px rgba(45,102,68,.1)}
+/* 테이블 행 로드 애니메이션 */
+.anim-row{opacity:0;animation:rowStagger .38s ease forwards}
+/* 섹션 헤더 로드 애니메이션 */
+.anim-section{opacity:0;animation:sectionSlideIn .45s ease forwards}
 .pin-change-wrap{margin-top:12px}
 .pin-change-btn{background:none;border:none;color:rgba(255,255,255,.25);font-size:11px;cursor:pointer;font-family:inherit;letter-spacing:.05em;text-decoration:underline}
 .pin-change-btn:hover{color:rgba(255,255,255,.5)}
@@ -2804,9 +2828,10 @@ DEPOSITS.filter(d => d.balance > 0).forEach(d => {
   bankTotals[k] = (bankTotals[k]||0) + d.balance;
 });
 const CHART_COLORS = ['#2D6644','#1A4A8A','#C8380A','#7A6A52','#4A7A6A','#8B5E14'];
+let _bankChart = null;
 const bankCtx = document.getElementById('bankChart')?.getContext('2d');
 if (bankCtx) {
-  new Chart(bankCtx, {
+  _bankChart = new Chart(bankCtx, {
     type: 'doughnut',
     data: {
       labels: Object.keys(bankTotals),
@@ -3026,7 +3051,83 @@ function initTrendTab() {
       }
     }
   });
+  // trend 차트 호버 재생 (함수 내에서 등록)
+  const trendEl = document.getElementById('trendChart');
+  if (trendEl && !trendEl.parentElement._trendHoverBound) {
+    trendEl.parentElement._trendHoverBound = true;
+    let _tcd = 0;
+    trendEl.parentElement.addEventListener('mouseenter', () => {
+      if (Date.now() - _tcd < 900) return; _tcd = Date.now();
+      if (_trendChart) { _trendChart.reset(); _trendChart.update(); }
+    });
+  }
 }
+
+// ═══════════════════════════════════════════════════════════
+// 계좌관리 애니메이션
+// ═══════════════════════════════════════════════════════════
+(function() {
+
+  // ── countUp 헬퍼 ──
+  function acCountUp(el, target, dur) {
+    if (!el) return;
+    const start = Date.now();
+    (function tick() {
+      const p = Math.min((Date.now() - start) / dur, 1);
+      const ease = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(target * ease).toLocaleString('ko-KR');
+      if (p < 1) requestAnimationFrame(tick);
+    })();
+  }
+
+  // ── KPI countUp 초기화 + 호버 재생 ──
+  const kpis = [
+    { id:'kpi-deposit', val:57231033,  dur:900  },
+    { id:'kpi-loan',    val:321652000, dur:1100 },
+    { id:'kpi-net',     val:264420967, dur:1000 },
+  ];
+  setTimeout(() => { kpis.forEach(({id,val,dur}) => acCountUp(document.getElementById(id), val, dur)); }, 350);
+  kpis.forEach(({id,val,dur}) => {
+    const el = document.getElementById(id); if(!el) return;
+    const card = el.closest('.kpi'); if(!card) return;
+    let cd = 0;
+    card.addEventListener('mouseenter', () => {
+      if (Date.now()-cd < 1200) return; cd = Date.now();
+      el.style.animation = 'kpiCountPop .35s ease';
+      el.addEventListener('animationend', () => { el.style.animation = ''; }, {once:true});
+      acCountUp(el, val, dur);
+    });
+  });
+
+  // ── bankChart 호버 재생 ──
+  const bankEl = document.getElementById('bankChart');
+  if (bankEl) {
+    let _bcd = 0;
+    bankEl.closest('.chart-box').addEventListener('mouseenter', () => {
+      if (Date.now()-_bcd < 900) return; _bcd = Date.now();
+      if (_bankChart) { _bankChart.reset(); _bankChart.update(); }
+    });
+  }
+
+  // ── 테이블 행 스태거 fade-in ──
+  document.querySelectorAll('#tab-accounts tbody tr, #tab-loans tbody tr').forEach((tr, i) => {
+    tr.classList.add('anim-row');
+    tr.style.animationDelay = (i * 45) + 'ms';
+  });
+
+  // ── 섹션 헤더 스태거 slide-in ──
+  document.querySelectorAll('.section-header').forEach((sh, i) => {
+    sh.classList.add('anim-section');
+    sh.style.animationDelay = (i * 80 + 200) + 'ms';
+  });
+
+  // ── balance-summary 행 stagger ──
+  document.querySelectorAll('.bsum-row').forEach((row, i) => {
+    row.style.opacity = '0';
+    row.style.animation = `fadeSlideUp .4s ease ${i*70+400}ms forwards`;
+  });
+
+})();
 </script>
 </body>
 </html>
