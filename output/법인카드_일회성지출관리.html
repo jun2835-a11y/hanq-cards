@@ -1964,8 +1964,8 @@ function renderDashboard() {
   // 카드 현황 테이블
   renderCardHolderTable();
 
-  // 벤다이어그램 + 호버 (최초 1회만 바인딩; iframe 진입 시 hq-enter가 재실행)
-  if (window.self === window.top) buildVenn();
+  // 벤다이어그램 + 호버 (최초 1회만 바인딩)
+  buildVenn();
   if (!_dashHooked) {
     const vennEl=document.getElementById('vennSvg');
     if(vennEl){
