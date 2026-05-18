@@ -130,7 +130,7 @@ tr:hover td{background:#F9F7F3;transition:background .1s}
 .venn-leg-dot{width:10px;height:10px;border-radius:50%}
 
 /* BUBBLE */
-.bubble-wrap{position:relative;height:300px}
+.bubble-wrap{position:relative;height:300px;overflow:visible}
 
 /* SAVINGS */
 .savings-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px}
@@ -2278,6 +2278,7 @@ function initCategoryTab() {
     options:{
       responsive:true,maintainAspectRatio:false,
       animation:{duration:800},
+      layout:{padding:{top:30,bottom:30,left:30,right:30}},
       plugins:{
         legend:{display:false},
         tooltip:{callbacks:{
@@ -2285,8 +2286,8 @@ function initCategoryTab() {
         }}
       },
       scales:{
-        x:{display:false,min:0,max:100},
-        y:{display:false,min:0,max:100}
+        x:{display:false,min:-5,max:105},
+        y:{display:false,min:-5,max:105}
       }
     }
   });
@@ -2385,10 +2386,14 @@ function rpLoad() {
     }
   } catch { rpCards = JSON.parse(JSON.stringify(RP_DEFAULT_CARDS)); }
 }
+let _rpRenderTimer = null;
 function rpSave() {
-  localStorage.setItem(RP_KEY, JSON.stringify(rpCards));
-  renderDashboard();
-  initCardsTab();
+  localStorage.setItem(RP_KEY, JSON.stringify(rpCards)); // 즉시 저장
+  clearTimeout(_rpRenderTimer);
+  _rpRenderTimer = setTimeout(() => { // 차트 리빌드는 600ms 디바운스
+    renderDashboard();
+    initCardsTab();
+  }, 600);
 }
 function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
