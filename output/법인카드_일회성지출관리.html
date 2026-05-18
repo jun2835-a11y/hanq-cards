@@ -598,6 +598,21 @@ function getCardMaster() {
     .filter(c => c.txName)
     .map(c => ({ corp: c.company, holder: c.holder, cardCo: c.cardCo, name: c.txName, no: c.no || '—' }));
 }
+// 카드별 색상 — 알려진 카드는 고정색, 새 카드는 팔레트에서 자동 배정
+const CARD_COLOR_PALETTE = ['#C8380A','#2D6644','#1A4A8A','#8B5E14','#6B3A7D','#1A7A8A','#607060','#A0522D','#2454C8','#9A4020','#1A5A40','#7A5A14'];
+function getCardColors() {
+  const colors = {};
+  getCardMaster().forEach((c, i) => {
+    colors[c.name] = CARD_COLORS[c.name] || CARD_COLOR_PALETTE[i % CARD_COLOR_PALETTE.length];
+  });
+  return colors;
+}
+// 카테고리별 합계 — TRANSACTIONS에서 실시간 계산
+function getCatTotals() {
+  const totals = {};
+  TRANSACTIONS.forEach(t => { totals[t.cat] = (totals[t.cat] || 0) + t.amount; });
+  return totals;
+}
 const CAT_COLORS = {
   '기타업무비':'#5C5851','렌탈/구독':'#A0522D','식대/카페':'#C8380A',
   '생활/잡화':'#2D6644','교통/주유':'#1A4A8A','4대보험':'#9A958F',
@@ -1833,135 +1848,115 @@ rpLoad(); // 대시보드 렌더링 전에 카드 재편 데이터 로드
 // ── 차트 전역 참조 (호버 재생용) ─────────────────────────
 let chartDonutCard, chartCatHBar, chartStackedMonth, chartCatDonut, chartBubble;
 
-// 차트 호버 재생 헬퍼
-function hoverReplay(chart, canvasId) {
+// 차트 호버 재생 헬퍼 — 중복 바인딩 방지 + getter 지원
+function hoverReplay(chartOrGetter, canvasId) {
   let cd = 0;
   const el = document.getElementById(canvasId);
   if (!el) return;
-  el.parentElement.addEventListener('mouseenter', () => {
+  const parent = el.parentElement;
+  if (parent._chartHoverBound) return;
+  parent._chartHoverBound = true;
+  parent.addEventListener('mouseenter', () => {
     if (Date.now() - cd < 900) return; cd = Date.now();
-    chart.reset(); chart.update();
+    const c = typeof chartOrGetter === 'function' ? chartOrGetter() : chartOrGetter;
+    if (c) { c.reset(); c.update(); }
   });
 }
 
 // ═══════════════════════════════════════════════════════════
-// DASHBOARD INIT
+// DASHBOARD RENDER — re-callable; rpSave()에서도 호출됨
 // ═══════════════════════════════════════════════════════════
-(function initDashboard(){
-  // KPI countup + 호버 재생
-  const kpiDefs = [
-    {id:'kpi-total', val:24790421, dur:1000},
-    {id:'kpi-count', val:1139,     dur:600,  prefix:''},
-    {id:'kpi-avg',   val:93903,    dur:1000},
-  ];
+let _dashHooked = false;
+function renderDashboard() {
+  const cardColors = getCardColors();
+
+  // KPI — TRANSACTIONS에서 실시간 계산
+  const totalAmt = TRANSACTIONS.reduce((s,t)=>s+t.amount,0);
+  const totalCnt = TRANSACTIONS.length;
+  const avgAmt   = totalCnt > 0 ? Math.round(totalAmt/totalCnt) : 0;
   setTimeout(()=>{
-    kpiDefs.forEach(({id,val,dur,prefix})=>{
-      const el = document.getElementById(id);
-      if (!el) return;
-      prefix !== undefined ? countUp(el,val,dur,prefix) : countUp(el,val,dur);
-    });
+    const e1=document.getElementById('kpi-total'); if(e1) countUp(e1,totalAmt,1000);
+    const e2=document.getElementById('kpi-count'); if(e2) countUp(e2,totalCnt,600,'');
+    const e3=document.getElementById('kpi-avg');   if(e3) countUp(e3,avgAmt,1000);
   }, 200);
-  // KPI 카드 호버 → countUp 재생
-  kpiDefs.forEach(({id,val,dur,prefix})=>{
-    const el = document.getElementById(id); if(!el) return;
-    const card = el.closest('.kpi-card'); if(!card) return;
-    let cd = 0;
-    card.addEventListener('mouseenter',()=>{
-      if(Date.now()-cd < 1100) return; cd = Date.now();
-      prefix !== undefined ? countUp(el,val,dur,prefix) : countUp(el,val,dur);
-    });
-  });
 
-  // Donut card
-  const cardLabels = Object.keys(CARD_COLORS);
-  const cardAmounts = [7742576,7270061,6219280,2682404,875200,900];
-  chartDonutCard = new Chart(document.getElementById('donutCard'),{
+  // KPI 호버 (최초 1회만 바인딩)
+  if (!_dashHooked) {
+    [{id:'kpi-total',dur:1000,pfx:undefined},{id:'kpi-count',dur:600,pfx:''},{id:'kpi-avg',dur:1000,pfx:undefined}]
+      .forEach(({id,dur,pfx})=>{
+        const el=document.getElementById(id); if(!el) return;
+        const kc=el.closest('.kpi-card'); if(!kc) return;
+        let cd=0;
+        kc.addEventListener('mouseenter',()=>{
+          if(Date.now()-cd<1100) return; cd=Date.now();
+          const a=TRANSACTIONS.reduce((s,t)=>s+t.amount,0), n=TRANSACTIONS.length;
+          const v={['kpi-total']:a,['kpi-count']:n,['kpi-avg']:n>0?Math.round(a/n):0}[id];
+          const el2=document.getElementById(id); if(!el2) return;
+          pfx!==undefined ? countUp(el2,v,dur,pfx) : countUp(el2,v,dur);
+        });
+      });
+  }
+
+  // 카드 도넛 — 파괴 후 재생성
+  if(chartDonutCard){chartDonutCard.destroy();chartDonutCard=null;}
+  const cm=getCardMaster();
+  const cardLabels=cm.map(c=>c.name);
+  const cardAmounts=cm.map(c=>TRANSACTIONS.filter(t=>t.card===c.name).reduce((s,t)=>s+t.amount,0));
+  chartDonutCard=new Chart(document.getElementById('donutCard'),{
     type:'doughnut',
-    data:{
-      labels:cardLabels,
-      datasets:[{data:cardAmounts,backgroundColor:Object.values(CARD_COLORS),borderWidth:2,borderColor:'#F7F5F0'}]
-    },
-    options:{
-      responsive:true,
-      animation:{duration:800,easing:'easeOutQuart'},
-      plugins:{
-        legend:{position:'right',labels:{font:{size:11},boxWidth:12,padding:10}},
-        tooltip:{callbacks:{label:ctx=>ctx.label+': '+ctx.raw.toLocaleString('ko-KR')+'원'}}
-      },
-      cutout:'60%'
-    }
+    data:{labels:cardLabels,datasets:[{data:cardAmounts,backgroundColor:cardLabels.map(n=>cardColors[n]||'#9A958F'),borderWidth:2,borderColor:'#F7F5F0'}]},
+    options:{responsive:true,animation:{duration:800,easing:'easeOutQuart'},plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12,padding:10}},tooltip:{callbacks:{label:ctx=>ctx.label+': '+ctx.raw.toLocaleString('ko-KR')+'원'}}},cutout:'60%'}
   });
 
-  // Category horizontal bar
-  const catKeys = Object.keys(CAT_AMOUNTS);
-  const catVals = Object.values(CAT_AMOUNTS);
-  chartCatHBar = new Chart(document.getElementById('catHBar'),{
+  // 카테고리 가로 바 — TRANSACTIONS에서 실시간 계산
+  if(chartCatHBar){chartCatHBar.destroy();chartCatHBar=null;}
+  const catTotals=getCatTotals();
+  const catKeys=Object.keys(catTotals).sort((a,b)=>catTotals[b]-catTotals[a]);
+  const catVals=catKeys.map(k=>catTotals[k]);
+  chartCatHBar=new Chart(document.getElementById('catHBar'),{
     type:'bar',
-    data:{
-      labels:catKeys,
-      datasets:[{data:catVals,backgroundColor:catKeys.map(k=>CAT_COLORS[k]),borderWidth:0,borderRadius:2}]
-    },
-    options:{
-      indexAxis:'y',responsive:true,
-      animation:{duration:900,easing:'easeOutQuart'},
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.raw.toLocaleString('ko-KR')+'원'}}},
-      scales:{
-        x:{ticks:{callback:v=>(v/10000).toFixed(0)+'만'},grid:{color:'rgba(0,0,0,.04)'}},
-        y:{grid:{display:false},ticks:{font:{size:11}}}
-      }
-    }
+    data:{labels:catKeys,datasets:[{data:catVals,backgroundColor:catKeys.map(k=>CAT_COLORS[k]||'#9A958F'),borderWidth:0,borderRadius:2}]},
+    options:{indexAxis:'y',responsive:true,animation:{duration:900,easing:'easeOutQuart'},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.raw.toLocaleString('ko-KR')+'원'}}},scales:{x:{ticks:{callback:v=>(v/10000).toFixed(0)+'만'},grid:{color:'rgba(0,0,0,.04)'}},y:{grid:{display:false},ticks:{font:{size:11}}}}}
   });
 
-  // Stacked monthly
-  const months=['2026-01','2026-02','2026-03'];
-  const monthlyByCard = {};
-  cardLabels.forEach(c=>{ monthlyByCard[c]=[0,0,0]; });
+  // 월별 누적 바 — 기간 TRANSACTIONS에서 자동 도출
+  if(chartStackedMonth){chartStackedMonth.destroy();chartStackedMonth=null;}
+  const monthSet=new Set(TRANSACTIONS.map(t=>t.date.substring(0,7)));
+  const months=Array.from(monthSet).sort();
+  const monthlyByCard={};
+  cardLabels.forEach(c=>{monthlyByCard[c]=months.map(()=>0);});
   TRANSACTIONS.forEach(t=>{
-    const mi = months.indexOf(t.date.substring(0,7));
-    if(mi>=0 && monthlyByCard[t.card]) monthlyByCard[t.card][mi]+=t.amount;
+    const mi=months.indexOf(t.date.substring(0,7));
+    if(mi>=0&&monthlyByCard[t.card]) monthlyByCard[t.card][mi]+=t.amount;
   });
-  chartStackedMonth = new Chart(document.getElementById('stackedMonth'),{
+  chartStackedMonth=new Chart(document.getElementById('stackedMonth'),{
     type:'bar',
-    data:{
-      labels:months,
-      datasets:cardLabels.map(c=>({
-        label:c,data:monthlyByCard[c],
-        backgroundColor:CARD_COLORS[c],borderWidth:0,borderRadius:2
-      }))
-    },
-    options:{
-      responsive:true,
-      animation:{duration:1000,easing:'easeOutQuart'},
-      plugins:{
-        legend:{position:'bottom',labels:{font:{size:11},boxWidth:12,padding:16}},
-        tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.raw.toLocaleString('ko-KR')+'원'}}
-      },
-      scales:{
-        x:{stacked:true,grid:{display:false}},
-        y:{stacked:true,ticks:{callback:v=>(v/10000).toFixed(0)+'만'},grid:{color:'rgba(0,0,0,.04)'}}
-      }
-    }
+    data:{labels:months,datasets:cardLabels.map(c=>({label:c,data:monthlyByCard[c],backgroundColor:cardColors[c]||'#9A958F',borderWidth:0,borderRadius:2}))},
+    options:{responsive:true,animation:{duration:1000,easing:'easeOutQuart'},plugins:{legend:{position:'bottom',labels:{font:{size:11},boxWidth:12,padding:16}},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.raw.toLocaleString('ko-KR')+'원'}}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,ticks:{callback:v=>(v/10000).toFixed(0)+'만'},grid:{color:'rgba(0,0,0,.04)'}}}}
   });
 
-  // 차트 호버 재생 연결
-  hoverReplay(chartDonutCard,   'donutCard');
-  hoverReplay(chartCatHBar,     'catHBar');
-  hoverReplay(chartStackedMonth,'stackedMonth');
+  // 차트 호버 재생 (idempotent)
+  hoverReplay(()=>chartDonutCard,   'donutCard');
+  hoverReplay(()=>chartCatHBar,     'catHBar');
+  hoverReplay(()=>chartStackedMonth,'stackedMonth');
 
-  // Card holder mapping table
+  // 카드 현황 테이블
   renderCardHolderTable();
 
-  // Venn diagram + 호버 재생
+  // 벤다이어그램 + 호버 (최초 1회만 바인딩)
   buildVenn();
-  const vennEl = document.getElementById('vennSvg');
-  if (vennEl) {
-    let vcd = 0;
-    vennEl.closest('.venn-wrap, .chart-box, div').addEventListener('mouseenter', ()=>{
-      if (Date.now()-vcd < 800) return; vcd = Date.now();
-      buildVenn();
-    });
+  if (!_dashHooked) {
+    const vennEl=document.getElementById('vennSvg');
+    if(vennEl){
+      let vcd=0;
+      vennEl.closest('.venn-wrap,.chart-box,div').addEventListener('mouseenter',()=>{
+        if(Date.now()-vcd<800) return; vcd=Date.now(); buildVenn();
+      });
+    }
   }
-})();
+  _dashHooked=true;
+}
+renderDashboard();
 
 // ═══════════════════════════════════════════════════════════
 // CARD HOLDER TABLE — standalone so rpSave() can refresh it
@@ -2077,7 +2072,7 @@ function renderLedger(data) {
   tbody.innerHTML = data.map(t=>`
     <tr>
       <td style="color:var(--muted);font-size:11px">${t.date}</td>
-      <td style="font-size:11px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${CARD_COLORS[t.card]||'#ccc'};margin-right:6px"></span>${t.card}</td>
+      <td style="font-size:11px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${getCardColors()[t.card]||'#ccc'};margin-right:6px"></span>${t.card}</td>
       <td><span style="font-weight:500">${t.merchant}</span></td>
       <td>${badgeHtml(t.cat)}</td>
       <td style="text-align:right;font-weight:600">${t.amount.toLocaleString('ko-KR')}원</td>
@@ -2161,9 +2156,10 @@ function initCardsTab() {
 
   const maxAmt = Math.max(...cards.map(c=>c.amount), 1);
   const grid = document.getElementById('cardGrid');
+  const _cardColors = getCardColors();
 
   grid.innerHTML = cards.map((c, i) => {
-    const color  = CARD_COLORS[c.name] || '#9A958F';
+    const color  = _cardColors[c.name] || '#9A958F';
     const pct    = (c.amount / maxAmt * 100).toFixed(1);
     const maxM   = Math.max(...c.monthly, 1);
     const spark  = c.monthly.map((v, mi) => {
@@ -2239,8 +2235,10 @@ function showCardDetail(cardName) {
 // CATEGORY TAB
 // ═══════════════════════════════════════════════════════════
 function initCategoryTab() {
-  const catKeys = Object.keys(CAT_AMOUNTS);
-  const catVals = Object.values(CAT_AMOUNTS);
+  const catTotals = getCatTotals();
+  const catKeys   = Object.keys(catTotals).sort((a,b)=>catTotals[b]-catTotals[a]);
+  const catVals   = catKeys.map(k=>catTotals[k]);
+  const total     = catVals.reduce((s,v)=>s+v,0);
 
   chartCatDonut = new Chart(document.getElementById('catDonut'),{
     type:'doughnut',
@@ -2253,22 +2251,21 @@ function initCategoryTab() {
       animation:{duration:900},
       plugins:{
         legend:{position:'right',labels:{font:{size:11},boxWidth:12,padding:10}},
-        tooltip:{callbacks:{label:ctx=>ctx.label+': '+ctx.raw.toLocaleString('ko-KR')+'원 ('+((ctx.raw/24790421)*100).toFixed(1)+'%)'}}
+        tooltip:{callbacks:{label:ctx=>ctx.label+': '+ctx.raw.toLocaleString('ko-KR')+'원 ('+(total>0?(ctx.raw/total*100).toFixed(1):'0')+'%)'}}
       },
       cutout:'55%'
     }
   });
-  hoverReplay(chartCatDonut, 'catDonut');
+  hoverReplay(()=>chartCatDonut, 'catDonut');
 
   // Bubble chart
-  const total = Object.values(CAT_AMOUNTS).reduce((s,v)=>s+v,0);
   const positions = [
     {x:20,y:70},{x:55,y:30},{x:75,y:65},{x:40,y:80},{x:60,y:82},
     {x:15,y:45},{x:80,y:25},{x:30,y:20},{x:85,y:50}
   ];
   const bubbleData = catKeys.map((k,i)=>({
     label:k,
-    data:[{x:positions[i].x,y:positions[i].y,r:Math.max(8,Math.sqrt(CAT_AMOUNTS[k]/total)*80)}],
+    data:[{x:(positions[i]||{x:50,y:50}).x,y:(positions[i]||{x:50,y:50}).y,r:Math.max(8,Math.sqrt(catTotals[k]/total)*80)}],
     backgroundColor:CAT_COLORS[k]+'99',
     borderColor:CAT_COLORS[k],borderWidth:1
   }));
@@ -2281,7 +2278,7 @@ function initCategoryTab() {
       plugins:{
         legend:{display:false},
         tooltip:{callbacks:{
-          label:ctx=>`${ctx.dataset.label}: ${CAT_AMOUNTS[ctx.dataset.label].toLocaleString('ko-KR')}원`
+          label:ctx=>`${ctx.dataset.label}: ${(catTotals[ctx.dataset.label]||0).toLocaleString('ko-KR')}원`
         }}
       },
       scales:{
@@ -2290,15 +2287,14 @@ function initCategoryTab() {
       }
     }
   });
-  hoverReplay(chartBubble, 'bubbleChart');
+  hoverReplay(()=>chartBubble, 'bubbleChart');
 
-  // Add label overlays via plugin — done via annotation approach with simple textareas
   // Render category labels over bubble
   const canvas = document.getElementById('bubbleChart');
   catKeys.forEach((k,i)=>{
-    const pct = (CAT_AMOUNTS[k]/total*100).toFixed(1);
-    const xPct = positions[i].x/100;
-    const yPct = 1-(positions[i].y/100);
+    const pos = positions[i]||{x:50,y:50};
+    const xPct = pos.x/100;
+    const yPct = 1-(pos.y/100);
     const label = document.createElement('div');
     label.style.cssText = `position:absolute;left:${xPct*100}%;top:${yPct*100}%;transform:translate(-50%,-50%);font-size:10px;font-weight:700;color:${CAT_COLORS[k]};pointer-events:none;text-align:center;white-space:nowrap`;
     label.textContent = k;
@@ -2388,9 +2384,8 @@ function rpLoad() {
 }
 function rpSave() {
   localStorage.setItem(RP_KEY, JSON.stringify(rpCards));
-  renderCardHolderTable();
-  const grid = document.getElementById('cardGrid');
-  if (grid && grid.children.length > 0) initCardsTab();
+  renderDashboard();
+  initCardsTab();
 }
 function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
@@ -2570,7 +2565,7 @@ function exportExcel(){
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'전체명세');
   // Category summary
   const catRows=[['카테고리','금액']];
-  Object.entries(CAT_AMOUNTS).forEach(([k,v])=>catRows.push([k,v]));
+  Object.entries(getCatTotals()).forEach(([k,v])=>catRows.push([k,v]));
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(catRows),'카테고리별');
   XLSX.writeFile(wb,'법인카드_전체명세_'+new Date().toISOString().slice(0,10)+'.xlsx');
 }
