@@ -306,7 +306,8 @@ tr.search-hidden { display: none !important; }
 .dup-item.search-hidden { display: none !important; }
 
 /* ── 월별 결제 칼럼 ── */
-.month-cell { min-width: 180px; }
+.month-cell { min-width: 196px; }
+tr.food-hidden { display: none !important; }
 .month-dots { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .month-dot {
   display: inline-flex; flex-direction: column; align-items: center;
@@ -326,7 +327,7 @@ tr.search-hidden { display: none !important; }
   <div>
     <div class="header-eyebrow">Recurring &amp; Duplicate Expense Analysis</div>
     <h1>반복/중복지출관리 분석결과</h1>
-    <div class="header-sub">법인카드 구독성 지출 전수 조사 · 2026년 1월 — 3월 · 총 72건</div>
+    <div class="header-sub">법인카드 구독성 지출 전수 조사 · 2026년 1월 — 4월 · 총 72건</div>
   </div>
   <div class="header-kpi">
     <div class="hkpi">
@@ -355,6 +356,7 @@ tr.search-hidden { display: none !important; }
 
 <div class="edit-toolbar">
   <span class="et-label">조사 결과 <span>클릭하여 변경</span> &nbsp;·&nbsp; 조치 내용·담당자 <span>클릭하여 직접 편집</span> &nbsp;·&nbsp; 변경사항은 <span>서버에 자동 저장 · 모든 팀원에게 즉시 반영</span>됩니다</span>
+  <button class="et-btn" id="food-filter-btn" onclick="toggleFoodFilter()" style="border-color:rgba(200,56,10,.4);color:var(--accent)">🍽 식대 숨김</button>
   <button class="et-btn danger" onclick="resetAll()">초기화</button>
 </div>
 
@@ -847,7 +849,7 @@ tr.search-hidden { display: none !important; }
           <th style="width:145px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
           <th style="width:90px">유형</th>
           <th style="width:120px;text-align:right">월 절감 추정</th>
-          <th style="width:175px">월별 결제 현황</th>
+          <th style="width:208px">월별 결제 현황</th>
           <th style="width:120px">조사 결과 <span class="edit-hint">클릭 변경</span></th>
           <th style="width:360px">조치 내용 <span class="edit-hint">클릭 편집</span></th>
           <th style="width:155px">담당자 <span class="edit-hint">클릭 편집</span></th>
@@ -1091,7 +1093,7 @@ tr.search-hidden { display: none !important; }
           <th style="width:145px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
           <th style="width:90px">유형</th>
           <th style="width:120px;text-align:right">월 절감 추정</th>
-          <th style="width:175px">월별 결제 현황</th>
+          <th style="width:208px">월별 결제 현황</th>
           <th style="width:120px">조사 결과 <span class="edit-hint">클릭 변경</span></th>
           <th style="width:360px">조치 내용 <span class="edit-hint">클릭 편집</span></th>
           <th style="width:155px">담당자 <span class="edit-hint">클릭 편집</span></th>
@@ -1280,7 +1282,7 @@ tr.search-hidden { display: none !important; }
           <th style="width:145px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
           <th style="width:90px">유형</th>
           <th style="width:120px;text-align:right">월 절감 추정</th>
-          <th style="width:175px">월별 결제 현황</th>
+          <th style="width:208px">월별 결제 현황</th>
           <th style="width:120px">조사 결과 <span class="edit-hint">클릭 변경</span></th>
           <th style="width:360px">조치 내용 <span class="edit-hint">클릭 편집</span></th>
           <th style="width:155px">담당자 <span class="edit-hint">클릭 편집</span></th>
@@ -1424,7 +1426,7 @@ tr.search-hidden { display: none !important; }
           <th style="width:145px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
           <th style="width:90px">유형</th>
           <th style="width:120px;text-align:right">월 절감 추정</th>
-          <th style="width:175px">월별 결제 현황</th>
+          <th style="width:208px">월별 결제 현황</th>
           <th style="width:120px">조사 결과 <span class="edit-hint">클릭 변경</span></th>
           <th style="width:360px">조치 내용 <span class="edit-hint">클릭 편집</span></th>
           <th style="width:155px">담당자 <span class="edit-hint">클릭 편집</span></th>
@@ -1567,7 +1569,7 @@ tr.search-hidden { display: none !important; }
           <th style="width:145px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
           <th style="width:90px">유형</th>
           <th style="width:120px;text-align:right">월 절감 추정</th>
-          <th style="width:175px">월별 결제 현황</th>
+          <th style="width:208px">월별 결제 현황</th>
           <th style="width:120px">조사 결과 <span class="edit-hint">클릭 변경</span></th>
           <th style="width:360px">조치 내용 <span class="edit-hint">클릭 편집</span></th>
           <th style="width:155px">담당자 <span class="edit-hint">클릭 편집</span></th>
@@ -1647,7 +1649,7 @@ tr.search-hidden { display: none !important; }
           <th style="width:145px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
           <th style="width:90px">유형</th>
           <th style="width:120px;text-align:right">월 절감 추정</th>
-          <th style="width:175px">월별 결제 현황</th>
+          <th style="width:208px">월별 결제 현황</th>
           <th style="width:120px">조사 결과 <span class="edit-hint">클릭 변경</span></th>
           <th style="width:360px">조치 내용 <span class="edit-hint">클릭 편집</span></th>
           <th style="width:155px">담당자 <span class="edit-hint">클릭 편집</span></th>
@@ -1965,25 +1967,74 @@ tr.search-hidden { display: none !important; }
 
   init();
 
-  // ── 월별 결제 현황 셀 자동 주입 (month-cell 없는 행에 기본값 삽입) ──
+  // ── 월별 결제 현황 셀 (총지출관리 명세서 동기화, 1~4월) ──────────────
+  var _txMonthly = {}, _txCat = {};
+  try { _txMonthly = JSON.parse(localStorage.getItem('hanq-tx-monthly') || '{}'); } catch(e) {}
+  try { _txCat     = JSON.parse(localStorage.getItem('hanq-tx-cat')     || '{}'); } catch(e) {}
+  var _hasData = Object.keys(_txMonthly).length > 0;
+
+  function _getMonthly(svcName, cardName) {
+    var k = svcName + '\x00' + cardName;
+    if (_txMonthly[k]) return { months: _txMonthly[k], cat: _txCat[k] || '' };
+    var base = svcName.replace(/\s*\([^)]+원\/월\)\s*$/, '').trim();
+    if (base !== svcName) {
+      k = base + '\x00' + cardName;
+      if (_txMonthly[k]) return { months: _txMonthly[k], cat: _txCat[k] || '' };
+    }
+    return null;
+  }
+
+  function _buildMonthDots(months) {
+    var html = '<div class="month-dots">';
+    for (var m = 1; m <= 4; m++) {
+      var amt = (months && months[m]) ? months[m] : 0;
+      html += '<div class="month-dot"><span class="m-label">' + m + '월</span>' +
+        (amt > 0
+          ? '<span class="m-amt paid">' + amt.toLocaleString('ko-KR') + '</span>'
+          : '<span class="m-amt none">-</span>') +
+        '</div>';
+    }
+    return html + '</div>';
+  }
+
   document.querySelectorAll('tr[data-row-id]').forEach(function(tr) {
-    if (tr.querySelector('.month-cell')) return; // 이미 있으면 skip
+    var svcEl = tr.querySelector('.service-name');
+    if (!svcEl) return;
+    var svcName  = svcEl.textContent.trim();
+    var cardTag  = tr.querySelector('.row-card-tag');
+    var cardName = cardTag ? (cardTag.firstChild && cardTag.firstChild.nodeType === 3
+                     ? cardTag.firstChild.textContent.trim()
+                     : cardTag.textContent.replace(/[·*\d\s-]+$/,'').trim()) : '';
+
+    var result  = _hasData ? _getMonthly(svcName, cardName) : null;
+    var html    = _buildMonthDots(result ? result.months : null);
+    if (result && result.cat) tr.dataset.txCat = result.cat;
+
+    var existing = tr.querySelector('.month-cell');
     var tdStatus = tr.querySelector('.td-status');
     if (!tdStatus) return;
-    var cell = document.createElement('td');
-    cell.className = 'month-cell';
-    // 저장 금액 추출
-    var savingEl = tr.querySelector('.saving-cell');
-    var amtText = savingEl ? savingEl.textContent.replace('원','').trim() : '';
-    // 반복 여부: 기본은 매월 동일 금액
-    var html = '<div class="month-dots">' +
-      '<div class="month-dot"><span class="m-label">1월</span><span class="m-amt paid">' + amtText + '</span></div>' +
-      '<div class="month-dot"><span class="m-label">2월</span><span class="m-amt paid">' + amtText + '</span></div>' +
-      '<div class="month-dot"><span class="m-label">3월</span><span class="m-amt paid">' + amtText + '</span></div>' +
-      '</div>';
-    cell.innerHTML = html;
-    tdStatus.parentNode.insertBefore(cell, tdStatus);
+    if (existing) {
+      existing.innerHTML = html;
+    } else {
+      var cell = document.createElement('td');
+      cell.className = 'month-cell';
+      cell.innerHTML = html;
+      tdStatus.parentNode.insertBefore(cell, tdStatus);
+    }
   });
+
+  // 식대 필터 초기 적용
+  var _foodOn = true;
+  window.toggleFoodFilter = function() {
+    _foodOn = !_foodOn;
+    document.querySelectorAll('tr[data-tx-cat="식대/카페"]').forEach(function(tr) {
+      tr.classList.toggle('food-hidden', _foodOn);
+    });
+    var btn = document.getElementById('food-filter-btn');
+    if (btn) btn.textContent = _foodOn ? '🍽 식대 숨김' : '🍽 식대 표시';
+  };
+  window.toggleFoodFilter(); // 기본값: 식대 숨김
+
 })();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>

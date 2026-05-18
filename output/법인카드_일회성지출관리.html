@@ -1781,6 +1781,22 @@ const TRANSACTIONS = [
 // sort by date
 TRANSACTIONS.sort((a,b)=>a.date.localeCompare(b.date));
 
+// 실사결과보고 월별 동기화용 localStorage 저장
+(function() {
+  try {
+    var monthly = {}, cats = {};
+    TRANSACTIONS.forEach(function(t) {
+      var k = t.merchant + '\x00' + t.card;
+      var m = parseInt(t.date.slice(5,7), 10);
+      if (!monthly[k]) monthly[k] = {};
+      monthly[k][m] = (monthly[k][m] || 0) + t.amount;
+      if (!cats[k]) cats[k] = t.cat;
+    });
+    localStorage.setItem('hanq-tx-monthly', JSON.stringify(monthly));
+    localStorage.setItem('hanq-tx-cat', JSON.stringify(cats));
+  } catch(e) {}
+})();
+
 let filteredTx = [...TRANSACTIONS];
 let sortKey = 'date';
 let sortDir = 'desc';
