@@ -2851,6 +2851,7 @@ if (bankCtx) {
     },
     options: {
       responsive: true, maintainAspectRatio: false,
+      animation: { duration: window.self === window.top ? 800 : 0 },
       plugins: {
         legend: { position: 'right', labels: { font:{size:11}, boxWidth:12, padding:10 } },
         tooltip: { callbacks: { label: ctx => ' ' + Math.round(ctx.raw).toLocaleString('ko-KR') + '원' } }
@@ -3098,7 +3099,9 @@ function initTrendTab() {
     { id:'kpi-loan',    val:321652000, dur:1100 },
     { id:'kpi-net',     val:264420967, dur:1000 },
   ];
-  setTimeout(() => { kpis.forEach(({id,val,dur}) => acCountUp(document.getElementById(id), val, dur)); }, 350);
+  if (window.self === window.top) {
+    setTimeout(() => { kpis.forEach(({id,val,dur}) => acCountUp(document.getElementById(id), val, dur)); }, 350);
+  }
   kpis.forEach(({id,val,dur}) => {
     const el = document.getElementById(id); if(!el) return;
     const card = el.closest('.kpi'); if(!card) return;
@@ -3157,6 +3160,26 @@ function playEnterAnims() {
     row.style.opacity = '0';
     row.style.animation = 'fadeSlideUp .4s ease ' + (i * 70 + 80) + 'ms forwards';
   });
+  // KPI countUp
+  (function() {
+    function _cu(el, target, dur) {
+      if (!el) return;
+      var s = Date.now();
+      (function tick() {
+        var p = Math.min((Date.now()-s)/dur, 1), e = 1-Math.pow(1-p,3);
+        el.textContent = Math.round(target*e).toLocaleString('ko-KR');
+        if (p < 1) requestAnimationFrame(tick);
+      })();
+    }
+    _cu(document.getElementById('kpi-deposit'), 57231033,  900);
+    _cu(document.getElementById('kpi-loan'),    321652000, 1100);
+    _cu(document.getElementById('kpi-net'),     264420967, 1000);
+  })();
+  // 차트 재실행
+  if (typeof _bankChart !== 'undefined' && _bankChart) {
+    _bankChart.options.animation = {duration:800};
+    _bankChart.reset(); _bankChart.update();
+  }
 }
 // hq-enter: PIN 오버레이가 보이면 pinUnlock에서 처리하므로 건너뜀
 window.addEventListener('message', function(e) {
