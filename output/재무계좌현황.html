@@ -2763,51 +2763,41 @@ function deleteTxn(id) {
   toast('기록이 삭제됐습니다');
 }
 
-// ── EXPORT EXCEL ──
+// ── EXPORT EXCEL (예금계좌 + 입출금 기록) ──
 function exportExcel() {
-  const wb = XLSX.utils.book_new();
+  try {
+    if (typeof XLSX === 'undefined') { toast('XLSX 라이브러리 로딩 중입니다. 잠시 후 다시 시도해주세요.', true); return; }
+    const wb = XLSX.utils.book_new();
 
-  // Sheet 1: 예금
-  const depData = [['No','은행','계좌관리명','계좌번호','잔액','메모']];
-  DEPOSITS.forEach(d => {
-    const bal = state.balances[d.accountNo]?.value ?? d.balance;
-    depData.push([d.no, d.bank, d.accountName||d.holder, d.accountNo, bal, state.notes?.[d.accountNo]||'']);
-  });
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(depData), '예금계좌');
+    // Sheet 1: 예금계좌
+    const depData = [['No','은행','계좌관리명','계좌번호','잔액','메모']];
+    DEPOSITS.forEach(d => {
+      const bal = state.balances[d.accountNo]?.value ?? d.balance;
+      depData.push([d.no, d.bank, d.accountName||d.holder, d.accountNo, bal, state.notes?.[d.accountNo]||'']);
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(depData), '예금계좌');
 
-  // Sheet 2: 대출
-  const loanData = [['은행','대출과목','계좌번호','금리','대출금액','잔액','신규일','만기일']];
-  LOANS.forEach(l => loanData.push([l.bank,l.type,l.accountNo,l.rate,l.amount,l.balance,l.issued,l.maturity]));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(loanData), '대출');
+    // Sheet 2: 입출금 기록
+    const txnData = [['날짜','계좌','은행','유형','금액','내용','이후잔액']];
+    (state.transactions||[]).forEach(t => txnData.push([t.date, t.accountName, t.bank, t.type==='in'?'입금':'출금', t.amount, t.desc, t.balanceAfter]));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(txnData), '입출금기록');
 
-  // Sheet 3: 카드
-  const cardData = [['법인','부서','소지자','카드사','카드명','카드번호','발급일','유효기간','결제일','결제은행','결제계좌','상태']];
-  CARDS.forEach(c => cardData.push([c.company,c.dept,c.holder,c.cardCo,c.cardName,c.cardNo,c.issued,c.expiry,c.payDay,c.bank,c.account,c.inactive?'미사용':'사용중']));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(cardData), '기업카드');
-
-  // Sheet 4: 입출금
-  const txnData = [['날짜','계좌','은행','유형','금액','내용','이후잔액']];
-  (state.transactions||[]).forEach(t => txnData.push([t.date,t.accountName,t.bank,t.type==='in'?'입금':'출금',t.amount,t.desc,t.balanceAfter]));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(txnData), '입출금기록');
-
-  // Sheet 5: 변경이력
-  const histData = [['일시','계좌','은행','변경전','변경후','차액','사유']];
-  (state.history||[]).forEach(h => histData.push([h.ts,h.accountName,h.bank,h.oldVal,h.newVal,h.diff,h.memo]));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(histData), '변경이력');
-
-  const d = new Date();
-  const fname = '재무계좌현황_' + d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0') + '.xlsx';
-  const wbout = XLSX.write(wb, { bookType:'xlsx', type:'array' });
-  const blob = new Blob([wbout], { type:'application/octet-stream' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.style.display = 'none';
-  a.href = url;
-  a.download = fname;
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(() => { URL.revokeObjectURL(url); document.body.removeChild(a); }, 1000);
-  toast('✓ Excel 파일이 다운로드됩니다');
+    const d = new Date();
+    const fname = '계좌현황_' + d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0') + '.xlsx';
+    const wbout = XLSX.write(wb, { bookType:'xlsx', type:'array' });
+    const blob = new Blob([wbout], { type:'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = fname;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); document.body.removeChild(a); }, 1000);
+    toast('✓ Excel 다운로드 완료');
+  } catch(err) {
+    toast('Excel 내보내기 실패: ' + err.message, true);
+  }
 }
 
 // ── HELPERS ──

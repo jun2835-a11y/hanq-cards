@@ -1742,6 +1742,16 @@ tr.food-hidden { display: none !important; }
     if (!saved[rowId]) saved[rowId] = {};
     saved[rowId][field] = value;
     try { localStorage.setItem('hanq-inspect-state', JSON.stringify(saved)); } catch(e) {}
+    // ── 모든 편집 자동 포착 → ActivityLog ──
+    if (value && typeof ActivityLog !== 'undefined') {
+      const FL = { status:'상태', action:'조치내용', assignees:'담당자', site:'사이트', memo:'메모' };
+      const SL = { pending:'미확인', ok:'정상 사용', transfer:'카드 이관', stop:'지출 중단', partial:'부분 중단' };
+      const trEl = document.querySelector('tr[data-row-id="' + rowId + '"]');
+      const svcRaw = trEl ? (trEl.querySelector('.service-name')?.textContent || rowId) : rowId;
+      const svcName = svcRaw.length > 18 ? svcRaw.substring(0, 18) + '…' : svcRaw;
+      const dispVal = field === 'status' ? (SL[value] || value) : (value.length > 20 ? value.substring(0, 20) + '…' : value);
+      ActivityLog.push('✏️', svcName + ' → ' + (FL[field] || field) + ': ' + dispVal, '반복/중복지출관리');
+    }
     try {
       await fetch('/api/state', {
         method: 'POST',
