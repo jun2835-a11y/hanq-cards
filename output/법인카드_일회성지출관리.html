@@ -593,10 +593,13 @@ const CARD_COLORS = {
 };
 
 // 카드 마스터 — 카드 재편(rpCards)에서 동적으로 파생됨
+// txName이 있으면 TRANSACTIONS 매칭에 사용, 없으면 cardName으로 표시(결제액 0원)
 function getCardMaster() {
-  return rpCards
-    .filter(c => c.txName)
-    .map(c => ({ corp: c.company, holder: c.holder, cardCo: c.cardCo, name: c.txName, no: c.no || '—' }));
+  return rpCards.map(c => ({
+    corp: c.company, holder: c.holder, cardCo: c.cardCo,
+    name: c.txName || c.cardName,
+    no: c.no || '—'
+  }));
 }
 // 카드별 색상 — 알려진 카드는 고정색, 새 카드는 팔레트에서 자동 배정
 const CARD_COLOR_PALETTE = ['#C8380A','#2D6644','#1A4A8A','#8B5E14','#6B3A7D','#1A7A8A','#607060','#A0522D','#2454C8','#9A4020','#1A5A40','#7A5A14'];
