@@ -378,6 +378,11 @@ tr:hover .action-btns{opacity:1}
 .pin-key.empty{border:none;background:transparent;cursor:default}
 @keyframes pinShake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
 .pin-dots.shake{animation:pinShake .4s ease}
+@keyframes beaconPulse{0%,100%{transform:scale(.8);opacity:.5;box-shadow:0 0 0 0 rgba(255,56,56,.6)}50%{transform:scale(1);opacity:1;box-shadow:0 0 0 8px rgba(255,56,56,0)}}
+@keyframes beaconRing{0%{transform:scale(1);opacity:.6}100%{transform:scale(2.4);opacity:0}}
+.pin-beacon{width:18px;height:18px;position:relative;margin:0 auto 14px}
+.pin-beacon-inner{width:100%;height:100%;border-radius:50%;background:#FF3838;animation:beaconPulse 1.2s ease-in-out infinite}
+.pin-beacon::after{content:'';position:absolute;inset:0;border-radius:50%;border:1.5px solid rgba(255,56,56,.7);animation:beaconRing 1.2s ease-out infinite}
 
 /* ── 애니메이션 추가 ── */
 @keyframes fadeSlideUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
@@ -570,6 +575,7 @@ tr.row-threshold-warn:hover{background:#FFF7D6!important}
 <!-- PIN LOCK OVERLAY -->
 <div id="pin-overlay" class="pin-overlay">
   <div class="pin-box">
+    <div class="pin-beacon"><div class="pin-beacon-inner"></div></div>
     <div>
       <div class="pin-logo">hanQ · Finance</div>
       <div class="pin-title">PIN 입력</div>
@@ -1938,7 +1944,10 @@ function pinWrong(msg) {
 function pinUnlock() {
   const overlay = document.getElementById('pin-overlay');
   overlay.classList.add('hidden');
-  setTimeout(() => overlay.style.display = 'none', 420);
+  setTimeout(() => {
+    overlay.style.display = 'none';
+    if (typeof playEnterAnims === 'function') playEnterAnims();
+  }, 420);
 }
 
 function pinLock() {
@@ -3132,28 +3141,30 @@ function initTrendTab() {
 
 })();
 
-(function() {
-  function playEnterAnims() {
-    document.querySelectorAll('#tab-accounts tbody tr, #tab-loans tbody tr').forEach(function(tr, i) {
-      tr.classList.remove('anim-row'); void tr.offsetWidth;
-      tr.classList.add('anim-row');
-      tr.style.animationDelay = (i * 45) + 'ms';
-    });
-    document.querySelectorAll('.section-header').forEach(function(sh, i) {
-      sh.classList.remove('anim-section'); void sh.offsetWidth;
-      sh.classList.add('anim-section');
-      sh.style.animationDelay = (i * 80 + 80) + 'ms';
-    });
-    document.querySelectorAll('.bsum-row').forEach(function(row, i) {
-      row.style.animation = 'none'; void row.offsetWidth;
-      row.style.opacity = '0';
-      row.style.animation = 'fadeSlideUp .4s ease ' + (i * 70 + 80) + 'ms forwards';
-    });
-  }
-  window.addEventListener('message', function(e) {
-    if (e.data && e.data.type === 'hq-enter') playEnterAnims();
+function playEnterAnims() {
+  document.querySelectorAll('#tab-accounts tbody tr, #tab-loans tbody tr').forEach(function(tr, i) {
+    tr.classList.remove('anim-row'); void tr.offsetWidth;
+    tr.classList.add('anim-row');
+    tr.style.animationDelay = (i * 45) + 'ms';
   });
-})();
+  document.querySelectorAll('.section-header').forEach(function(sh, i) {
+    sh.classList.remove('anim-section'); void sh.offsetWidth;
+    sh.classList.add('anim-section');
+    sh.style.animationDelay = (i * 80 + 80) + 'ms';
+  });
+  document.querySelectorAll('.bsum-row').forEach(function(row, i) {
+    row.style.animation = 'none'; void row.offsetWidth;
+    row.style.opacity = '0';
+    row.style.animation = 'fadeSlideUp .4s ease ' + (i * 70 + 80) + 'ms forwards';
+  });
+}
+// hq-enter: PIN 오버레이가 보이면 pinUnlock에서 처리하므로 건너뜀
+window.addEventListener('message', function(e) {
+  if (!e.data || e.data.type !== 'hq-enter') return;
+  var ov = document.getElementById('pin-overlay');
+  if (ov && ov.style.display !== 'none' && !ov.classList.contains('hidden')) return;
+  playEnterAnims();
+});
 </script>
 
 <!-- ── ACTIVITY LOG POPUP ── -->

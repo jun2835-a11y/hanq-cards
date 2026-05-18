@@ -1978,7 +1978,21 @@ function renderDashboard() {
 renderDashboard();
 
 window.addEventListener('message', function(e) {
-  if (e.data && e.data.type === 'hq-enter') renderDashboard();
+  if (!e.data || e.data.type !== 'hq-enter') return;
+  // KPI countUp 즉시 (renderDashboard의 200ms 딜레이 없이)
+  var _ta=TRANSACTIONS.reduce(function(s,t){return s+t.amount;},0);
+  var _tc=TRANSACTIONS.length;
+  var _av=_tc>0?Math.round(_ta/_tc):0;
+  var _e1=document.getElementById('kpi-total'); if(_e1) countUp(_e1,_ta,900);
+  var _e2=document.getElementById('kpi-count'); if(_e2) countUp(_e2,_tc,500,'');
+  var _e3=document.getElementById('kpi-avg');   if(_e3) countUp(_e3,_av,900);
+  // Venn 재렌더 (vennFade CSS 애니메이션 리셋)
+  buildVenn();
+  // Chart.js: 파괴 없이 애니메이션 재실행
+  [typeof chartDonutCard!=='undefined'&&chartDonutCard,
+   typeof chartCatHBar!=='undefined'&&chartCatHBar,
+   typeof chartStackedMonth!=='undefined'&&chartStackedMonth
+  ].forEach(function(c){if(c){try{c.reset();c.update();}catch(ex){}}});
 });
 
 // ═══════════════════════════════════════════════════════════
