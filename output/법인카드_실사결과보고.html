@@ -59,7 +59,22 @@ body { font-family: 'Noto Sans KR','Malgun Gothic',sans-serif; background: var(-
 .sb-val.c-stop     { color: var(--accent); }
 .sb-val.c-partial  { color: var(--s-partial-fg); }
 .sb-unit { font-size: 14px; font-weight: 400; margin-left: 2px; }
-.sb-saving { font-size: 22px; font-weight: 700; color: var(--s-ok-fg); line-height: 1; font-variant-numeric: tabular-nums; }
+.sb-saving { font-size: 22px; font-weight: 700; color: var(--s-ok-fg); line-height: 1; font-variant-numeric: tabular-nums; transition: transform .2s ease; }
+/* Animation hover effects */
+.sb-item { cursor: default; transition: background .2s; }
+.sb-item:hover { background: rgba(45,102,68,.03); }
+.sb-item:hover .sb-saving { transform: scale(1.06); display: inline-block; }
+.hkpi { cursor: default; transition: background .2s ease; border-radius: 2px; }
+.hkpi:hover { background: rgba(255,255,255,.07); }
+.dup-item { transition: box-shadow .25s ease, transform .25s ease; }
+.dup-item:hover { box-shadow: 0 6px 22px rgba(0,0,0,.13); transform: translateY(-2px); }
+.holder-section { transition: box-shadow .25s ease; }
+.holder-section:hover { box-shadow: 0 0 0 1px rgba(200,56,10,.18), 0 4px 18px rgba(0,0,0,.06); }
+tr[data-row-id] { transition: background .14s ease, opacity .32s ease, transform .32s ease; }
+@keyframes insHeaderSlide { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
+.header-eyebrow { animation: insHeaderSlide .45s ease .04s both; }
+.header h1 { animation: insHeaderSlide .45s ease .10s both; }
+.header-sub { animation: insHeaderSlide .4s ease .16s both; }
 .sb-saving-sub { font-size: 10px; color: var(--muted); margin-top: 4px; }
 
 .legend-bar { background: #FAFAF7; border-bottom: 1px solid var(--border); padding: 11px 40px; display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
@@ -2051,6 +2066,154 @@ function exportExcel(){
   var d=new Date();
   XLSX.writeFile(wb,'실사결과보고_'+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'.xlsx');
 }
+
+// ── ANIMATIONS ──────────────────────────────────────────────────────────────
+function acCountUp(el, to, dur) {
+  if (!el || !to) return;
+  const start = performance.now();
+  (function tick(now) {
+    const p = Math.min((now - start) / dur, 1);
+    const ease = 1 - Math.pow(1 - p, 3);
+    el.textContent = Math.round(to * ease).toLocaleString('ko-KR');
+    if (p < 1) requestAnimationFrame(tick);
+    else el.textContent = to.toLocaleString('ko-KR');
+  })(start);
+}
+
+// Stagger: table rows
+(function() {
+  document.querySelectorAll('tr[data-row-id]').forEach(function(tr, i) {
+    tr.style.opacity = '0';
+    tr.style.transform = 'translateY(6px)';
+    tr.style.transition = 'opacity .32s ease ' + Math.min(i*14, 480) + 'ms, transform .32s ease ' + Math.min(i*14, 480) + 'ms';
+  });
+  setTimeout(function() {
+    document.querySelectorAll('tr[data-row-id]').forEach(function(tr) {
+      tr.style.opacity = '1';
+      tr.style.transform = 'none';
+    });
+  }, 220);
+})();
+
+// Stagger: dup-items
+(function() {
+  document.querySelectorAll('.dup-item').forEach(function(el, i) {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(10px)';
+    el.style.transition = 'opacity .38s ease ' + Math.min(i*45, 680) + 'ms, transform .38s ease ' + Math.min(i*45, 680) + 'ms';
+  });
+  setTimeout(function() {
+    document.querySelectorAll('.dup-item').forEach(function(el) {
+      el.style.opacity = '1';
+      el.style.transform = 'none';
+    });
+  }, 320);
+})();
+
+// Stagger: summary-bar items
+(function() {
+  document.querySelectorAll('.sb-item').forEach(function(el, i) {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(8px)';
+    el.style.transition = 'opacity .35s ease ' + (i*55) + 'ms, transform .35s ease ' + (i*55) + 'ms';
+  });
+  setTimeout(function() {
+    document.querySelectorAll('.sb-item').forEach(function(el) {
+      el.style.opacity = '1';
+      el.style.transform = 'none';
+    });
+  }, 60);
+})();
+
+// Stagger: header KPI blocks
+(function() {
+  document.querySelectorAll('.hkpi').forEach(function(el, i) {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(-6px)';
+    el.style.transition = 'opacity .38s ease ' + (i*75) + 'ms, transform .38s ease ' + (i*75) + 'ms';
+  });
+  setTimeout(function() {
+    document.querySelectorAll('.hkpi').forEach(function(el) {
+      el.style.opacity = '1';
+      el.style.transform = 'none';
+    });
+  }, 30);
+})();
+
+// Count-up for summary nums after init() async load
+function animateSummaryNums() {
+  ['cnt-total','cnt-ok','cnt-transfer','cnt-stop','cnt-pending','cnt-partial','hdr-cnt-pending'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var v = parseInt(el.textContent.replace(/[^0-9]/g,''), 10) || 0;
+    if (v > 0) acCountUp(el, v, 700);
+  });
+  // hkpi-val direct text nodes (72, 11 etc.) — wrap in span for animation
+  document.querySelectorAll('.hkpi-val').forEach(function(kv) {
+    var tn = kv.firstChild;
+    if (tn && tn.nodeType === 3 && tn.textContent.trim().length > 0) {
+      var val = parseInt(tn.textContent.trim(), 10);
+      if (val > 0) {
+        var sp = document.createElement('span');
+        sp.textContent = '0';
+        kv.insertBefore(sp, kv.firstChild);
+        kv.removeChild(tn);
+        acCountUp(sp, val, 700);
+      }
+    }
+  });
+}
+setTimeout(animateSummaryNums, 1000);
+
+// MutationObserver: animate saving value when init() sets it
+(function() {
+  var savEl = document.getElementById('sb-saving-wan');
+  if (!savEl) return;
+  var obs = new MutationObserver(function() {
+    var v = parseInt(savEl.textContent.replace(/[^0-9]/g,''), 10) || 0;
+    if (v > 0) {
+      acCountUp(savEl, v, 1100);
+      var ex = document.getElementById('sb-saving-exact');
+      if (ex) { var ev = parseInt(ex.textContent.replace(/[^0-9]/g,''),10)||0; if (ev) acCountUp(ex, ev, 1100); }
+      var hdrS = document.getElementById('hdr-saving-val');
+      if (hdrS) { var hv = parseInt(hdrS.textContent.replace(/[^0-9]/g,''),10)||0; if (hv) acCountUp(hdrS, hv, 1100); }
+      obs.disconnect();
+    }
+  });
+  obs.observe(savEl, { childList: true, subtree: true, characterData: true });
+})();
+
+// Hover: re-animate summary bar items (특히 월 절약액)
+document.querySelectorAll('.sb-item').forEach(function(item) {
+  var cd = 0;
+  item.addEventListener('mouseenter', function() {
+    if (Date.now() - cd < 900) return; cd = Date.now();
+    var numEl = item.querySelector('[id]');
+    if (!numEl) return;
+    var isSaving = numEl.id === 'sb-saving-wan';
+    var dur = isSaving ? 1100 : 650;
+    var raw = parseInt(numEl.textContent.replace(/[^0-9]/g,''), 10) || 0;
+    if (raw > 0) acCountUp(numEl, raw, dur);
+    if (isSaving) {
+      var ex = document.getElementById('sb-saving-exact');
+      if (ex) { var ev = parseInt(ex.textContent.replace(/[^0-9]/g,''),10)||0; if (ev) acCountUp(ex, ev, 1100); }
+      var hdrS = document.getElementById('hdr-saving-val');
+      if (hdrS) { var hv = parseInt(hdrS.textContent.replace(/[^0-9]/g,''),10)||0; if (hv) acCountUp(hdrS, hv, 1100); }
+    }
+  });
+});
+
+// Hover: re-animate header KPI
+document.querySelectorAll('.hkpi').forEach(function(kpi) {
+  var cd = 0;
+  kpi.addEventListener('mouseenter', function() {
+    if (Date.now() - cd < 900) return; cd = Date.now();
+    var numEl = kpi.querySelector('[id]') || kpi.querySelector('.hkpi-val span:not(.hkpi-unit)');
+    if (!numEl) return;
+    var raw = parseInt(numEl.textContent.replace(/[^0-9]/g,''), 10) || 0;
+    if (raw > 0) acCountUp(numEl, raw, 650);
+  });
+});
 
 // Iframe FM cursor
 (function(){
