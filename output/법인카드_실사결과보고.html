@@ -1653,6 +1653,7 @@ tr:last-child td { border-bottom: none; }
   async function persist(rowId, field, value) {
     if (!saved[rowId]) saved[rowId] = {};
     saved[rowId][field] = value;
+    try { localStorage.setItem('hanq-inspect-state', JSON.stringify(saved)); } catch(e) {}
     try {
       await fetch('/api/state', {
         method: 'POST',
@@ -1783,6 +1784,7 @@ tr:last-child td { border-bottom: none; }
   window.resetAll = async function () {
     if (!confirm('모든 변경사항을 초기값으로 되돌릴까요?')) return;
     saved = {};
+    try { localStorage.removeItem('hanq-inspect-state'); } catch(e) {}
     try {
       await fetch('/api/state', {
         method: 'POST',
@@ -1821,8 +1823,21 @@ tr:last-child td { border-bottom: none; }
 
     try {
       const res = await fetch('/api/state');
-      saved = await res.json();
-    } catch (e) { saved = {}; }
+      const serverState = await res.json();
+      if (serverState && Object.keys(serverState).length > 0) {
+        saved = serverState;
+      } else {
+        // 서버 state 없으면 localStorage 복원
+        const local = localStorage.getItem('hanq-inspect-state');
+        saved = local ? JSON.parse(local) : {};
+        if (Object.keys(saved).length > 0) {
+          // localStorage 데이터 서버에 재동기화
+          fetch('/api/state', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(saved) }).catch(()=>{});
+        }
+      }
+    } catch (e) {
+      try { const l = localStorage.getItem('hanq-inspect-state'); saved = l ? JSON.parse(l) : {}; } catch(_) { saved = {}; }
+    }
 
     document.querySelectorAll('tr[data-row-id]').forEach(tr => {
       const rowId = tr.dataset.rowId;
