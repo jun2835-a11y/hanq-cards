@@ -3131,6 +3131,29 @@ function initTrendTab() {
   });
 
 })();
+
+(function() {
+  function playEnterAnims() {
+    document.querySelectorAll('#tab-accounts tbody tr, #tab-loans tbody tr').forEach(function(tr, i) {
+      tr.classList.remove('anim-row'); void tr.offsetWidth;
+      tr.classList.add('anim-row');
+      tr.style.animationDelay = (i * 45) + 'ms';
+    });
+    document.querySelectorAll('.section-header').forEach(function(sh, i) {
+      sh.classList.remove('anim-section'); void sh.offsetWidth;
+      sh.classList.add('anim-section');
+      sh.style.animationDelay = (i * 80 + 80) + 'ms';
+    });
+    document.querySelectorAll('.bsum-row').forEach(function(row, i) {
+      row.style.animation = 'none'; void row.offsetWidth;
+      row.style.opacity = '0';
+      row.style.animation = 'fadeSlideUp .4s ease ' + (i * 70 + 80) + 'ms forwards';
+    });
+  }
+  window.addEventListener('message', function(e) {
+    if (e.data && e.data.type === 'hq-enter') playEnterAnims();
+  });
+})();
 </script>
 
 <!-- ── ACTIVITY LOG POPUP ── -->

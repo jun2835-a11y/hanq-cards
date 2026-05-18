@@ -1977,6 +1977,10 @@ function renderDashboard() {
 }
 renderDashboard();
 
+window.addEventListener('message', function(e) {
+  if (e.data && e.data.type === 'hq-enter') renderDashboard();
+});
+
 // ═══════════════════════════════════════════════════════════
 // CARD HOLDER TABLE — standalone so rpSave() can refresh it
 // ═══════════════════════════════════════════════════════════

@@ -2269,6 +2269,22 @@ function animateSummaryNums() {
 }
 setTimeout(animateSummaryNums, 1000);
 
+(function() {
+  function playEnterAnims() {
+    var delays = [.04, .10, .16];
+    ['.header-eyebrow', '.header h1', '.header-sub'].forEach(function(sel, i) {
+      var el = document.querySelector(sel);
+      if (!el) return;
+      el.style.animation = 'none'; void el.offsetWidth;
+      el.style.animation = 'insHeaderSlide .45s ease ' + delays[i] + 's both';
+    });
+    animateSummaryNums();
+  }
+  window.addEventListener('message', function(e) {
+    if (e.data && e.data.type === 'hq-enter') playEnterAnims();
+  });
+})();
+
 // MutationObserver: animate saving value when init() sets it
 (function() {
   var savEl = document.getElementById('sb-saving-wan');
