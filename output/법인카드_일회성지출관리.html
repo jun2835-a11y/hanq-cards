@@ -96,16 +96,24 @@ tr:hover td{background:#F9F7F3;transition:background .1s}
 /* CARD ANALYSIS */
 .card-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
 @media(max-width:900px){.card-grid{grid-template-columns:1fr 1fr}}
-.card-item{background:var(--surface);border:1px solid var(--border);padding:18px 20px;cursor:pointer;transition:all .15s}
+@media(max-width:600px){.card-grid{grid-template-columns:1fr}}
+.card-item{background:var(--surface);border:1px solid var(--border);padding:20px;cursor:pointer;transition:all .15s}
 .card-item:hover{border-color:var(--accent);box-shadow:0 2px 12px rgba(200,56,10,.1)}
-.card-item.selected{border-color:var(--accent);border-width:2px}
-.card-item-name{font-size:13px;font-weight:700;margin-bottom:4px}
-.card-item-holder{font-size:11px;color:var(--muted);margin-bottom:12px}
-.card-item-amount{font-size:18px;font-weight:700;color:var(--ink);margin-bottom:2px}
-.card-item-count{font-size:11px;color:var(--muted)}
-.card-bar{height:4px;background:var(--border);margin-top:12px;overflow:hidden}
-.card-bar-fill{height:100%;background:var(--accent);transition:width 1s cubic-bezier(.4,0,.2,1)}
-.mini-chart-wrap{height:60px;margin-top:12px}
+.card-item.selected{border-color:var(--accent);border-left-width:4px}
+.card-item-meta{display:flex;gap:6px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.ci-corp{font-size:9px;font-weight:700;letter-spacing:.08em;padding:2px 8px;background:var(--border2);color:var(--ink2);border-radius:2px}
+.ci-cardco{font-size:9px;padding:2px 7px;border:1px solid var(--border);color:var(--muted)}
+.card-item-name{font-size:14px;font-weight:700;margin-bottom:3px}
+.card-item-holder{font-size:11px;color:var(--muted);margin-bottom:8px}
+.card-item-no{font-size:11px;color:var(--ink2);font-family:'Courier New',monospace;letter-spacing:.04em;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border2)}
+.card-item-amount{font-size:20px;font-weight:700;color:var(--ink);margin-bottom:2px}
+.card-item-count{font-size:11px;color:var(--muted);margin-bottom:10px}
+.card-bar{height:3px;background:var(--border);overflow:hidden;margin-bottom:12px}
+.card-bar-fill{height:100%;transition:width 1s cubic-bezier(.4,0,.2,1)}
+.mini-chart-wrap{height:52px;display:flex;align-items:flex-end;gap:3px}
+.mini-bar-col{display:flex;flex-direction:column;align-items:center;flex:1;gap:2px}
+.mini-bar{width:100%;border-radius:1px 1px 0 0;transition:height .4s}
+.mini-bar-label{font-size:8px;color:var(--muted);white-space:nowrap}
 
 /* VEN DIAGRAM */
 .venn-wrap{padding:20px;display:flex;justify-content:center;align-items:center;flex-direction:column}
@@ -568,8 +576,20 @@ const CARD_COLORS = {
   'SUPER할부-KT':     '#1A4A8A',
   'M BOOST VISA':     '#8B5E14',
   'KB WISH올카드':    '#6B3A7D',
-  'V2 BIZ AMEX':      '#1A7A8A'
+  'V2 BIZ AMEX':      '#1A7A8A',
+  'NH농협 다사로이':   '#607060'
 };
+
+// 카드 마스터 데이터 (스프레드시트 기준 — 사용현황/비고 제외)
+const CARD_MASTER = [
+  { corp:'(수)복지용구', holder:'정재승',       cardCo:'현대카드', name:'KT청구할인형',      no:'4033-0202-0543-9715' },
+  { corp:'(수)복지용구', holder:'송다윗',       cardCo:'국민카드', name:'KB WISH올카드',    no:'4703-4916-3394-2084' },
+  { corp:'한솔',        holder:'이승학',       cardCo:'롯데카드', name:'SUPER할부-KT',     no:'5137-9200-8543-9275' },
+  { corp:'한솔',        holder:'2층공용(당번)', cardCo:'현대카드', name:'M BOOST VISA',     no:'4890-1683-5005-4920' },
+  { corp:'순천에덴',    holder:'손용진',       cardCo:'롯데카드', name:'LG전자 스페셜롯데', no:'5137-9200-8192-6150' },
+  { corp:'순천에덴',    holder:'교육원(반유환)',cardCo:'삼성카드', name:'V2 BIZ AMEX',      no:'3791-839551-66480'   },
+  { corp:'(수)복지용구', holder:'정재승',       cardCo:'농협카드', name:'NH농협 다사로이',   no:'—'                   },
+];
 const CAT_COLORS = {
   '기타업무비':'#5C5851','렌탈/구독':'#A0522D','식대/카페':'#C8380A',
   '생활/잡화':'#2D6644','교통/주유':'#1A4A8A','4대보험':'#9A958F',
@@ -2010,31 +2030,54 @@ function sortAndRender() {
 // ═══════════════════════════════════════════════════════════
 // CARDS TAB
 // ═══════════════════════════════════════════════════════════
-function initCardsTab() {
-  const cards = [
-    {name:'LG전자 스페셜롯데',holder:'손용진',  amount:7742576,count:37},
-    {name:'KT청구할인형',      holder:'정재승',  amount:7270061,count:170},
-    {name:'SUPER할부-KT',     holder:'이승학',  amount:6219280,count:7},
-    {name:'M BOOST VISA',     holder:'2층공용', amount:2682404,count:25},
-    {name:'KB WISH올카드',    holder:'송다윗',  amount:875200, count:22},
-    {name:'V2 BIZ AMEX',      holder:'반유환',  amount:900,    count:3},
-  ];
-  const maxAmt = Math.max(...cards.map(c=>c.amount));
-  const grid = document.getElementById('cardGrid');
-  const months=['2026-01','2026-02','2026-03'];
+function maskCardNo(no) {
+  if (!no || no === '—') return '—';
+  const parts = no.split('-');
+  if (parts.length === 4) return `${parts[0]}-••••-••••-${parts[3]}`;
+  if (parts.length === 3) return `${parts[0]}-••••••-${parts[2]}`;
+  return no.substring(0,4) + '••••' + no.slice(-4);
+}
 
-  grid.innerHTML = cards.map((c,i)=>{
-    const pct = (c.amount/maxAmt*100).toFixed(1);
-    const monthly = months.map(m=>TRANSACTIONS.filter(t=>t.card===c.name&&t.date.startsWith(m)).reduce((s,t)=>s+t.amount,0));
-    const maxM = Math.max(...monthly,1);
-    const sparkBars = monthly.map((v,mi)=>`<div style="width:30%;height:${Math.round(v/maxM*40)+4}px;background:${CARD_COLORS[c.name]};opacity:.8;display:inline-block;vertical-align:bottom;margin:0 1px;transition:height .3s"></div>`).join('');
-    return `<div class="card-item" onclick="showCardDetail('${c.name}')" style="animation:fadeIn .4s ${i*0.07}s both">
-      <div class="card-item-name" style="color:${CARD_COLORS[c.name]}">${c.name}</div>
+function initCardsTab() {
+  const months = ['2026-01','2026-02','2026-03','2026-04'];
+  const mLabels = ['1월','2월','3월','4월'];
+
+  // TRANSACTIONS 기반 동적 집계
+  const cards = CARD_MASTER.map(m => {
+    const txs = TRANSACTIONS.filter(t => t.card === m.name);
+    const amount = txs.reduce((s,t)=>s+t.amount,0);
+    const count  = txs.length;
+    const monthly = months.map(mo => txs.filter(t=>t.date.startsWith(mo)).reduce((s,t)=>s+t.amount,0));
+    return { ...m, amount, count, monthly };
+  }).sort((a,b) => b.amount - a.amount);
+
+  const maxAmt = Math.max(...cards.map(c=>c.amount), 1);
+  const grid = document.getElementById('cardGrid');
+
+  grid.innerHTML = cards.map((c, i) => {
+    const color  = CARD_COLORS[c.name] || '#9A958F';
+    const pct    = (c.amount / maxAmt * 100).toFixed(1);
+    const maxM   = Math.max(...c.monthly, 1);
+    const spark  = c.monthly.map((v, mi) => {
+      const h = Math.round(v / maxM * 36) + 4;
+      return `<div class="mini-bar-col">
+        <div class="mini-bar" style="height:${h}px;background:${color};opacity:${v>0?.85:.2}"></div>
+        <div class="mini-bar-label">${mLabels[mi]}</div>
+      </div>`;
+    }).join('');
+    const avg = count > 0 ? Math.round(c.amount / c.count) : 0;
+    return `<div class="card-item" onclick="showCardDetail('${c.name}')" style="animation:fadeIn .4s ${i*0.06}s both">
+      <div class="card-item-meta">
+        <span class="ci-corp">${c.corp}</span>
+        <span class="ci-cardco">${c.cardCo}</span>
+      </div>
+      <div class="card-item-name" style="color:${color}">${c.name}</div>
       <div class="card-item-holder">${c.holder}</div>
+      <div class="card-item-no">${maskCardNo(c.no)}</div>
       <div class="card-item-amount">${c.amount.toLocaleString('ko-KR')}원</div>
-      <div class="card-item-count">${c.count}건 · 건당 평균 ${Math.round(c.amount/c.count).toLocaleString('ko-KR')}원</div>
-      <div class="card-bar"><div class="card-bar-fill" style="--target-width:${pct}%;width:${pct}%"></div></div>
-      <div class="mini-chart-wrap" title="1월/2월/3월">${sparkBars}</div>
+      <div class="card-item-count">${c.count}건 · 건당 평균 ${avg.toLocaleString('ko-KR')}원</div>
+      <div class="card-bar"><div class="card-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+      <div class="mini-chart-wrap">${spark}</div>
     </div>`;
   }).join('');
 }
@@ -2044,7 +2087,9 @@ function showCardDetail(cardName) {
   const el = [...document.querySelectorAll('.card-item')].find(el=>el.querySelector('.card-item-name').textContent===cardName);
   if(el) el.classList.add('selected');
   const txs = TRANSACTIONS.filter(t=>t.card===cardName).sort((a,b)=>b.date.localeCompare(a.date));
-  document.getElementById('cardDetailTitle').textContent = cardName+' 거래 내역 ('+txs.length+'건)';
+  const master = CARD_MASTER.find(m=>m.name===cardName);
+  const sub = master ? ` · ${master.corp} · ${master.holder}` : '';
+  document.getElementById('cardDetailTitle').textContent = cardName+' 거래 내역 ('+txs.length+'건)'+sub;
   document.getElementById('cardDetailBody').innerHTML = txs.map(t=>`
     <tr>
       <td style="color:var(--muted);font-size:11px">${t.date}</td>
