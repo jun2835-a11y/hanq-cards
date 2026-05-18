@@ -545,7 +545,9 @@ input[type=range]{width:100%;accent-color:var(--accent)}
         <thead><tr>
           <th style="width:24px"></th>
           <th>카드명</th><th>카드사</th><th>담당자</th><th>회사</th>
-          <th style="text-align:center">결제일</th><th>용도</th><th>상태</th><th>메모</th>
+          <th style="text-align:center">결제일</th><th>용도</th><th>상태</th>
+          <th style="font-family:'Courier New',monospace;letter-spacing:.02em">카드번호</th>
+          <th>메모</th>
           <th style="width:32px"></th>
         </tr></thead>
         <tbody id="rpBody"></tbody>
@@ -2325,6 +2327,7 @@ function rpRenderTable() {
       <td style="text-align:center"><div class="rp-cell" contenteditable="true" data-rp="${c.id}" data-f="payDay" data-ph="결제일" style="text-align:center">${escHtml(c.payDay)}</div></td>
       <td><select class="rp-select" data-rp="${c.id}" data-f="purpose" onchange="rpChange(this)">${RP_PURPOSES.map(p=>`<option value="${p}"${p===c.purpose?' selected':''}>${p}</option>`).join('')}</select></td>
       <td><select class="rp-select" data-rp="${c.id}" data-f="status" style="color:${si.c}" onchange="rpChange(this)">${RP_STATUSES.map(s=>`<option value="${s.v}"${s.v===c.status?' selected':''}>${s.v}</option>`).join('')}</select></td>
+      <td style="font-family:'Courier New',monospace;font-size:11px"><div class="rp-cell" contenteditable="true" data-rp="${c.id}" data-f="no" data-ph="카드번호 입력" style="min-width:140px;letter-spacing:.04em">${escHtml(c.no||'')}</div></td>
       <td><div class="rp-cell" contenteditable="true" data-rp="${c.id}" data-f="memo" data-ph="메모 입력" style="min-width:100px;font-size:11px">${escHtml(c.memo)}</div></td>
       <td><button class="rp-del-btn" onclick="rpDelete('${c.id}')" title="삭제">×</button></td>
     </tr>`;
@@ -2412,7 +2415,7 @@ function rpDelete(id) {
 
 function rpAddCard() {
   const id = 'rp' + Date.now();
-  rpCards.push({id, cardName:'새 카드', cardCo:'', holder:'', company:'', payDay:'', purpose:'미분류', status:'유지', memo:''});
+  rpCards.push({id, cardName:'새 카드', cardCo:'', holder:'', company:'', payDay:'', purpose:'미분류', status:'유지', memo:'', txName:'', no:''});
   rpSave();
   rpRenderTable();
   const newRow = document.querySelector(`tr[data-rp="${id}"]`);
