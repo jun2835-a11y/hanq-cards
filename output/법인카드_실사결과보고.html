@@ -59,11 +59,10 @@ body { font-family: 'Noto Sans KR','Malgun Gothic',sans-serif; background: var(-
 .sb-val.c-stop     { color: var(--accent); }
 .sb-val.c-partial  { color: var(--s-partial-fg); }
 .sb-unit { font-size: 14px; font-weight: 400; margin-left: 2px; }
-.sb-saving { font-size: 22px; font-weight: 700; color: var(--s-ok-fg); line-height: 1; font-variant-numeric: tabular-nums; transition: transform .2s ease; }
+.sb-saving { font-size: 22px; font-weight: 700; color: var(--s-ok-fg); line-height: 1; font-variant-numeric: tabular-nums; }
 /* Animation hover effects */
 .sb-item { cursor: default; transition: background .2s; }
 .sb-item:hover { background: rgba(45,102,68,.03); }
-.sb-item:hover .sb-saving { display: inline-block; }
 .hkpi { cursor: default; transition: background .2s ease; border-radius: 2px; }
 .hkpi:hover { background: rgba(255,255,255,.07); }
 .dup-item { transition: box-shadow .25s ease, transform .25s ease; }
@@ -351,11 +350,11 @@ tr.food-hidden { display: none !important; }
   <div class="header-kpi">
     <div class="hkpi">
       <div class="hkpi-label">조사 항목</div>
-      <div class="hkpi-val">72<span class="hkpi-unit">건</span></div>
+      <div class="hkpi-val"><span class="hkpi-num">72</span><span class="hkpi-unit">건</span></div>
     </div>
     <div class="hkpi">
       <div class="hkpi-label">중복결제 탐지</div>
-      <div class="hkpi-val accent">11<span class="hkpi-unit">건</span></div>
+      <div class="hkpi-val accent"><span class="hkpi-num">11</span><span class="hkpi-unit">건</span></div>
     </div>
     <div class="hkpi">
       <div class="hkpi-label">미확인</div>
@@ -2358,7 +2357,7 @@ document.querySelectorAll('.hkpi').forEach(function(kpi) {
   var cd = 0;
   kpi.addEventListener('mouseenter', function() {
     if (Date.now() - cd < 900) return; cd = Date.now();
-    var numEl = kpi.querySelector('[id]') || kpi.querySelector('.hkpi-val span:not(.hkpi-unit)');
+    var numEl = kpi.querySelector('[id]') || kpi.querySelector('.hkpi-num') || kpi.querySelector('.hkpi-val span:not(.hkpi-unit)');
     if (!numEl) return;
     var raw = parseInt(numEl.textContent.replace(/[^0-9]/g,''), 10) || 0;
     if (raw > 0) acCountUp(numEl, raw, 650);
