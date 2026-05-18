@@ -2061,11 +2061,11 @@ function initCardsTab() {
     const spark  = c.monthly.map((v, mi) => {
       const h = Math.round(v / maxM * 36) + 4;
       return `<div class="mini-bar-col">
-        <div class="mini-bar" style="height:${h}px;background:${color};opacity:${v>0?.85:.2}"></div>
+        <div class="mini-bar" style="height:${h}px;background:${color};opacity:${v>0?0.85:0.2}"></div>
         <div class="mini-bar-label">${mLabels[mi]}</div>
       </div>`;
     }).join('');
-    const avg = count > 0 ? Math.round(c.amount / c.count) : 0;
+    const avg = c.count > 0 ? Math.round(c.amount / c.count) : 0;
     return `<div class="card-item" onclick="showCardDetail('${c.name}')" style="animation:fadeIn .4s ${i*0.06}s both">
       <div class="card-item-meta">
         <span class="ci-corp">${c.corp}</span>
