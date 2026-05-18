@@ -151,9 +151,13 @@ tr:last-child td { border-bottom: none; }
 
 /* 편집 가능한 셀 */
 .td-editable { cursor: text; outline: none; color: var(--ink2); font-size: 12px; min-width: 120px; }
-.action-cell { min-width: 220px; }
-.site-cell { min-width: 140px; }
-.assignee-cell { min-width: 130px; }
+.action-cell { min-width: 300px; }
+.site-cell { min-width: 120px; }
+.assignee-cell { min-width: 120px; }
+/* Card detail enrichment */
+.card-detail-co { font-size: 9px; color: var(--ink2); margin-left: 5px; letter-spacing: .02em; opacity: .72; font-weight: 400; }
+.card-detail-meta { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+.card-pill { font-size: 9px; font-weight: 600; border: 1px solid; padding: 1px 5px; border-radius: 2px; letter-spacing: .03em; white-space: nowrap; }
 .td-editable:hover { background: #F2EFEA !important; }
 .td-editable:focus { background: #FFFEF5 !important; outline: 1px solid #C8B860; outline-offset: -2px; }
 .site-cell { font-size: 11px; color: var(--s-transfer-fg); font-family: 'Courier New', monospace; letter-spacing: -.2px; }
@@ -839,14 +843,14 @@ tr.search-hidden { display: none !important; }
       </div>
       <table>
         <thead><tr>
-          <th style="width:230px">서비스명</th>
-          <th style="width:170px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:244px">서비스명</th>
+          <th style="width:145px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
           <th style="width:90px">유형</th>
           <th style="width:120px;text-align:right">월 절감 추정</th>
-          <th style="width:210px">월별 결제 현황</th>
+          <th style="width:175px">월별 결제 현황</th>
           <th style="width:120px">조사 결과 <span class="edit-hint">클릭 변경</span></th>
-          <th style="width:280px">조치 내용 <span class="edit-hint">클릭 편집</span></th>
-          <th style="width:180px">담당자 <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:360px">조치 내용 <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:155px">담당자 <span class="edit-hint">클릭 편집</span></th>
         </tr></thead>
         <tbody>
         <tr class="row-transfer" data-row-id="손용진__0" data-default-status="transfer" data-default-action="개발팀 카드(M BOOST VISA)로 이관" data-default-assignees="" data-default-site="amazon.com">
@@ -1083,14 +1087,14 @@ tr.search-hidden { display: none !important; }
       </div>
       <table>
         <thead><tr>
-          <th style="width:230px">서비스명</th>
-          <th style="width:170px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:244px">서비스명</th>
+          <th style="width:145px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
           <th style="width:90px">유형</th>
           <th style="width:120px;text-align:right">월 절감 추정</th>
-          <th style="width:210px">월별 결제 현황</th>
+          <th style="width:175px">월별 결제 현황</th>
           <th style="width:120px">조사 결과 <span class="edit-hint">클릭 변경</span></th>
-          <th style="width:280px">조치 내용 <span class="edit-hint">클릭 편집</span></th>
-          <th style="width:180px">담당자 <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:360px">조치 내용 <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:155px">담당자 <span class="edit-hint">클릭 편집</span></th>
         </tr></thead>
         <tbody>
         <tr class="row-pending" data-row-id="이승학__0" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
@@ -1272,14 +1276,14 @@ tr.search-hidden { display: none !important; }
       </div>
       <table>
         <thead><tr>
-          <th style="width:230px">서비스명</th>
-          <th style="width:170px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:244px">서비스명</th>
+          <th style="width:145px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
           <th style="width:90px">유형</th>
           <th style="width:120px;text-align:right">월 절감 추정</th>
-          <th style="width:210px">월별 결제 현황</th>
+          <th style="width:175px">월별 결제 현황</th>
           <th style="width:120px">조사 결과 <span class="edit-hint">클릭 변경</span></th>
-          <th style="width:280px">조치 내용 <span class="edit-hint">클릭 편집</span></th>
-          <th style="width:180px">담당자 <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:360px">조치 내용 <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:155px">담당자 <span class="edit-hint">클릭 편집</span></th>
         </tr></thead>
         <tbody>
         <tr class="row-ok" data-row-id="2층공용_개발팀___0" data-default-status="ok" data-default-action="정상 사용" data-default-assignees="이승학, 조용원" data-default-site="anthropic.com">
@@ -1416,14 +1420,14 @@ tr.search-hidden { display: none !important; }
       </div>
       <table>
         <thead><tr>
-          <th style="width:230px">서비스명</th>
-          <th style="width:170px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:244px">서비스명</th>
+          <th style="width:145px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
           <th style="width:90px">유형</th>
           <th style="width:120px;text-align:right">월 절감 추정</th>
-          <th style="width:210px">월별 결제 현황</th>
+          <th style="width:175px">월별 결제 현황</th>
           <th style="width:120px">조사 결과 <span class="edit-hint">클릭 변경</span></th>
-          <th style="width:280px">조치 내용 <span class="edit-hint">클릭 편집</span></th>
-          <th style="width:180px">담당자 <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:360px">조치 내용 <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:155px">담당자 <span class="edit-hint">클릭 편집</span></th>
         </tr></thead>
         <tbody>
         <tr class="row-pending" data-row-id="정재승__0" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
@@ -1559,14 +1563,14 @@ tr.search-hidden { display: none !important; }
       </div>
       <table>
         <thead><tr>
-          <th style="width:230px">서비스명</th>
-          <th style="width:170px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:244px">서비스명</th>
+          <th style="width:145px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
           <th style="width:90px">유형</th>
           <th style="width:120px;text-align:right">월 절감 추정</th>
-          <th style="width:210px">월별 결제 현황</th>
+          <th style="width:175px">월별 결제 현황</th>
           <th style="width:120px">조사 결과 <span class="edit-hint">클릭 변경</span></th>
-          <th style="width:280px">조치 내용 <span class="edit-hint">클릭 편집</span></th>
-          <th style="width:180px">담당자 <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:360px">조치 내용 <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:155px">담당자 <span class="edit-hint">클릭 편집</span></th>
         </tr></thead>
         <tbody>
         <tr class="row-pending" data-row-id="송다윗__0" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
@@ -1639,14 +1643,14 @@ tr.search-hidden { display: none !important; }
       </div>
       <table>
         <thead><tr>
-          <th style="width:230px">서비스명</th>
-          <th style="width:170px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:244px">서비스명</th>
+          <th style="width:145px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
           <th style="width:90px">유형</th>
           <th style="width:120px;text-align:right">월 절감 추정</th>
-          <th style="width:210px">월별 결제 현황</th>
+          <th style="width:175px">월별 결제 현황</th>
           <th style="width:120px">조사 결과 <span class="edit-hint">클릭 변경</span></th>
-          <th style="width:280px">조치 내용 <span class="edit-hint">클릭 편집</span></th>
-          <th style="width:180px">담당자 <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:360px">조치 내용 <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:155px">담당자 <span class="edit-hint">클릭 편집</span></th>
         </tr></thead>
         <tbody>
         <tr class="row-pending" data-row-id="반유환__0" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
@@ -2066,6 +2070,55 @@ function exportExcel(){
   var d=new Date();
   XLSX.writeFile(wb,'실사결과보고_'+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'.xlsx');
 }
+
+// ── 카드 정보 보강 (hanq-card-replan localStorage 동기화) ────────────────────
+(function() {
+  var rpCards = [];
+  try { rpCards = JSON.parse(localStorage.getItem('hanq-card-replan') || '[]'); } catch(e) {}
+  if (!rpCards.length) return;
+
+  var cardMap = {};
+  rpCards.forEach(function(c) {
+    var key = (c.txName || '').trim();
+    if (key) cardMap[key] = c;
+  });
+
+  var purposeColors = {
+    '연구소·개발':'#1A4A8A','광고·마케팅':'#8B1A6A','사무실공통':'#2D6644',
+    '교육원':'#6B3A7D','대표·개인':'#C8380A','물류·배송':'#8B5E14','미분류':'#9A958F'
+  };
+  var statusColors = { '대체예정':'#C8380A', '축소검토':'#B8820A', '종료':'#9A958F', '일시중단':'#6B3A7D' };
+
+  document.querySelectorAll('.row-card-tag').forEach(function(el) {
+    var cardName = el.textContent.trim();
+    var card = cardMap[cardName];
+    if (!card) return;
+
+    // 카드사 + 번호 뒤 4자리
+    var noStr = card.no && card.no !== '—' ? ' · *' + card.no.replace(/\s/g,'').slice(-4) : '';
+    var coSpan = document.createElement('span');
+    coSpan.className = 'card-detail-co';
+    coSpan.textContent = (card.cardCo || '') + noStr;
+    el.appendChild(coSpan);
+
+    // 용도 + 재편상태 pills (유지는 표시 안 함)
+    var pills = [];
+    if (card.purpose && card.purpose !== '미분류') {
+      var pc = purposeColors[card.purpose] || '#9A958F';
+      pills.push('<span class="card-pill" style="color:' + pc + ';border-color:' + pc + '28">' + card.purpose + '</span>');
+    }
+    if (card.status && statusColors[card.status]) {
+      var sc = statusColors[card.status];
+      pills.push('<span class="card-pill" style="color:' + sc + ';border-color:' + sc + '44;background:' + sc + '0d">' + card.status + '</span>');
+    }
+    if (pills.length) {
+      var meta = document.createElement('div');
+      meta.className = 'card-detail-meta';
+      meta.innerHTML = pills.join('');
+      el.insertAdjacentElement('afterend', meta);
+    }
+  });
+})();
 
 // ── ANIMATIONS ──────────────────────────────────────────────────────────────
 function acCountUp(el, to, dur) {
