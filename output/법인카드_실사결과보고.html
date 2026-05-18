@@ -19,7 +19,7 @@
 }
 body { font-family: 'Noto Sans KR','Malgun Gothic',sans-serif; background: var(--bg); color: var(--ink); font-size: 13px; line-height: 1.7; }
 
-.header { background: var(--ink); color: #F7F5F0; padding: 40px 60px 32px; display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:16px; }
+.header { background: var(--ink); color: #F7F5F0; padding: 40px 40px 32px; display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:16px; }
 .header-eyebrow { font-size: 9px; letter-spacing: 5px; text-transform: uppercase; color: #6A6460; margin-bottom: 10px; }
 .header h1 { font-size: 24px; font-weight: 700; margin-bottom: 6px; }
 .header-sub { font-size: 11px; color: #9A958F; }
@@ -35,7 +35,7 @@ body { font-family: 'Noto Sans KR','Malgun Gothic',sans-serif; background: var(-
 .hdr-btn:hover { border-color:#9A958F; color:#F7F5F0; }
 
 .edit-toolbar {
-  background: #2C2820; padding: 10px 64px;
+  background: #2C2820; padding: 10px 40px;
   display: flex; align-items: center; gap: 16px;
 }
 .et-label { font-size: 11px; color: #6A6460; letter-spacing: 1px; flex: 1; }
@@ -48,7 +48,7 @@ body { font-family: 'Noto Sans KR','Malgun Gothic',sans-serif; background: var(-
 .et-btn:hover { border-color: #9A958F; color: #F7F5F0; }
 .et-btn.danger:hover { border-color: var(--accent); color: var(--accent); }
 
-.summary-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 64px; display: flex; align-items: stretch; }
+.summary-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 40px; display: flex; align-items: stretch; }
 .sb-item { padding: 22px 36px 22px 0; margin-right: 36px; border-right: 1px solid var(--border); }
 .sb-item:last-child { border-right: none; }
 .sb-label { font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
@@ -62,8 +62,8 @@ body { font-family: 'Noto Sans KR','Malgun Gothic',sans-serif; background: var(-
 .sb-saving { font-size: 22px; font-weight: 700; color: var(--s-ok-fg); line-height: 1; font-variant-numeric: tabular-nums; }
 .sb-saving-sub { font-size: 10px; color: var(--muted); margin-top: 4px; }
 
-.legend-bar { background: #FAFAF7; border-bottom: 1px solid var(--border); padding: 11px 64px; display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
-.filter-info-bar { background: #F4F2ED; border-bottom: 1px solid var(--border); padding: 10px 64px; display: flex; gap: 32px; align-items: flex-start; flex-wrap: wrap; }
+.legend-bar { background: #FAFAF7; border-bottom: 1px solid var(--border); padding: 11px 40px; display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
+.filter-info-bar { background: #F4F2ED; border-bottom: 1px solid var(--border); padding: 10px 40px; display: flex; gap: 32px; align-items: flex-start; flex-wrap: wrap; }
 .fi-group { display: flex; align-items: flex-start; gap: 8px; }
 .fi-label { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); padding-top: 2px; white-space: nowrap; }
 .fi-chips { display: flex; flex-wrap: wrap; gap: 4px; }
@@ -79,7 +79,7 @@ body { font-family: 'Noto Sans KR','Malgun Gothic',sans-serif; background: var(-
 .ld-stop     { background: var(--s-stop-bg);     border: 1px solid var(--s-stop-bd); }
 .ld-partial  { background: var(--s-partial-bg);  border: 1px solid var(--s-partial-bd); }
 
-.container { max-width: 1100px; margin: 0 auto; padding: 48px 64px; }
+.container { max-width: 1600px; margin: 0 auto; padding: 36px 40px; }
 
 .holder-section { margin-bottom: 36px; border: 1px solid var(--border); background: var(--surface); }
 .holder-header { display: flex; align-items: center; padding: 20px 28px; border-bottom: 1px solid var(--border); background: #FAFAF7; }
@@ -135,7 +135,10 @@ tr:last-child td { border-bottom: none; }
 .row-card-tags .card-tag { margin-right: 0; }
 
 /* 편집 가능한 셀 */
-.td-editable { cursor: text; outline: none; color: var(--ink2); font-size: 12px; min-width: 80px; }
+.td-editable { cursor: text; outline: none; color: var(--ink2); font-size: 12px; min-width: 120px; }
+.action-cell { min-width: 220px; }
+.site-cell { min-width: 140px; }
+.assignee-cell { min-width: 130px; }
 .td-editable:hover { background: #F2EFEA !important; }
 .td-editable:focus { background: #FFFEF5 !important; outline: 1px solid #C8B860; outline-offset: -2px; }
 .site-cell { font-size: 11px; color: var(--s-transfer-fg); font-family: 'Courier New', monospace; letter-spacing: -.2px; }
@@ -178,7 +181,7 @@ tr:last-child td { border-bottom: none; }
 }
 #save-toast.show { opacity: 1; transform: none; }
 
-.footer { background: var(--ink); color: var(--muted); padding: 28px 64px; font-size: 11px; margin-top: 60px; }
+.footer { background: var(--ink); color: var(--muted); padding: 28px 40px; font-size: 11px; margin-top: 60px; }
 .footer-item { margin-bottom: 4px; }
 .footer-item::before { content: '* '; }
 @media print { .edit-toolbar, .edit-hint { display: none; } .holder-section { break-inside: avoid; } }
@@ -242,14 +245,14 @@ tr:last-child td { border-bottom: none; }
 }
 .dup-memo-wrap { display:flex; align-items:center; gap:6px; margin-left:auto; flex-shrink:0; }
 .dup-memo-label { font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); white-space:nowrap; }
-.dup-memo { min-width:240px; font-size:12px; color:var(--ink2); outline:none; cursor:text; padding:2px 4px; }
+.dup-memo { min-width:360px; font-size:12px; color:var(--ink2); outline:none; cursor:text; padding:2px 4px; }
 .dup-memo:empty::before { content:attr(data-placeholder); color:var(--muted); font-style:italic; pointer-events:none; }
 .dup-memo:hover { background:#F2EFEA; }
 .dup-memo:focus { background:#FFFEF5; outline:1px solid #C8B860; outline-offset:-2px; }
 
 /* ── 검색창 ── */
 .search-bar {
-  background: #1E1C18; padding: 10px 64px;
+  background: #1E1C18; padding: 10px 40px;
   display: flex; align-items: center; gap: 12px;
   position: sticky; top: 0; z-index: 800;
   border-bottom: 1px solid #2E2C28;
@@ -821,14 +824,14 @@ tr.search-hidden { display: none !important; }
       </div>
       <table>
         <thead><tr>
-          <th style="width:200px">서비스명</th>
-          <th style="width:130px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:230px">서비스명</th>
+          <th style="width:170px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
           <th style="width:90px">유형</th>
           <th style="width:120px;text-align:right">월 절감 추정</th>
-          <th style="width:170px">월별 결제 현황</th>
+          <th style="width:210px">월별 결제 현황</th>
           <th style="width:120px">조사 결과 <span class="edit-hint">클릭 변경</span></th>
-          <th>조치 내용 <span class="edit-hint">클릭 편집</span></th>
-          <th style="width:160px">담당자 <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:280px">조치 내용 <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:180px">담당자 <span class="edit-hint">클릭 편집</span></th>
         </tr></thead>
         <tbody>
         <tr class="row-transfer" data-row-id="손용진__0" data-default-status="transfer" data-default-action="개발팀 카드(M BOOST VISA)로 이관" data-default-assignees="" data-default-site="amazon.com">
@@ -1065,14 +1068,14 @@ tr.search-hidden { display: none !important; }
       </div>
       <table>
         <thead><tr>
-          <th style="width:200px">서비스명</th>
-          <th style="width:130px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:230px">서비스명</th>
+          <th style="width:170px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
           <th style="width:90px">유형</th>
           <th style="width:120px;text-align:right">월 절감 추정</th>
-          <th style="width:170px">월별 결제 현황</th>
+          <th style="width:210px">월별 결제 현황</th>
           <th style="width:120px">조사 결과 <span class="edit-hint">클릭 변경</span></th>
-          <th>조치 내용 <span class="edit-hint">클릭 편집</span></th>
-          <th style="width:160px">담당자 <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:280px">조치 내용 <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:180px">담당자 <span class="edit-hint">클릭 편집</span></th>
         </tr></thead>
         <tbody>
         <tr class="row-pending" data-row-id="이승학__0" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
@@ -1254,14 +1257,14 @@ tr.search-hidden { display: none !important; }
       </div>
       <table>
         <thead><tr>
-          <th style="width:200px">서비스명</th>
-          <th style="width:130px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:230px">서비스명</th>
+          <th style="width:170px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
           <th style="width:90px">유형</th>
           <th style="width:120px;text-align:right">월 절감 추정</th>
-          <th style="width:170px">월별 결제 현황</th>
+          <th style="width:210px">월별 결제 현황</th>
           <th style="width:120px">조사 결과 <span class="edit-hint">클릭 변경</span></th>
-          <th>조치 내용 <span class="edit-hint">클릭 편집</span></th>
-          <th style="width:160px">담당자 <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:280px">조치 내용 <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:180px">담당자 <span class="edit-hint">클릭 편집</span></th>
         </tr></thead>
         <tbody>
         <tr class="row-ok" data-row-id="2층공용_개발팀___0" data-default-status="ok" data-default-action="정상 사용" data-default-assignees="이승학, 조용원" data-default-site="anthropic.com">
@@ -1398,14 +1401,14 @@ tr.search-hidden { display: none !important; }
       </div>
       <table>
         <thead><tr>
-          <th style="width:200px">서비스명</th>
-          <th style="width:130px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:230px">서비스명</th>
+          <th style="width:170px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
           <th style="width:90px">유형</th>
           <th style="width:120px;text-align:right">월 절감 추정</th>
-          <th style="width:170px">월별 결제 현황</th>
+          <th style="width:210px">월별 결제 현황</th>
           <th style="width:120px">조사 결과 <span class="edit-hint">클릭 변경</span></th>
-          <th>조치 내용 <span class="edit-hint">클릭 편집</span></th>
-          <th style="width:160px">담당자 <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:280px">조치 내용 <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:180px">담당자 <span class="edit-hint">클릭 편집</span></th>
         </tr></thead>
         <tbody>
         <tr class="row-pending" data-row-id="정재승__0" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
@@ -1541,14 +1544,14 @@ tr.search-hidden { display: none !important; }
       </div>
       <table>
         <thead><tr>
-          <th style="width:200px">서비스명</th>
-          <th style="width:130px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:230px">서비스명</th>
+          <th style="width:170px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
           <th style="width:90px">유형</th>
           <th style="width:120px;text-align:right">월 절감 추정</th>
-          <th style="width:170px">월별 결제 현황</th>
+          <th style="width:210px">월별 결제 현황</th>
           <th style="width:120px">조사 결과 <span class="edit-hint">클릭 변경</span></th>
-          <th>조치 내용 <span class="edit-hint">클릭 편집</span></th>
-          <th style="width:160px">담당자 <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:280px">조치 내용 <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:180px">담당자 <span class="edit-hint">클릭 편집</span></th>
         </tr></thead>
         <tbody>
         <tr class="row-pending" data-row-id="송다윗__0" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
@@ -1621,14 +1624,14 @@ tr.search-hidden { display: none !important; }
       </div>
       <table>
         <thead><tr>
-          <th style="width:200px">서비스명</th>
-          <th style="width:130px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:230px">서비스명</th>
+          <th style="width:170px">사용처 (사이트) <span class="edit-hint">클릭 편집</span></th>
           <th style="width:90px">유형</th>
           <th style="width:120px;text-align:right">월 절감 추정</th>
-          <th style="width:170px">월별 결제 현황</th>
+          <th style="width:210px">월별 결제 현황</th>
           <th style="width:120px">조사 결과 <span class="edit-hint">클릭 변경</span></th>
-          <th>조치 내용 <span class="edit-hint">클릭 편집</span></th>
-          <th style="width:160px">담당자 <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:280px">조치 내용 <span class="edit-hint">클릭 편집</span></th>
+          <th style="width:180px">담당자 <span class="edit-hint">클릭 편집</span></th>
         </tr></thead>
         <tbody>
         <tr class="row-pending" data-row-id="반유환__0" data-default-status="pending" data-default-action="" data-default-assignees="" data-default-site="">
