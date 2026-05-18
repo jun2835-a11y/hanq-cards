@@ -2261,14 +2261,15 @@ function initCategoryTab() {
   });
   hoverReplay(()=>chartCatDonut, 'catDonut');
 
-  // Bubble chart
+  // Bubble chart — 기타업무비(가장 큰 원)가 중앙에 오도록 위치 조정
   const positions = [
-    {x:20,y:70},{x:55,y:30},{x:75,y:65},{x:40,y:80},{x:60,y:82},
-    {x:15,y:45},{x:80,y:25},{x:30,y:20},{x:85,y:50}
+    {x:38,y:48},{x:68,y:30},{x:78,y:68},{x:25,y:72},{x:58,y:78},
+    {x:18,y:35},{x:85,y:48},{x:48,y:18},{x:88,y:22}
   ];
   const bubbleData = catKeys.map((k,i)=>({
     label:k,
-    data:[{x:(positions[i]||{x:50,y:50}).x,y:(positions[i]||{x:50,y:50}).y,r:Math.max(8,Math.sqrt(catTotals[k]/total)*80)}],
+    clip: false,
+    data:[{x:(positions[i]||{x:50,y:50}).x,y:(positions[i]||{x:50,y:50}).y,r:Math.max(8,Math.sqrt(catTotals[k]/total)*60)}],
     backgroundColor:CAT_COLORS[k]+'99',
     borderColor:CAT_COLORS[k],borderWidth:1
   }));
@@ -2277,8 +2278,9 @@ function initCategoryTab() {
     data:{datasets:bubbleData},
     options:{
       responsive:true,maintainAspectRatio:false,
+      clip: false,
       animation:{duration:800},
-      layout:{padding:{top:30,bottom:30,left:30,right:30}},
+      layout:{padding:{top:40,bottom:20,left:20,right:20}},
       plugins:{
         legend:{display:false},
         tooltip:{callbacks:{
@@ -2286,8 +2288,8 @@ function initCategoryTab() {
         }}
       },
       scales:{
-        x:{display:false,min:-5,max:105},
-        y:{display:false,min:-5,max:105}
+        x:{display:false,min:-10,max:110},
+        y:{display:false,min:-10,max:110}
       }
     }
   });
