@@ -573,16 +573,12 @@ const CARD_COLORS = {
   'NH농협 다사로이':   '#607060'
 };
 
-// 카드 마스터 데이터 (스프레드시트 기준 — 사용현황/비고 제외)
-const CARD_MASTER = [
-  { corp:'(수)복지용구', holder:'정재승',       cardCo:'현대카드', name:'KT청구할인형',      no:'4033-0202-0543-9715' },
-  { corp:'(수)복지용구', holder:'송다윗',       cardCo:'국민카드', name:'KB WISH올카드',    no:'4703-4916-3394-2084' },
-  { corp:'한솔',        holder:'이승학',       cardCo:'롯데카드', name:'SUPER할부-KT',     no:'5137-9200-8543-9275' },
-  { corp:'한솔',        holder:'2층공용(당번)', cardCo:'현대카드', name:'M BOOST VISA',     no:'4890-1683-5005-4920' },
-  { corp:'순천에덴',    holder:'손용진',       cardCo:'롯데카드', name:'LG전자 스페셜롯데', no:'5137-9200-8192-6150' },
-  { corp:'순천에덴',    holder:'교육원(반유환)',cardCo:'삼성카드', name:'V2 BIZ AMEX',      no:'3791-839551-66480'   },
-  { corp:'(수)복지용구', holder:'정재승',       cardCo:'농협카드', name:'NH농협 다사로이',   no:'—'                   },
-];
+// 카드 마스터 — 카드 재편(rpCards)에서 동적으로 파생됨
+function getCardMaster() {
+  return rpCards
+    .filter(c => c.txName)
+    .map(c => ({ corp: c.company, holder: c.holder, cardCo: c.cardCo, name: c.txName, no: c.no || '—' }));
+}
 const CAT_COLORS = {
   '기타업무비':'#5C5851','렌탈/구독':'#A0522D','식대/카페':'#C8380A',
   '생활/잡화':'#2D6644','교통/주유':'#1A4A8A','4대보험':'#9A958F',
@@ -1795,6 +1791,27 @@ function badgeHtml(cat) {
 }
 
 // ═══════════════════════════════════════════════════════════
+// CARD REPLAN DATA — 대시보드보다 먼저 초기화해야 함
+// ═══════════════════════════════════════════════════════════
+const RP_KEY = 'hanq-card-replan';
+const RP_DEFAULT_CARDS = [
+  {id:'rp1', cardName:'농협카드 1 (1874401)',   cardCo:'농협카드',     holder:'정재승',        company:'(수)복지용구', payDay:'6일',  purpose:'사무실공통',  status:'유지',    memo:'',                         txName:'NH농협 다사로이',    no:'—'},
+  {id:'rp2', cardName:'국민카드 (4429764)',     cardCo:'국민카드',     holder:'송다윗',        company:'(수)복지용구', payDay:'25일', purpose:'물류·배송',   status:'유지',    memo:'후불하이패스',               txName:'KB WISH올카드',     no:'4703-4916-3394-2084'},
+  {id:'rp3', cardName:'V2 BIZ AMEX',           cardCo:'삼성카드',     holder:'반유환',        company:'순천에덴',    payDay:'25일', purpose:'교육원',     status:'유지',    memo:'TO BE 교육원 공통경비',      txName:'V2 BIZ AMEX',       no:'3791-839551-66480'},
+  {id:'rp4', cardName:'KT청구할인형',           cardCo:'현대카드 1',   holder:'정재승',        company:'(수)복지용구', payDay:'25일', purpose:'대표·개인',   status:'유지',    memo:'',                         txName:'KT청구할인형',       no:'4033-0202-0543-9715'},
+  {id:'rp5', cardName:'KT가족만족할부',         cardCo:'신한카드',     holder:'정재승/이승학',  company:'한솔',       payDay:'10일', purpose:'사무실공통',  status:'축소검토', memo:'',                         txName:'',                  no:''},
+  {id:'rp6', cardName:'오토빌CORPORATE',        cardCo:'광주(임직원)', holder:'정재승',        company:'한솔',       payDay:'6일',  purpose:'대표·개인',   status:'유지',    memo:'',                         txName:'',                  no:''},
+  {id:'rp7', cardName:'SUPER할부-KT',           cardCo:'롯데카드 1',   holder:'이승학',        company:'한솔',       payDay:'25일', purpose:'연구소·개발', status:'유지',    memo:'렌탈/구독 전용 검토',         txName:'SUPER할부-KT',       no:'5137-9200-8543-9275'},
+  {id:'rp8', cardName:'M BOOST VISA',           cardCo:'현대카드 2',   holder:'2층공용(당번)', company:'한솔',       payDay:'25일', purpose:'연구소·개발', status:'유지',    memo:'',                         txName:'M BOOST VISA',      no:'4890-1683-5005-4920'},
+  {id:'rp9', cardName:'LG스페셜롯데 (손용진)',   cardCo:'롯데카드 2',   holder:'손용진',        company:'순천에덴',   payDay:'25일', purpose:'교육원',     status:'대체예정', memo:'→ 한솔 개발팀 카드로 이전 예정', txName:'LG전자 스페셜롯데',  no:'5137-9200-8192-6150'},
+  {id:'rp10',cardName:'LG스페셜롯데 (조승현)',   cardCo:'롯데카드 2',   holder:'조승현',        company:'한솔',       payDay:'10일', purpose:'광고·마케팅', status:'유지',    memo:'2026.05 신규',              txName:'',                  no:''},
+  {id:'rp11',cardName:'올바른 have체크',         cardCo:'농협카드 2',   holder:'정재승',        company:'(수)복지용구', payDay:'6일',  purpose:'사무실공통',  status:'축소검토', memo:'',                         txName:'',                  no:''},
+  {id:'rp12',cardName:'라이언치즈체크',          cardCo:'농협카드 3',   holder:'정재승',        company:'(수)복지용구', payDay:'25일', purpose:'사무실공통',  status:'축소검토', memo:'',                         txName:'',                  no:''},
+];
+let rpCards = [];
+rpLoad(); // 대시보드 렌더링 전에 카드 재편 데이터 로드
+
+// ═══════════════════════════════════════════════════════════
 // DASHBOARD INIT
 // ═══════════════════════════════════════════════════════════
 (function initDashboard(){
@@ -1876,40 +1893,44 @@ function badgeHtml(cat) {
     }
   });
 
-  // Card holder mapping table — CARD_MASTER 기반 동적 렌더링
-  (function renderCardHolderTable() {
-    const tbody = document.getElementById('cardHolderTbl');
-    if (!tbody) return;
-    const rows = CARD_MASTER.map(m => {
-      const txs   = TRANSACTIONS.filter(t => t.card === m.name);
-      const total = txs.reduce((s,t) => s+t.amount, 0);
-      const cnt   = txs.length;
-      const avg   = cnt > 0 ? Math.round(total / cnt) : 0;
-      // 주요 카테고리
-      const catMap = {};
-      txs.forEach(t => { catMap[t.cat] = (catMap[t.cat]||0) + t.amount; });
-      const topCat = Object.entries(catMap).sort((a,b)=>b[1]-a[1])[0];
-      const catName = topCat ? topCat[0] : '—';
-      const catColor = CAT_COLORS[catName] || '#9A958F';
-      const color = CARD_COLORS[m.name] || '#9A958F';
-      return `<tr>
-        <td><span style="font-size:10px;padding:2px 7px;background:var(--border2);color:var(--ink2);font-weight:600">${m.corp}</span></td>
-        <td style="font-size:11px;color:var(--ink2)">${m.cardCo}</td>
-        <td><strong style="color:${color}">${m.name}</strong></td>
-        <td style="font-family:'Courier New',monospace;font-size:11px;color:var(--ink2);letter-spacing:.04em">${maskCardNo(m.no)}</td>
-        <td style="font-size:12px">${m.holder}</td>
-        <td style="text-align:right;font-weight:600">${total.toLocaleString('ko-KR')}원</td>
-        <td style="text-align:right;color:var(--ink2)">${cnt}건</td>
-        <td><span class="badge" style="color:${catColor};border-color:${catColor}30;background:${catColor}10">${catName}</span></td>
-        <td style="text-align:right;color:var(--muted)">${avg.toLocaleString('ko-KR')}원</td>
-      </tr>`;
-    }).join('');
-    tbody.innerHTML = rows;
-  })();
+  // Card holder mapping table
+  renderCardHolderTable();
 
   // Venn diagram
   buildVenn();
 })();
+
+// ═══════════════════════════════════════════════════════════
+// CARD HOLDER TABLE — standalone so rpSave() can refresh it
+// ═══════════════════════════════════════════════════════════
+function renderCardHolderTable() {
+  const tbody = document.getElementById('cardHolderTbl');
+  if (!tbody) return;
+  const rows = getCardMaster().map(m => {
+    const txs   = TRANSACTIONS.filter(t => t.card === m.name);
+    const total = txs.reduce((s,t) => s+t.amount, 0);
+    const cnt   = txs.length;
+    const avg   = cnt > 0 ? Math.round(total / cnt) : 0;
+    const catMap = {};
+    txs.forEach(t => { catMap[t.cat] = (catMap[t.cat]||0) + t.amount; });
+    const topCat = Object.entries(catMap).sort((a,b)=>b[1]-a[1])[0];
+    const catName = topCat ? topCat[0] : '—';
+    const catColor = CAT_COLORS[catName] || '#9A958F';
+    const color = CARD_COLORS[m.name] || '#9A958F';
+    return `<tr>
+      <td><span style="font-size:10px;padding:2px 7px;background:var(--border2);color:var(--ink2);font-weight:600">${m.corp}</span></td>
+      <td style="font-size:11px;color:var(--ink2)">${m.cardCo}</td>
+      <td><strong style="color:${color}">${m.name}</strong></td>
+      <td style="font-family:'Courier New',monospace;font-size:11px;color:var(--ink2);letter-spacing:.04em">${maskCardNo(m.no)}</td>
+      <td style="font-size:12px">${m.holder}</td>
+      <td style="text-align:right;font-weight:600">${total.toLocaleString('ko-KR')}원</td>
+      <td style="text-align:right;color:var(--ink2)">${cnt}건</td>
+      <td><span class="badge" style="color:${catColor};border-color:${catColor}30;background:${catColor}10">${catName}</span></td>
+      <td style="text-align:right;color:var(--muted)">${avg.toLocaleString('ko-KR')}원</td>
+    </tr>`;
+  }).join('');
+  tbody.innerHTML = rows;
+}
 
 // ═══════════════════════════════════════════════════════════
 // VENN DIAGRAM (SVG)
@@ -2067,7 +2088,7 @@ function initCardsTab() {
   const mLabels = ['1월','2월','3월','4월'];
 
   // TRANSACTIONS 기반 동적 집계
-  const cards = CARD_MASTER.map(m => {
+  const cards = getCardMaster().map(m => {
     const txs = TRANSACTIONS.filter(t => t.card === m.name);
     const amount = txs.reduce((s,t)=>s+t.amount,0);
     const count  = txs.length;
@@ -2111,7 +2132,7 @@ function showCardDetail(cardName) {
   const el = [...document.querySelectorAll('.card-item')].find(el=>el.querySelector('.card-item-name').textContent===cardName);
   if(el) el.classList.add('selected');
   const txs = TRANSACTIONS.filter(t=>t.card===cardName).sort((a,b)=>b.date.localeCompare(a.date));
-  const master = CARD_MASTER.find(m=>m.name===cardName);
+  const master = getCardMaster().find(m=>m.name===cardName);
   const sub = master ? ` · ${master.corp} · ${master.holder}` : '';
   document.getElementById('cardDetailTitle').textContent = cardName+' 거래 내역 ('+txs.length+'건)'+sub;
   document.getElementById('cardDetailBody').innerHTML = txs.map(t=>`
@@ -2242,7 +2263,7 @@ updateSavings();
 // ═══════════════════════════════════════════════════════════
 // REPLAN TAB
 // ═══════════════════════════════════════════════════════════
-const RP_KEY      = 'hanq-card-replan';
+// RP_KEY, RP_DEFAULT_CARDS, rpCards — 위에서 이미 선언됨
 const RP_PURPOSES = ['사무실공통','물류·배송','교육원','연구소·개발','대표·개인','광고·마케팅','미분류'];
 const RP_STATUSES = [
   {v:'신규',    c:'#6B3A7D',bg:'#F5EEFA',bd:'#D0A8E8'},
@@ -2255,30 +2276,31 @@ const RP_PURPOSE_COLORS = {
   '사무실공통':'#1A4A8A','물류·배송':'#8B5E14','교육원':'#2D6644',
   '연구소·개발':'#6B3A7D','대표·개인':'#C8380A','광고·마케팅':'#C86420','미분류':'#9A958F'
 };
-const RP_DEFAULT_CARDS = [
-  {id:'rp1', cardName:'농협카드 1 (1874401)',   cardCo:'농협카드',     holder:'정재승',        company:'(수)복지용구', payDay:'6일',  purpose:'사무실공통',  status:'유지',    memo:''},
-  {id:'rp2', cardName:'국민카드 (4429764)',     cardCo:'국민카드',     holder:'송다윗',        company:'(수)복지용구', payDay:'25일', purpose:'물류·배송',   status:'유지',    memo:'후불하이패스'},
-  {id:'rp3', cardName:'V2 BIZ AMEX',           cardCo:'삼성카드',     holder:'반유환',        company:'순천에덴',    payDay:'25일', purpose:'교육원',     status:'유지',    memo:'TO BE 교육원 공통경비'},
-  {id:'rp4', cardName:'KT청구할인형',           cardCo:'현대카드 1',   holder:'정재승',        company:'(수)복지용구', payDay:'25일', purpose:'대표·개인',   status:'유지',    memo:''},
-  {id:'rp5', cardName:'KT가족만족할부',         cardCo:'신한카드',     holder:'정재승/이승학',  company:'한솔',       payDay:'10일', purpose:'사무실공통',  status:'축소검토', memo:''},
-  {id:'rp6', cardName:'오토빌CORPORATE',        cardCo:'광주(임직원)', holder:'정재승',        company:'한솔',       payDay:'6일',  purpose:'대표·개인',   status:'유지',    memo:''},
-  {id:'rp7', cardName:'SUPER할부-KT',           cardCo:'롯데카드 1',   holder:'이승학',        company:'한솔',       payDay:'25일', purpose:'연구소·개발', status:'유지',    memo:'렌탈/구독 전용 검토'},
-  {id:'rp8', cardName:'M BOOST VISA',           cardCo:'현대카드 2',   holder:'2층공용(당번)', company:'한솔',       payDay:'25일', purpose:'연구소·개발', status:'유지',    memo:''},
-  {id:'rp9', cardName:'LG스페셜롯데 (손용진)',   cardCo:'롯데카드 2',   holder:'손용진',        company:'순천에덴',   payDay:'25일', purpose:'교육원',     status:'대체예정', memo:'→ 한솔 개발팀 카드로 이전 예정'},
-  {id:'rp10',cardName:'LG스페셜롯데 (조승현)',   cardCo:'롯데카드 2',   holder:'조승현',        company:'한솔',       payDay:'10일', purpose:'광고·마케팅', status:'유지',    memo:'2026.05 신규'},
-  {id:'rp11',cardName:'올바른 have체크',         cardCo:'농협카드 2',   holder:'정재승',        company:'(수)복지용구', payDay:'6일',  purpose:'사무실공통',  status:'축소검토', memo:''},
-  {id:'rp12',cardName:'라이언치즈체크',          cardCo:'농협카드 3',   holder:'정재승',        company:'(수)복지용구', payDay:'25일', purpose:'사무실공통',  status:'축소검토', memo:''},
-];
-
-let rpCards = [];
 
 function rpLoad() {
   try {
     const s = JSON.parse(localStorage.getItem(RP_KEY));
-    rpCards = (s && s.length) ? s : JSON.parse(JSON.stringify(RP_DEFAULT_CARDS));
+    if (s && s.length) {
+      // 기존 저장 데이터에 txName/no 가 없으면 기본값에서 보완
+      rpCards = s.map(saved => {
+        const def = RP_DEFAULT_CARDS.find(d => d.id === saved.id);
+        return {
+          txName: def ? def.txName : '',
+          no:     def ? def.no     : '',
+          ...saved
+        };
+      });
+    } else {
+      rpCards = JSON.parse(JSON.stringify(RP_DEFAULT_CARDS));
+    }
   } catch { rpCards = JSON.parse(JSON.stringify(RP_DEFAULT_CARDS)); }
 }
-function rpSave() { localStorage.setItem(RP_KEY, JSON.stringify(rpCards)); }
+function rpSave() {
+  localStorage.setItem(RP_KEY, JSON.stringify(rpCards));
+  renderCardHolderTable();
+  const grid = document.getElementById('cardGrid');
+  if (grid && grid.children.length > 0) initCardsTab();
+}
 function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function rpRenderTable() {
