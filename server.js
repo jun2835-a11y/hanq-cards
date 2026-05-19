@@ -15,6 +15,7 @@ const FILE_TO_KEY = {
   'investigation-state.json': 'investigation-state',
   'finance-state.json':       'finance-state',
   'finance-plan-state.json':  'finance-plan-state',
+  'card-replan-state.json':   'card-replan-state',
 };
 
 // 인메모리 캐시 — 서버 시작 시 로드, 이후 동기 읽기 가능
@@ -165,9 +166,10 @@ const server = http.createServer((req, res) => {
 
   // 상태 API (GET)
   const getStateRoutes = {
-    '/api/state':             'investigation-state.json',
-    '/api/finance-state':     'finance-state.json',
-    '/api/finance-plan-state':'finance-plan-state.json',
+    '/api/state':              'investigation-state.json',
+    '/api/finance-state':      'finance-state.json',
+    '/api/finance-plan-state': 'finance-plan-state.json',
+    '/api/card-replan-state':  'card-replan-state.json',
   };
   if (getStateRoutes[url] && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -177,9 +179,10 @@ const server = http.createServer((req, res) => {
 
   // 상태 API (POST)
   const postRoutes = {
-    '/api/state':             'investigation-state.json',
-    '/api/finance-state':     'finance-state.json',
-    '/api/finance-plan-state':'finance-plan-state.json',
+    '/api/state':              'investigation-state.json',
+    '/api/finance-state':      'finance-state.json',
+    '/api/finance-plan-state': 'finance-plan-state.json',
+    '/api/card-replan-state':  'card-replan-state.json',
   };
   if (postRoutes[url] && req.method === 'POST') {
     let body = '';

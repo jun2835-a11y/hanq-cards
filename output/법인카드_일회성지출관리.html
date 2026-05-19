@@ -2405,29 +2405,51 @@ const RP_PURPOSE_COLORS = {
   '연구소·개발':'#6B3A7D','대표·개인':'#C8380A','광고·마케팅':'#C86420','미분류':'#9A958F'
 };
 
+function rpApply(raw) {
+  const s = Array.isArray(raw) ? raw : (raw && raw.cards ? raw.cards : null);
+  if (s && s.length) {
+    rpCards = s.map(saved => {
+      const def = RP_DEFAULT_CARDS.find(d => d.id === saved.id);
+      return { txName: def ? def.txName : '', no: def ? def.no : '', ...saved };
+    });
+  } else {
+    rpCards = JSON.parse(JSON.stringify(RP_DEFAULT_CARDS));
+  }
+}
 function rpLoad() {
   try {
-    const s = JSON.parse(localStorage.getItem(RP_KEY));
-    if (s && s.length) {
-      // 기존 저장 데이터에 txName/no 가 없으면 기본값에서 보완
-      rpCards = s.map(saved => {
-        const def = RP_DEFAULT_CARDS.find(d => d.id === saved.id);
-        return {
-          txName: def ? def.txName : '',
-          no:     def ? def.no     : '',
-          ...saved
-        };
-      });
-    } else {
-      rpCards = JSON.parse(JSON.stringify(RP_DEFAULT_CARDS));
-    }
+    const local = JSON.parse(localStorage.getItem(RP_KEY));
+    rpApply(local);
   } catch { rpCards = JSON.parse(JSON.stringify(RP_DEFAULT_CARDS)); }
+
+  fetch('/api/card-replan-state')
+    .then(r => r.json())
+    .then(serverData => {
+      const serverCards = Array.isArray(serverData) ? serverData : (serverData && serverData.cards ? serverData.cards : null);
+      if (serverCards && serverCards.length) {
+        rpApply(serverCards);
+        localStorage.setItem(RP_KEY, JSON.stringify(rpCards));
+        initCardsTab();
+      } else if (rpCards.length) {
+        fetch('/api/card-replan-state', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cards: rpCards }),
+        }).catch(() => {});
+      }
+    })
+    .catch(() => {});
 }
 let _rpRenderTimer = null;
 function rpSave() {
-  localStorage.setItem(RP_KEY, JSON.stringify(rpCards)); // 즉시 저장
+  localStorage.setItem(RP_KEY, JSON.stringify(rpCards));
+  fetch('/api/card-replan-state', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cards: rpCards }),
+  }).catch(() => {});
   clearTimeout(_rpRenderTimer);
-  _rpRenderTimer = setTimeout(() => { // 차트 리빌드는 600ms 디바운스
+  _rpRenderTimer = setTimeout(() => {
     renderDashboard();
     initCardsTab();
   }, 600);
