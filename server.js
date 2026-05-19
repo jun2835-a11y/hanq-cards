@@ -5,6 +5,92 @@ const path = require('path');
 const PORT   = process.env.PORT || 3005;
 const OUT    = path.join(__dirname, 'output');
 
+// ── Supabase 영구 저장소 ─────────────────────────────────────────────────
+// 환경변수 SUPABASE_URL, SUPABASE_KEY 가 없으면 로컬 파일로 폴백 (개발용)
+const SB_URL = process.env.SUPABASE_URL;   // https://xxxx.supabase.co
+const SB_KEY = process.env.SUPABASE_KEY;   // service_role 키
+
+// 파일명 → Supabase key 매핑
+const FILE_TO_KEY = {
+  'investigation-state.json': 'investigation-state',
+  'finance-state.json':       'finance-state',
+  'finance-plan-state.json':  'finance-plan-state',
+};
+
+// 인메모리 캐시 — 서버 시작 시 로드, 이후 동기 읽기 가능
+const _cache = {};
+
+async function sbRead(key) {
+  try {
+    const res = await fetch(
+      `${SB_URL}/rest/v1/kv_store?key=eq.${encodeURIComponent(key)}&select=value`,
+      { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
+    );
+    const rows = await res.json();
+    return (Array.isArray(rows) && rows.length > 0) ? rows[0].value : null;
+  } catch { return null; }
+}
+
+async function sbWrite(key, data) {
+  try {
+    await fetch(`${SB_URL}/rest/v1/kv_store`, {
+      method: 'POST',
+      headers: {
+        apikey: SB_KEY,
+        Authorization: `Bearer ${SB_KEY}`,
+        'Content-Type': 'application/json',
+        Prefer: 'resolution=merge-duplicates',
+      },
+      body: JSON.stringify({ key, value: data }),
+    });
+  } catch (e) { console.error('[Supabase write error]', e.message); }
+}
+
+// 로컬 파일 폴백 (Supabase 미설정 or 개발 환경)
+function localRead(file) {
+  try { return JSON.parse(fs.readFileSync(path.join(OUT, file), 'utf8')); }
+  catch { return {}; }
+}
+function localWrite(file, data) {
+  try { fs.writeFileSync(path.join(OUT, file), JSON.stringify(data), 'utf8'); }
+  catch (e) { console.error('[local write error]', e.message); }
+}
+
+// 동기 읽기 — 항상 캐시에서 반환
+function readJSON(file) { return _cache[file] ?? {}; }
+
+// 쓰기 — 캐시 + 영구저장소에 동시 반영
+function writeJSON(file, data) {
+  _cache[file] = data;
+  const key = FILE_TO_KEY[file];
+  if (SB_URL && SB_KEY && key) {
+    sbWrite(key, data); // 비동기, 응답 기다리지 않음
+  } else {
+    localWrite(file, data);
+  }
+}
+
+// 서버 시작 시 전체 state 로드
+async function loadAllState() {
+  for (const [file, key] of Object.entries(FILE_TO_KEY)) {
+    let data = null;
+    if (SB_URL && SB_KEY) {
+      data = await sbRead(key);
+    }
+    if (data === null) {
+      // Supabase 미설정이거나 아직 데이터 없음 → 로컬 파일에서 읽어서 Supabase에 seed
+      data = localRead(file);
+      if (SB_URL && SB_KEY && Object.keys(data).length > 0) {
+        console.log(`[state] seeding ${key} to Supabase…`);
+        await sbWrite(key, data);
+      }
+    }
+    _cache[file] = data;
+    console.log(`[state] loaded ${file} (${Object.keys(data).length} keys)`);
+  }
+}
+
+// ── 도메인 데이터 ────────────────────────────────────────────────────────
 const SUMMARY_DEPOSITS = [
   {accountNo:'301-0237-9325-41',balance:null},
   {accountNo:'301-0240-3659-61',balance:255800},
@@ -58,16 +144,8 @@ function serveHTML(res, file) {
   });
 }
 
-function readJSON(file) {
-  try { return JSON.parse(fs.readFileSync(path.join(OUT, file), 'utf8')); }
-  catch { return {}; }
-}
-function writeJSON(file, data) {
-  try { fs.writeFileSync(path.join(OUT, file), JSON.stringify(data), 'utf8'); return true; }
-  catch { return false; }
-}
-
-http.createServer((req, res) => {
+// ── HTTP 서버 ────────────────────────────────────────────────────────────
+const server = http.createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -86,27 +164,22 @@ http.createServer((req, res) => {
   }
 
   // 상태 API (GET)
-  if (url === '/api/state' && req.method === 'GET') {
+  const getStateRoutes = {
+    '/api/state':             'investigation-state.json',
+    '/api/finance-state':     'finance-state.json',
+    '/api/finance-plan-state':'finance-plan-state.json',
+  };
+  if (getStateRoutes[url] && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(readJSON('investigation-state.json')));
-    return;
-  }
-  if (url === '/api/finance-state' && req.method === 'GET') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(readJSON('finance-state.json')));
-    return;
-  }
-  if (url === '/api/finance-plan-state' && req.method === 'GET') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(readJSON('finance-plan-state.json')));
+    res.end(JSON.stringify(readJSON(getStateRoutes[url])));
     return;
   }
 
   // 상태 API (POST)
   const postRoutes = {
-    '/api/state': 'investigation-state.json',
-    '/api/finance-state': 'finance-state.json',
-    '/api/finance-plan-state': 'finance-plan-state.json',
+    '/api/state':             'investigation-state.json',
+    '/api/finance-state':     'finance-state.json',
+    '/api/finance-plan-state':'finance-plan-state.json',
   };
   if (postRoutes[url] && req.method === 'POST') {
     let body = '';
@@ -123,28 +196,27 @@ http.createServer((req, res) => {
   }
 
   // 재무 요약 API
-  if (req.url.split('?')[0] === '/api/finance-summary' && req.method === 'GET') {
+  if (url === '/api/finance-summary' && req.method === 'GET') {
     const qs      = new URLSearchParams(req.url.includes('?') ? req.url.split('?')[1] : '');
     const horizon = Math.min(Math.max(parseInt(qs.get('days') || '90', 10), 1), 730);
-    const st       = readJSON('finance-state.json');
+    const st      = readJSON('finance-state.json');
     const balances = (st && st.balances) ? st.balances : {};
 
     let totalDeposit = 0;
-    SUMMARY_DEPOSITS.forEach(function(d) {
-      var bal = d.balance;
+    SUMMARY_DEPOSITS.forEach(d => {
+      let bal = d.balance;
       if (balances[d.accountNo] !== undefined) bal = balances[d.accountNo].value;
       if (bal !== null && bal > 0) totalDeposit += bal;
     });
 
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
+    const now = new Date(); now.setHours(0, 0, 0, 0);
     let totalLoan = 0, urgentCount = 0;
     const alerts = [];
 
-    SUMMARY_LOANS.forEach(function(loan) {
+    SUMMARY_LOANS.forEach(loan => {
       totalLoan += (loan.balance || 0);
-      const p    = loan.maturity.split('.');
-      const mat  = new Date(+p[0], +p[1] - 1, +p[2]);
+      const p   = loan.maturity.split('.');
+      const mat = new Date(+p[0], +p[1] - 1, +p[2]);
       const days = Math.ceil((mat - now) / 86400000);
       if (days >= 0 && days <= horizon) {
         urgentCount++;
@@ -152,39 +224,31 @@ http.createServer((req, res) => {
       }
     });
 
-    CARD_PAYMENTS.forEach(function(cp) {
-      const d = new Date(now);
-      d.setDate(cp.payDay);
+    CARD_PAYMENTS.forEach(cp => {
+      const d = new Date(now); d.setDate(cp.payDay);
       if (d <= now) d.setMonth(d.getMonth() + 1);
       const days = Math.ceil((d - now) / 86400000);
-      const urg  = days <= 5 ? 'urg' : days <= 14 ? 'wrn' : 'info';
-      alerts.push({ text: cp.label, daysLeft: days, urgency: urg });
+      alerts.push({ text: cp.label, daysLeft: days, urgency: days <= 5 ? 'urg' : days <= 14 ? 'wrn' : 'info' });
     });
 
-    alerts.sort(function(a, b) { return a.daysLeft - b.daysLeft; });
-
+    alerts.sort((a, b) => a.daysLeft - b.daysLeft);
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      totalDeposit, totalLoan,
-      netFunds: totalDeposit - totalLoan,
-      urgentCount, alerts,
-    }));
+    res.end(JSON.stringify({ totalDeposit, totalLoan, netFunds: totalDeposit - totalLoan, urgentCount, alerts }));
     return;
   }
 
   res.writeHead(404); res.end('Not found');
+});
 
-}).listen(PORT, () => {
-  console.log('');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('  hanQ Cards & Finance Portal');
-  console.log(`  http://localhost:${PORT}`);
-  console.log(`  /accounts  재무계좌현황`);
-  console.log(`  /plan      자금계획관리`);
-  console.log(`  /inspect   카드 실사결과보고`);
-  console.log(`  /spend     일회성지출관리`);
-  console.log(`  /report    분석리포트`);
-  console.log(`  /quick     모바일 빠른입력`);
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('');
+// ── 시작: state 로드 후 서버 오픈 ───────────────────────────────────────
+loadAllState().then(() => {
+  server.listen(PORT, () => {
+    console.log('');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('  hanQ Cards & Finance Portal');
+    console.log(`  http://localhost:${PORT}`);
+    console.log(`  저장소: ${SB_URL ? 'Supabase (' + SB_URL.split('//')[1]?.split('.')[0] + ')' : '로컬 파일'}`);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('');
+  });
 });
