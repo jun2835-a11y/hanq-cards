@@ -1999,15 +1999,14 @@ tr.food-hidden { display: none !important; }
   var _txMonthly = {}, _txCat = {};
   try { _txMonthly = JSON.parse(localStorage.getItem('hanq-tx-monthly') || '{}'); } catch(e) {}
   try { _txCat     = JSON.parse(localStorage.getItem('hanq-tx-cat')     || '{}'); } catch(e) {}
-  var _hasData = Object.keys(_txMonthly).length > 0;
 
-  function _getMonthly(svcName, cardName) {
+  function _getMonthly(monthly, cat, svcName, cardName) {
     var k = svcName + '\x00' + cardName;
-    if (_txMonthly[k]) return { months: _txMonthly[k], cat: _txCat[k] || '' };
+    if (monthly[k]) return { months: monthly[k], cat: cat[k] || '' };
     var base = svcName.replace(/\s*\([^)]+원\/월\)\s*$/, '').trim();
     if (base !== svcName) {
       k = base + '\x00' + cardName;
-      if (_txMonthly[k]) return { months: _txMonthly[k], cat: _txCat[k] || '' };
+      if (monthly[k]) return { months: monthly[k], cat: cat[k] || '' };
     }
     return null;
   }
@@ -2025,31 +2024,45 @@ tr.food-hidden { display: none !important; }
     return html + '</div>';
   }
 
-  document.querySelectorAll('tr[data-row-id]').forEach(function(tr) {
-    var svcEl = tr.querySelector('.service-name');
-    if (!svcEl) return;
-    var svcName  = svcEl.textContent.trim();
-    var cardTag  = tr.querySelector('.row-card-tag');
-    var cardName = cardTag ? (cardTag.firstChild && cardTag.firstChild.nodeType === 3
-                     ? cardTag.firstChild.textContent.trim()
-                     : cardTag.textContent.replace(/[·*\d\s-]+$/,'').trim()) : '';
+  function _applyMonthDots(monthly, cat) {
+    var hasData = Object.keys(monthly).length > 0;
+    document.querySelectorAll('tr[data-row-id]').forEach(function(tr) {
+      var svcEl = tr.querySelector('.service-name');
+      if (!svcEl) return;
+      var svcName  = svcEl.textContent.trim();
+      var cardTag  = tr.querySelector('.row-card-tag');
+      var cardName = cardTag ? (cardTag.firstChild && cardTag.firstChild.nodeType === 3
+                       ? cardTag.firstChild.textContent.trim()
+                       : cardTag.textContent.replace(/[·*\d\s-]+$/,'').trim()) : '';
+      var result  = hasData ? _getMonthly(monthly, cat, svcName, cardName) : null;
+      var html    = _buildMonthDots(result ? result.months : null);
+      if (result && result.cat) tr.dataset.txCat = result.cat;
+      var existing = tr.querySelector('.month-cell');
+      var tdStatus = tr.querySelector('.td-status');
+      if (!tdStatus) return;
+      if (existing) {
+        existing.innerHTML = html;
+      } else {
+        var cell = document.createElement('td');
+        cell.className = 'month-cell';
+        cell.innerHTML = html;
+        tdStatus.parentNode.insertBefore(cell, tdStatus);
+      }
+    });
+  }
 
-    var result  = _hasData ? _getMonthly(svcName, cardName) : null;
-    var html    = _buildMonthDots(result ? result.months : null);
-    if (result && result.cat) tr.dataset.txCat = result.cat;
+  // 즉시 로컬로 렌더
+  _applyMonthDots(_txMonthly, _txCat);
 
-    var existing = tr.querySelector('.month-cell');
-    var tdStatus = tr.querySelector('.td-status');
-    if (!tdStatus) return;
-    if (existing) {
-      existing.innerHTML = html;
-    } else {
-      var cell = document.createElement('td');
-      cell.className = 'month-cell';
-      cell.innerHTML = html;
-      tdStatus.parentNode.insertBefore(cell, tdStatus);
+  // 서버에서 권위 데이터 비동기 로드
+  fetch('/api/tx-data-state').then(function(r) { return r.json(); }).then(function(d) {
+    if (d && d.monthly && Object.keys(d.monthly).length > 0) {
+      localStorage.setItem('hanq-tx-monthly', JSON.stringify(d.monthly));
+      localStorage.setItem('hanq-tx-cat', JSON.stringify(d.cats || {}));
+      _applyMonthDots(d.monthly, d.cats || {});
+      window.toggleFoodFilter && window.toggleFoodFilter();
     }
-  });
+  }).catch(function() {});
 
   // 식대 필터 초기 적용
   var _foodOn = true;
@@ -2150,53 +2163,58 @@ function exportExcel(){
   XLSX.writeFile(wb,'실사결과보고_'+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'.xlsx');
 }
 
-// ── 카드 정보 보강 (hanq-card-replan localStorage 동기화) ────────────────────
+// ── 카드 정보 보강 (서버 card-replan-state 동기화) ────────────────────────────
 (function() {
-  var rpCards = [];
-  try { rpCards = JSON.parse(localStorage.getItem('hanq-card-replan') || '[]'); } catch(e) {}
-  if (!rpCards.length) return;
+  function applyCardReplan(rpCards) {
+    if (!rpCards || !rpCards.length) return;
+    var cardMap = {};
+    rpCards.forEach(function(c) {
+      var key = (c.txName || '').trim();
+      if (key) cardMap[key] = c;
+    });
+    var purposeColors = {
+      '연구소·개발':'#1A4A8A','광고·마케팅':'#8B1A6A','사무실공통':'#2D6644',
+      '교육원':'#6B3A7D','대표·개인':'#C8380A','물류·배송':'#8B5E14','미분류':'#9A958F'
+    };
+    var statusColors = { '대체예정':'#C8380A', '축소검토':'#B8820A', '종료':'#9A958F', '일시중단':'#6B3A7D' };
+    document.querySelectorAll('.row-card-tag').forEach(function(el) {
+      var cardName = el.textContent.trim();
+      var card = cardMap[cardName];
+      if (!card) return;
+      var noStr = card.no && card.no !== '—' ? ' · *' + card.no.replace(/\s/g,'').slice(-4) : '';
+      var coSpan = document.createElement('span');
+      coSpan.className = 'card-detail-co';
+      coSpan.textContent = (card.cardCo || '') + noStr;
+      el.appendChild(coSpan);
+      var pills = [];
+      if (card.purpose && card.purpose !== '미분류') {
+        var pc = purposeColors[card.purpose] || '#9A958F';
+        pills.push('<span class="card-pill" style="color:' + pc + ';border-color:' + pc + '28">' + card.purpose + '</span>');
+      }
+      if (card.status && statusColors[card.status]) {
+        var sc = statusColors[card.status];
+        pills.push('<span class="card-pill" style="color:' + sc + ';border-color:' + sc + '44;background:' + sc + '0d">' + card.status + '</span>');
+      }
+      if (pills.length) {
+        var meta = document.createElement('div');
+        meta.className = 'card-detail-meta';
+        meta.innerHTML = pills.join('');
+        el.insertAdjacentElement('afterend', meta);
+      }
+    });
+  }
 
-  var cardMap = {};
-  rpCards.forEach(function(c) {
-    var key = (c.txName || '').trim();
-    if (key) cardMap[key] = c;
-  });
+  var _localRp = [];
+  try { _localRp = JSON.parse(localStorage.getItem('hanq-card-replan') || '[]'); } catch(e) {}
+  if (_localRp.length) applyCardReplan(_localRp);
 
-  var purposeColors = {
-    '연구소·개발':'#1A4A8A','광고·마케팅':'#8B1A6A','사무실공통':'#2D6644',
-    '교육원':'#6B3A7D','대표·개인':'#C8380A','물류·배송':'#8B5E14','미분류':'#9A958F'
-  };
-  var statusColors = { '대체예정':'#C8380A', '축소검토':'#B8820A', '종료':'#9A958F', '일시중단':'#6B3A7D' };
-
-  document.querySelectorAll('.row-card-tag').forEach(function(el) {
-    var cardName = el.textContent.trim();
-    var card = cardMap[cardName];
-    if (!card) return;
-
-    // 카드사 + 번호 뒤 4자리
-    var noStr = card.no && card.no !== '—' ? ' · *' + card.no.replace(/\s/g,'').slice(-4) : '';
-    var coSpan = document.createElement('span');
-    coSpan.className = 'card-detail-co';
-    coSpan.textContent = (card.cardCo || '') + noStr;
-    el.appendChild(coSpan);
-
-    // 용도 + 재편상태 pills (유지는 표시 안 함)
-    var pills = [];
-    if (card.purpose && card.purpose !== '미분류') {
-      var pc = purposeColors[card.purpose] || '#9A958F';
-      pills.push('<span class="card-pill" style="color:' + pc + ';border-color:' + pc + '28">' + card.purpose + '</span>');
+  fetch('/api/card-replan-state').then(function(r) { return r.json(); }).then(function(d) {
+    var cards = Array.isArray(d) ? d : (d && d.cards ? d.cards : null);
+    if (cards && cards.length) {
+      document.querySelectorAll('.card-detail-co, .card-detail-meta').forEach(function(el) { el.remove(); });
+      applyCardReplan(cards);
     }
-    if (card.status && statusColors[card.status]) {
-      var sc = statusColors[card.status];
-      pills.push('<span class="card-pill" style="color:' + sc + ';border-color:' + sc + '44;background:' + sc + '0d">' + card.status + '</span>');
-    }
-    if (pills.length) {
-      var meta = document.createElement('div');
-      meta.className = 'card-detail-meta';
-      meta.innerHTML = pills.join('');
-      el.insertAdjacentElement('afterend', meta);
-    }
-  });
+  }).catch(function() {});
 })();
 
 // ── ANIMATIONS ──────────────────────────────────────────────────────────────

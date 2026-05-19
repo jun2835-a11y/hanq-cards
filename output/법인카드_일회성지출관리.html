@@ -1794,6 +1794,11 @@ TRANSACTIONS.sort((a,b)=>a.date.localeCompare(b.date));
     });
     localStorage.setItem('hanq-tx-monthly', JSON.stringify(monthly));
     localStorage.setItem('hanq-tx-cat', JSON.stringify(cats));
+    fetch('/api/tx-data-state', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ monthly, cats }),
+    }).catch(() => {});
   } catch(e) {}
 })();
 

@@ -222,7 +222,7 @@ const DEPOSITS = [
   {bank:'광주',    accountNo:'1121-031-712452',  name:'광주 신대'},
 ];
 
-const PIN_KEY = 'hanq-accounts-pin';
+const PIN_DEFAULT = '3134';
 let state = { balances: {}, updatedDates: {} };
 let changes = {};
 let activeAcct = null;
@@ -238,7 +238,7 @@ function pinKey(d) {
 function pinBack() { pinBuf = pinBuf.slice(0,-1); renderDots(); document.getElementById('pin-err').textContent = ''; }
 function renderDots() { for (let i=0;i<4;i++) document.getElementById('pd'+i).classList.toggle('on', i<pinBuf.length); }
 function tryPin() {
-  if (pinBuf === (localStorage.getItem(PIN_KEY) || '0000')) {
+  if (pinBuf === PIN_DEFAULT) {
     document.getElementById('pin-ov').classList.add('hidden');
   } else {
     document.getElementById('pin-err').textContent = '핀 번호가 틀렸습니다';
