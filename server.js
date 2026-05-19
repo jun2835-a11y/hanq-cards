@@ -7,8 +7,8 @@ const OUT    = path.join(__dirname, 'output');
 
 // ── Supabase 영구 저장소 ─────────────────────────────────────────────────
 // 환경변수 SUPABASE_URL, SUPABASE_KEY 가 없으면 로컬 파일로 폴백 (개발용)
-const SB_URL = process.env.SUPABASE_URL;   // https://xxxx.supabase.co
-const SB_KEY = process.env.SUPABASE_KEY;   // service_role 키
+const SB_URL = process.env.SUPABASE_URL;        // https://xxxx.supabase.co
+const SB_KEY = process.env.SUPABASE_ANON_KEY;  // anon/public 키 (Settings→API에서 바로 보임)
 
 // 파일명 → Supabase key 매핑
 const FILE_TO_KEY = {
