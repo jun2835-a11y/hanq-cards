@@ -2385,18 +2385,32 @@ document.querySelectorAll('.hkpi').forEach(function(kpi) {
 // ── ACTIVITY LOG POPUP ──
 const ActivityLog = (function() {
   const KEY = 'hanq-activity-log';
-  function _load() { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(e) { return []; } }
+  const API = '/api/activity-log';
+  function _local() { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(e) { return []; } }
+  function _merge(a, b) {
+    const seen = new Set();
+    return [...a, ...b]
+      .filter(e => { const k = e.ts+'|'+e.msg; if (seen.has(k)) return false; seen.add(k); return true; })
+      .sort((x, y) => y.ts - x.ts).slice(0, 50);
+  }
   function push(icon, msg, source) {
-    const logs = _load();
-    logs.unshift({ icon, msg, source, ts: Date.now() });
-    localStorage.setItem(KEY, JSON.stringify(logs.slice(0, 50)));
+    const logs = _merge([{ icon, msg, source, ts: Date.now() }], _local());
+    localStorage.setItem(KEY, JSON.stringify(logs));
+    fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(logs) }).catch(()=>{});
     if (typeof showActivityPopup === 'function') showActivityPopup();
   }
   function getRecent() {
     const cutoff = Date.now() - 3 * 24 * 60 * 60 * 1000;
-    return _load().filter(e => e.ts > cutoff);
+    return _local().filter(e => e.ts > cutoff);
   }
-  return { push, getRecent };
+  function syncFromServer() {
+    return fetch(API).then(r => r.json()).then(serverLogs => {
+      if (Array.isArray(serverLogs) && serverLogs.length) {
+        localStorage.setItem(KEY, JSON.stringify(_merge(_local(), serverLogs)));
+      }
+    }).catch(()=>{});
+  }
+  return { push, getRecent, syncFromServer };
 })();
 
 function showActivityPopup() {
@@ -2442,7 +2456,7 @@ function dismissPopup(type) {
   if (popup) { popup.classList.remove('ap-visible'); setTimeout(() => { popup.style.display = 'none'; }, 300); }
 }
 
-document.addEventListener('DOMContentLoaded', () => setTimeout(showActivityPopup, 900));
+document.addEventListener('DOMContentLoaded', () => ActivityLog.syncFromServer().then(() => setTimeout(showActivityPopup, 900)));
 
 // Iframe FM cursor
 (function(){

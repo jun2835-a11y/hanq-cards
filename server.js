@@ -17,6 +17,7 @@ const FILE_TO_KEY = {
   'finance-plan-state.json':  'finance-plan-state',
   'card-replan-state.json':   'card-replan-state',
   'tx-data-state.json':       'tx-data-state',
+  'activity-log.json':        'activity-log',
 };
 
 // 인메모리 캐시 — 서버 시작 시 로드, 이후 동기 읽기 가능
@@ -172,6 +173,7 @@ const server = http.createServer((req, res) => {
     '/api/finance-plan-state': 'finance-plan-state.json',
     '/api/card-replan-state':  'card-replan-state.json',
     '/api/tx-data-state':      'tx-data-state.json',
+    '/api/activity-log':       'activity-log.json',
   };
   if (getStateRoutes[url] && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -186,6 +188,7 @@ const server = http.createServer((req, res) => {
     '/api/finance-plan-state': 'finance-plan-state.json',
     '/api/card-replan-state':  'card-replan-state.json',
     '/api/tx-data-state':      'tx-data-state.json',
+    '/api/activity-log':       'activity-log.json',
   };
   if (postRoutes[url] && req.method === 'POST') {
     let body = '';
