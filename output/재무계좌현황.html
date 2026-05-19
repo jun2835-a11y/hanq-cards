@@ -601,9 +601,6 @@ tr.row-threshold-warn:hover{background:#FFF7D6!important}
       <button class="pin-key" onclick="pinKey('0')">0</button>
       <button class="pin-key del" onclick="pinBack()">⌫</button>
     </div>
-    <div class="pin-change-wrap">
-      <button class="pin-change-btn" onclick="pinChangeMode()">PIN 변경</button>
-    </div>
   </div>
 </div>
 
@@ -1862,13 +1859,8 @@ function updateKPIs() {
 
 // ── TABS ──
 // ── PIN LOCK ──
-const PIN_KEY     = 'hanq-accounts-pin';
-const PIN_DEFAULT = '3134';
-let pinBuffer  = '';
-let pinMode    = 'unlock'; // 'unlock' | 'change-old' | 'change-new' | 'change-confirm'
-let pinNewTemp = '';
-
-function pinGetStored() { return localStorage.getItem(PIN_KEY) || PIN_DEFAULT; }
+const PIN_DEFAULT = '3134'; // 변경하려면 이 값을 수정 후 배포
+let pinBuffer = '';
 
 function pinRender() {
   for (let i = 0; i < 4; i++) {
@@ -1892,40 +1884,10 @@ function pinBack() {
 }
 
 function pinSubmit() {
-  if (pinMode === 'unlock') {
-    if (pinBuffer === pinGetStored()) {
-      pinUnlock();
-    } else {
-      pinWrong('PIN이 틀렸습니다');
-    }
-  } else if (pinMode === 'change-old') {
-    if (pinBuffer === pinGetStored()) {
-      pinMode = 'change-new';
-      document.querySelector('#pin-overlay .pin-title').textContent = '새 PIN 입력';
-      pinBuffer = ''; pinRender();
-      document.getElementById('pin-error').textContent = '';
-    } else {
-      pinWrong('현재 PIN이 틀렸습니다');
-    }
-  } else if (pinMode === 'change-new') {
-    pinNewTemp = pinBuffer;
-    pinMode = 'change-confirm';
-    document.querySelector('#pin-overlay .pin-title').textContent = '새 PIN 확인';
-    pinBuffer = ''; pinRender();
-    document.getElementById('pin-error').textContent = '';
-  } else if (pinMode === 'change-confirm') {
-    if (pinBuffer === pinNewTemp) {
-      localStorage.setItem(PIN_KEY, pinBuffer);
-      toast('✓ PIN이 변경됐습니다');
-      pinMode = 'unlock';
-      document.querySelector('#pin-overlay .pin-title').textContent = 'PIN 입력';
-      pinBuffer = ''; pinRender();
-      pinUnlock();
-    } else {
-      pinWrong('PIN이 일치하지 않습니다');
-      pinMode = 'change-new';
-      document.querySelector('#pin-overlay .pin-title').textContent = '새 PIN 입력';
-    }
+  if (pinBuffer === PIN_DEFAULT) {
+    pinUnlock();
+  } else {
+    pinWrong('PIN이 틀렸습니다');
   }
 }
 
@@ -1951,20 +1913,12 @@ function pinUnlock() {
 }
 
 function pinLock() {
-  pinMode = 'unlock';
   document.querySelector('#pin-overlay .pin-title').textContent = 'PIN 입력';
   pinBuffer = ''; pinRender();
   document.getElementById('pin-error').textContent = '';
   const overlay = document.getElementById('pin-overlay');
   overlay.style.display = 'flex';
   requestAnimationFrame(() => overlay.classList.remove('hidden'));
-}
-
-function pinChangeMode() {
-  pinMode = 'change-old';
-  document.querySelector('#pin-overlay .pin-title').textContent = '현재 PIN 입력';
-  pinBuffer = ''; pinRender();
-  document.getElementById('pin-error').textContent = '';
 }
 
 // Check PIN on load (after splash)
