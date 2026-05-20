@@ -171,6 +171,9 @@ input[type=file]{display:none}
       <option value="">전체 사업자</option>
       <option>한솔</option><option>수복지</option><option>한큐</option><option>교육원</option><option>미배분</option>
     </select>
+    <select class="agg-select" id="aggCat" onchange="renderAgg()">
+      <option value="">전체 카테고리</option>
+    </select>
     <select class="agg-select" id="aggView" onchange="renderAgg()">
       <option value="month">월별</option>
       <option value="cat">카테고리별</option>
@@ -187,13 +190,20 @@ input[type=file]{display:none}
 const CATS = ['인건비','4대보험','3.3소득세','식비/경비','임대료','공과금','통신비',
   '마케팅/광고비','특허','변호사비','인증비','IT인프라비','사무용품/사무집기','복리후생비','기타'];
 
-// 카테고리 필터 드롭다운 초기화
+// 카테고리 드롭다운 초기화 (태깅 필터 + 집계 필터)
 (function(){
-  var sel = document.getElementById('filterCat');
-  CATS.forEach(function(c){
-    var opt = document.createElement('option');
-    opt.value = c; opt.textContent = c;
-    sel.appendChild(opt);
+  ['filterCat', 'aggCat'].forEach(function(id){
+    var sel = document.getElementById(id);
+    CATS.forEach(function(c){
+      var opt = document.createElement('option');
+      opt.value = c; opt.textContent = c;
+      sel.appendChild(opt);
+    });
+    if (id === 'aggCat') {
+      var opt = document.createElement('option');
+      opt.value = '미분류'; opt.textContent = '미분류';
+      sel.appendChild(opt);
+    }
   });
 })();
 
@@ -808,9 +818,11 @@ function populateYears() {
   });
 }
 
+
 function renderAgg() {
   var year = document.getElementById('aggYear').value;
   var biz = document.getElementById('aggBiz').value;
+  var cat = document.getElementById('aggCat').value;
   var view = document.getElementById('aggView').value;
 
   var filtered = _txns.filter(function(t){
@@ -820,6 +832,8 @@ function renderAgg() {
     if (year && t.date.substring(0,4) !== year) return false;
     var mBiz = m.biz || '미배분';
     if (biz && mBiz !== biz) return false;
+    var mCat = m.cat || '미분류';
+    if (cat && mCat !== cat) return false;
     return true;
   });
 
