@@ -1,0 +1,1700 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>관리명부 · hanQ Cards</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #F7F5F0;
+  --surface: #FFF;
+  --border: #E2DED7;
+  --border2: #EDE9E3;
+  --ink: #1A1814;
+  --ink2: #5C5851;
+  --muted: #9A958F;
+  --accent: #C8380A;
+  --pos: #2D6644;
+  --pos-bg: #EBF2EE;
+  --pos-bd: #A8CCBA;
+  --neg: #C8380A;
+  --neg-bg: #FDEEE9;
+  --neg-bd: #F2C4B4;
+  --warn: #8B5E14;
+  --warn-bg: #FDF5E0;
+  --warn-bd: #E8D080;
+  --info: #1A4A8A;
+  --info-bg: #EBF0FA;
+  --info-bd: #A8C0E0;
+}
+body {
+  font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ── HEADER ── */
+.header {
+  background: var(--ink);
+  color: #F7F5F0;
+  padding: 36px 40px 28px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.header-left {}
+.header-eyebrow {
+  font-size: 9px;
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  color: #5A5650;
+  margin-bottom: 10px;
+  animation: slideDown .4s ease .05s both;
+}
+.header h1 {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  margin-bottom: 5px;
+  animation: slideDown .4s ease .10s both;
+}
+.header-sub {
+  font-size: 11px;
+  color: #6A6460;
+  animation: slideDown .4s ease .15s both;
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  animation: slideDown .4s ease .18s both;
+}
+.save-indicator {
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 2px;
+  transition: all .3s;
+  white-space: nowrap;
+}
+.save-indicator.saved { color: #4CAF80; }
+.save-indicator.saving { color: #E8A230; }
+.save-indicator.error { color: var(--accent); }
+.save-indicator-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  transition: background .3s;
+}
+.save-indicator.saving .save-indicator-dot {
+  animation: pulse .8s ease-in-out infinite;
+}
+.hdr-btn {
+  font-size: 11px;
+  padding: 7px 16px;
+  border: 1px solid #3A3530;
+  background: none;
+  cursor: pointer;
+  color: #9A958F;
+  font-family: inherit;
+  transition: all .15s;
+  white-space: nowrap;
+  letter-spacing: .5px;
+}
+.hdr-btn:hover { border-color: #9A958F; color: #F7F5F0; }
+.hdr-btn.accent-btn {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.hdr-btn.accent-btn:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* ── KPI BAR ── */
+.kpi-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 40px;
+  display: flex;
+  align-items: stretch;
+  animation: fadeIn .5s ease .2s both;
+}
+.kpi-item {
+  padding: 20px 32px 20px 0;
+  margin-right: 32px;
+  border-right: 1px solid var(--border);
+  min-width: 120px;
+  cursor: default;
+  transition: background .2s;
+}
+.kpi-item:last-child { border-right: none; margin-right: 0; }
+.kpi-item:hover { background: rgba(200,56,10,.02); }
+.kpi-label {
+  font-size: 9px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 5px;
+}
+.kpi-val {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.kpi-val.accent { color: var(--accent); }
+.kpi-val.pos { color: var(--pos); }
+.kpi-unit { font-size: 13px; font-weight: 400; margin-left: 2px; color: var(--ink2); }
+
+/* ── MAIN CONTENT ── */
+.main { padding: 32px 40px 80px; max-width: 1280px; }
+
+/* ── BIZ CARD ── */
+.biz-list { display: flex; flex-direction: column; gap: 16px; }
+
+.biz-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  transition: box-shadow .2s;
+  animation: slideUp .35s ease both;
+}
+.biz-card:hover {
+  box-shadow: 0 4px 20px rgba(0,0,0,.08);
+}
+
+.biz-header {
+  display: flex;
+  align-items: center;
+  padding: 14px 20px;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+  border-bottom: 1px solid var(--border2);
+  background: var(--surface);
+  position: relative;
+}
+.biz-color-bar {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+}
+.biz-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+.biz-name-input, .biz-card-input {
+  font-family: inherit;
+  font-size: 13px;
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 3px 6px;
+  border-radius: 2px;
+  color: var(--ink);
+  transition: border-color .15s, background .15s;
+  min-width: 60px;
+}
+.biz-name-input {
+  font-weight: 600;
+  font-size: 14px;
+  width: auto;
+}
+.biz-card-input {
+  color: var(--ink2);
+  font-size: 12px;
+}
+.biz-name-input:focus, .biz-card-input:focus {
+  outline: none;
+  border-color: var(--border);
+  background: var(--bg);
+}
+.biz-name-input:hover:not(:focus), .biz-card-input:hover:not(:focus) {
+  border-color: var(--border2);
+}
+.biz-sep { color: var(--border); font-size: 16px; }
+.biz-meta {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-shrink: 0;
+}
+.biz-badge {
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 1px;
+}
+.biz-total {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  min-width: 90px;
+  text-align: right;
+}
+.biz-total-unit { font-size: 11px; font-weight: 400; color: var(--muted); }
+.biz-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.icon-btn {
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid transparent;
+  background: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--muted);
+  border-radius: 2px;
+  transition: all .15s;
+  font-family: inherit;
+}
+.icon-btn:hover { border-color: var(--border); color: var(--ink2); background: var(--bg); }
+.icon-btn.danger:hover { border-color: var(--neg-bd); color: var(--neg); background: var(--neg-bg); }
+.toggle-btn {
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  border: none; background: none; cursor: pointer;
+  color: var(--muted); font-size: 12px;
+  transition: transform .25s;
+}
+.toggle-btn.open { transform: rotate(180deg); }
+
+/* ── DELETE CONFIRM INLINE ── */
+.del-confirm-inline {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  background: var(--neg-bg);
+  border: 1px solid var(--neg-bd);
+  border-radius: 2px;
+  padding: 3px 8px;
+  font-size: 11px;
+  color: var(--neg);
+  white-space: nowrap;
+}
+.del-confirm-inline.show { display: flex; }
+.del-confirm-inline button {
+  font-size: 11px; font-family: inherit;
+  border: 1px solid var(--neg-bd);
+  background: none; cursor: pointer;
+  padding: 2px 8px; border-radius: 2px;
+  transition: all .12s;
+}
+.del-confirm-inline .yes-btn {
+  background: var(--neg); color: #fff; border-color: var(--neg);
+}
+.del-confirm-inline .yes-btn:hover { opacity: .85; }
+.del-confirm-inline .no-btn { color: var(--ink2); }
+.del-confirm-inline .no-btn:hover { background: var(--border2); }
+
+/* ── COLLAPSIBLE BODY ── */
+.biz-body {
+  max-height: 2000px;
+  overflow: hidden;
+  transition: max-height .35s ease;
+}
+.biz-body.collapsed { max-height: 0; }
+
+/* ── TABLE ── */
+.emp-table-wrap { overflow-x: auto; }
+.emp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.emp-table th {
+  padding: 8px 12px;
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 500;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  white-space: nowrap;
+}
+.emp-table th:first-child { width: 32px; text-align: center; }
+.emp-table th:last-child { width: 36px; }
+.emp-table tbody tr {
+  border-bottom: 1px solid var(--border2);
+  transition: background .12s;
+  position: relative;
+}
+.emp-table tbody tr:last-child { border-bottom: none; }
+.emp-table tbody tr:hover { background: #FAFAF8; }
+.emp-table td {
+  padding: 0;
+  vertical-align: middle;
+}
+.emp-table td:first-child {
+  text-align: center;
+  font-size: 10px;
+  color: var(--muted);
+  padding: 0 6px;
+  width: 32px;
+  font-variant-numeric: tabular-nums;
+}
+.emp-table td:last-child {
+  width: 36px;
+  text-align: center;
+}
+.cell-input {
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--ink);
+  border: none;
+  background: transparent;
+  padding: 10px 12px;
+  width: 100%;
+  display: block;
+  outline: none;
+  transition: background .12s;
+}
+.cell-input:focus {
+  background: rgba(200,56,10,.04);
+  box-shadow: inset 0 0 0 1px rgba(200,56,10,.3);
+}
+.cell-input.amount-input {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  text-align: right;
+  padding-right: 16px;
+}
+.row-del-btn {
+  width: 24px; height: 24px;
+  border: none; background: none;
+  cursor: pointer; color: var(--muted);
+  font-size: 14px; border-radius: 2px;
+  opacity: 0;
+  transition: opacity .12s, color .12s, background .12s;
+  font-family: inherit;
+  display: flex; align-items: center; justify-content: center;
+  margin: auto;
+}
+.emp-table tbody tr:hover .row-del-btn { opacity: 1; }
+.row-del-btn:hover { color: var(--neg); background: var(--neg-bg); }
+
+/* Row delete confirm */
+.emp-table tr.confirming-del td { background: var(--neg-bg); }
+.emp-table tr.confirming-del .row-del-btn { opacity: 1; }
+.row-del-confirm {
+  display: none;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--neg);
+  white-space: nowrap;
+  padding: 0 8px;
+}
+.row-del-confirm.show { display: flex; }
+.row-del-confirm button {
+  font-size: 10px; font-family: inherit;
+  border: 1px solid var(--neg-bd);
+  background: none; cursor: pointer;
+  padding: 2px 6px; border-radius: 2px;
+}
+.row-del-confirm .yes { background: var(--neg); color: #fff; border-color: var(--neg); }
+.row-del-confirm .yes:hover { opacity: .85; }
+.row-del-confirm .no { color: var(--ink2); }
+.row-del-confirm .no:hover { background: var(--border2); }
+
+/* ── ADD EMPLOYEE BUTTON ── */
+.add-emp-btn {
+  width: 100%;
+  padding: 10px 20px;
+  border: none;
+  border-top: 1px solid var(--border2);
+  background: var(--bg);
+  cursor: pointer;
+  color: var(--ink2);
+  font-family: inherit;
+  font-size: 12px;
+  text-align: left;
+  transition: background .15s, color .15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.add-emp-btn:hover { background: var(--pos-bg); color: var(--pos); }
+.add-emp-plus { font-size: 16px; font-weight: 300; line-height: 1; }
+
+/* ── ADD BIZ BUTTON ── */
+.add-biz-btn {
+  width: 100%;
+  padding: 18px 20px;
+  border: 2px dashed var(--border);
+  background: transparent;
+  cursor: pointer;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 13px;
+  border-radius: 2px;
+  transition: all .2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+.add-biz-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--neg-bg);
+}
+.add-biz-plus { font-size: 20px; font-weight: 300; }
+
+/* ── EMPTY STATE ── */
+.empty-state {
+  text-align: center;
+  padding: 80px 40px;
+  color: var(--muted);
+  display: none;
+}
+.empty-state.show { display: block; }
+.empty-icon { font-size: 48px; margin-bottom: 16px; opacity: .3; }
+.empty-title { font-size: 16px; font-weight: 600; color: var(--ink2); margin-bottom: 8px; }
+.empty-sub { font-size: 13px; }
+
+/* ── DIFF SECTION ── */
+.diff-section {
+  margin-top: 40px;
+  display: none;
+}
+.diff-section.show { display: block; }
+.section-heading {
+  font-size: 11px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-heading::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.diff-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.diff-col {
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.diff-col-header {
+  padding: 12px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.diff-col.new-items .diff-col-header {
+  background: var(--pos-bg);
+  color: var(--pos);
+  border-bottom: 1px solid var(--pos-bd);
+}
+.diff-col.missing-items .diff-col-header {
+  background: var(--neg-bg);
+  color: var(--neg);
+  border-bottom: 1px solid var(--neg-bd);
+}
+.diff-count-badge {
+  background: currentColor;
+  color: #fff;
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  opacity: .9;
+}
+.diff-col.new-items .diff-count-badge { background: var(--pos); color: #fff; }
+.diff-col.missing-items .diff-count-badge { background: var(--neg); color: #fff; }
+.diff-list { max-height: 300px; overflow-y: auto; }
+.diff-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border2);
+  gap: 10px;
+  font-size: 12px;
+}
+.diff-item:last-child { border-bottom: none; }
+.diff-item-info { flex: 1; min-width: 0; }
+.diff-item-name { font-weight: 500; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.diff-item-meta { font-size: 10px; color: var(--muted); }
+.diff-item-amount {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.diff-col.new-items .diff-item-amount { color: var(--pos); }
+.diff-col.missing-items .diff-item-amount { color: var(--neg); }
+.diff-action-btn {
+  font-size: 10px;
+  padding: 4px 10px;
+  border: 1px solid;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  border-radius: 2px;
+  white-space: nowrap;
+  transition: all .12s;
+  flex-shrink: 0;
+}
+.diff-col.new-items .diff-action-btn {
+  border-color: var(--pos-bd);
+  color: var(--pos);
+}
+.diff-col.new-items .diff-action-btn:hover {
+  background: var(--pos);
+  color: #fff;
+  border-color: var(--pos);
+}
+.diff-col.missing-items .diff-action-btn {
+  border-color: var(--neg-bd);
+  color: var(--neg);
+}
+.diff-col.missing-items .diff-action-btn:hover {
+  background: var(--neg);
+  color: #fff;
+  border-color: var(--neg);
+}
+.diff-empty {
+  padding: 24px 16px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ── MODALS ── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.45);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  backdrop-filter: blur(2px);
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  max-width: 520px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,.2);
+  animation: modalIn .25s ease;
+}
+.modal-header {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.modal-title { font-size: 15px; font-weight: 700; }
+.modal-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+.modal-close {
+  width: 28px; height: 28px;
+  border: none; background: none;
+  cursor: pointer; color: var(--muted); font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: -2px;
+  transition: color .12s;
+}
+.modal-close:hover { color: var(--ink); }
+.modal-body { padding: 20px 24px; }
+.modal-footer {
+  padding: 14px 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ── FORM ELEMENTS ── */
+.form-group { margin-bottom: 16px; }
+.form-label {
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+  display: block;
+}
+.form-input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  border-radius: 2px;
+  outline: none;
+  transition: border-color .15s;
+}
+.form-input:focus { border-color: var(--ink2); background: var(--surface); }
+.form-select {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239A958F' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+.form-select:focus { border-color: var(--ink2); background-color: var(--surface); }
+
+.modal-btn {
+  padding: 9px 20px;
+  font-family: inherit;
+  font-size: 12px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all .15s;
+  letter-spacing: .3px;
+}
+.modal-btn.cancel { border: 1px solid var(--border); background: none; color: var(--ink2); }
+.modal-btn.cancel:hover { background: var(--bg); }
+.modal-btn.primary { border: none; background: var(--ink); color: #fff; }
+.modal-btn.primary:hover { background: var(--ink2); }
+.modal-btn.accent { border: none; background: var(--accent); color: #fff; }
+.modal-btn.accent:hover { opacity: .9; }
+
+/* ── CSV DROPZONE ── */
+.dropzone {
+  border: 2px dashed var(--border);
+  border-radius: 2px;
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all .2s;
+  position: relative;
+}
+.dropzone:hover, .dropzone.drag-over {
+  border-color: var(--accent);
+  background: var(--neg-bg);
+}
+.dropzone input[type=file] {
+  position: absolute; inset: 0;
+  opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+.dropzone-icon { font-size: 36px; opacity: .3; margin-bottom: 12px; }
+.dropzone-text { font-size: 13px; color: var(--ink2); margin-bottom: 4px; }
+.dropzone-sub { font-size: 11px; color: var(--muted); }
+.dropzone-filename {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--pos);
+  font-weight: 500;
+  display: none;
+}
+.dropzone-filename.show { display: block; }
+
+.preview-box {
+  margin-top: 16px;
+  padding: 12px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  font-size: 12px;
+  display: none;
+}
+.preview-box.show { display: block; }
+.preview-rows { color: var(--ink2); }
+.preview-sample { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+/* ── ASSIGN MODAL ── */
+.assign-banner {
+  padding: 12px 16px;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.assign-banner.new-item {
+  background: var(--pos-bg);
+  border: 1px solid var(--pos-bd);
+}
+.assign-merchant { font-weight: 600; font-size: 14px; color: var(--pos); }
+.assign-amount {
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--pos);
+}
+
+/* ── ANIMATIONS ── */
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .3; }
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(.97) translateY(-8px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes rowIn {
+  from { opacity: 0; background: rgba(45,102,68,.08); }
+  to { opacity: 1; background: transparent; }
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 960px) {
+  .header { padding: 28px 20px 22px; }
+  .kpi-bar { padding: 0 20px; }
+  .main { padding: 24px 20px 60px; }
+  .kpi-item { padding: 16px 20px 16px 0; margin-right: 20px; min-width: 90px; }
+  .kpi-val { font-size: 20px; }
+}
+@media (max-width: 600px) {
+  .header { padding: 20px 16px 18px; flex-direction: column; align-items: flex-start; }
+  .header-right { width: 100%; }
+  .kpi-bar { overflow-x: auto; flex-wrap: nowrap; padding: 0 16px; }
+  .main { padding: 16px 16px 60px; }
+  .diff-grid { grid-template-columns: 1fr; }
+  .emp-table-wrap { overflow-x: auto; }
+  .emp-table { min-width: 520px; }
+  .biz-header { padding: 12px 14px; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-left">
+    <div class="header-eyebrow">hanQ Cards · 카드관리</div>
+    <h1>관리명부</h1>
+    <div class="header-sub">사업자별 카드 · 직원 지출 관리</div>
+  </div>
+  <div class="header-right">
+    <div class="save-indicator saved" id="saveIndicator">
+      <span class="save-indicator-dot"></span>
+      <span class="save-indicator-text">저장됨 ✓</span>
+    </div>
+    <button class="hdr-btn accent-btn" onclick="openCsvModal()">CSV 가져오기</button>
+  </div>
+</header>
+
+<!-- KPI BAR -->
+<div class="kpi-bar">
+  <div class="kpi-item">
+    <div class="kpi-label">사업자 수</div>
+    <div class="kpi-val" id="kpiBizCount">0</div>
+  </div>
+  <div class="kpi-item">
+    <div class="kpi-label">총 직원 수</div>
+    <div class="kpi-val" id="kpiEmpCount">0</div>
+  </div>
+  <div class="kpi-item">
+    <div class="kpi-label">월 총결제액</div>
+    <div class="kpi-val pos" id="kpiTotal">0<span class="kpi-unit">원</span></div>
+  </div>
+  <div class="kpi-item">
+    <div class="kpi-label">최근 업데이트</div>
+    <div class="kpi-val" style="font-size:14px; line-height:1.3;" id="kpiLastUpdated">—</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- Empty State -->
+  <div class="empty-state" id="emptyState">
+    <div class="empty-icon">📋</div>
+    <div class="empty-title">아직 등록된 사업자가 없습니다</div>
+    <div class="empty-sub">아래 버튼을 눌러 사업자 카드를 추가하세요</div>
+  </div>
+
+  <!-- Biz List -->
+  <div class="biz-list" id="bizList"></div>
+
+  <!-- Add Biz -->
+  <button class="add-biz-btn" id="addBizBtn" onclick="addBiz()">
+    <span class="add-biz-plus">＋</span>
+    사업자 카드 추가
+  </button>
+
+  <!-- CSV Diff Section -->
+  <div class="diff-section" id="diffSection">
+    <div class="section-heading">이번 달 명세 대조</div>
+    <div class="diff-grid">
+      <div class="diff-col new-items">
+        <div class="diff-col-header">
+          신규 항목
+          <span class="diff-count-badge" id="newCountBadge">0</span>
+          건
+        </div>
+        <div class="diff-list" id="newItemsList"></div>
+      </div>
+      <div class="diff-col missing-items">
+        <div class="diff-col-header">
+          미확인 항목
+          <span class="diff-count-badge" id="missingCountBadge">0</span>
+          건
+        </div>
+        <div class="diff-list" id="missingItemsList"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- CSV MODAL -->
+<div class="modal-overlay" id="csvModal" onclick="handleOverlayClick(event,'csvModal')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">CSV / Excel 가져오기</div>
+        <div class="modal-sub">카드사 명세서를 업로드하여 명부와 대조합니다</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('csvModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="dropzone" id="dropzone">
+        <input type="file" id="csvFileInput" accept=".csv,.xlsx,.xls" onchange="handleFileSelect(event)">
+        <div class="dropzone-icon">📂</div>
+        <div class="dropzone-text">파일을 드래그하거나 클릭하여 선택</div>
+        <div class="dropzone-sub">.csv · .xlsx · .xls 지원 | 국민·삼성·농협·신한·롯데·현대카드 자동 인식</div>
+        <div class="dropzone-filename" id="dropzoneFilename"></div>
+      </div>
+      <div class="preview-box" id="previewBox">
+        <div class="preview-rows" id="previewRows"></div>
+        <div class="preview-sample" id="previewSample"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn cancel" onclick="closeModal('csvModal')">취소</button>
+      <button class="modal-btn accent" id="csvImportBtn" onclick="runDiff()" disabled>대조 실행</button>
+    </div>
+  </div>
+</div>
+
+<!-- ASSIGN MODAL -->
+<div class="modal-overlay" id="assignModal" onclick="handleOverlayClick(event,'assignModal')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">신규 항목 배정</div>
+        <div class="modal-sub">사업자와 직원을 선택하여 명부에 추가합니다</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('assignModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="assign-banner new-item" id="assignBanner">
+        <div class="assign-merchant" id="assignMerchant">—</div>
+        <div class="assign-amount" id="assignAmountDisplay">—</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">사업자 선택</label>
+        <select class="form-select" id="assignBizSelect" onchange="updateEmpSelect()"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">직원 선택</label>
+        <select class="form-select" id="assignEmpSelect"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">사용처</label>
+        <input type="text" class="form-input" id="assignUsage" placeholder="사용처 입력">
+      </div>
+      <div class="form-group">
+        <label class="form-label">사용계정</label>
+        <input type="text" class="form-input" id="assignAccount" placeholder="예: 복리후생비">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn cancel" onclick="closeModal('assignModal')">취소</button>
+      <button class="modal-btn accent" onclick="confirmAssign()">배정 완료</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ── CONSTANTS ──
+const API = '/api/card-roster-state';
+const BIZ_COLORS = ['#1A56D6','#2D6644','#6B3A7D','#C8380A','#8B5E14','#0E6B7A','#C86420'];
+
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+}
+
+// ── STATE ──
+let roster = { businesses: [], lastUpdated: null };
+let saveTimer = null;
+let parsedCSV = [];
+let assigningItem = null;
+
+// ── LOAD / SAVE ──
+async function loadRoster() {
+  try {
+    const r = await fetch(API);
+    if (r.ok) {
+      const data = await r.json();
+      if (data && data.businesses && data.businesses.length) {
+        roster = data;
+        render();
+        return;
+      }
+    }
+  } catch(e) { /* fallback */ }
+
+  // localStorage fallback
+  const local = localStorage.getItem('hanq-roster');
+  if (local) {
+    try {
+      const d = JSON.parse(local);
+      if (d && d.businesses) {
+        roster = d;
+        // 서버에 시드
+        doSave();
+        render();
+        return;
+      }
+    } catch(e) {}
+  }
+
+  // 빈 상태로 시작
+  roster = { businesses: [], lastUpdated: null };
+  render();
+}
+
+function scheduleSave() {
+  setSaveStatus('saving');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(doSave, 800);
+}
+
+async function doSave() {
+  roster.lastUpdated = new Date().toISOString();
+  localStorage.setItem('hanq-roster', JSON.stringify(roster));
+  updateKPI();
+  try {
+    const r = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(roster)
+    });
+    setSaveStatus(r.ok ? 'saved' : 'error');
+  } catch(e) {
+    setSaveStatus('saved'); // offline: localStorage is fine
+  }
+}
+
+function setSaveStatus(state) {
+  const el = document.getElementById('saveIndicator');
+  const txt = el.querySelector('.save-indicator-text');
+  el.className = 'save-indicator ' + state;
+  if (state === 'saved')   txt.textContent = '저장됨 ✓';
+  if (state === 'saving')  txt.textContent = '저장 중...';
+  if (state === 'error')   txt.textContent = '저장 실패';
+}
+
+// ── KPI ──
+function updateKPI() {
+  const bizCount = roster.businesses.length;
+  const empCount = roster.businesses.reduce((s,b) => s + b.employees.length, 0);
+  const total = roster.businesses.reduce((s,b) =>
+    s + b.employees.reduce((ss,e) => ss + (Number(e.monthlyAmount)||0), 0), 0);
+  const lastUpd = roster.lastUpdated
+    ? new Date(roster.lastUpdated).toLocaleDateString('ko-KR', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' })
+    : '—';
+
+  document.getElementById('kpiBizCount').textContent = bizCount;
+  document.getElementById('kpiEmpCount').textContent = empCount;
+  document.getElementById('kpiTotal').innerHTML = fmt(total) + '<span class="kpi-unit">원</span>';
+  document.getElementById('kpiLastUpdated').textContent = lastUpd;
+}
+
+// ── FORMAT ──
+function fmt(n) {
+  if (!n && n !== 0) return '';
+  return Math.round(n).toLocaleString('ko-KR');
+}
+function parseFmt(s) {
+  return parseInt(String(s).replace(/,/g,'')) || 0;
+}
+
+// ── RENDER ──
+function render() {
+  const list = document.getElementById('bizList');
+  list.innerHTML = '';
+  roster.businesses.forEach((biz, idx) => {
+    const card = buildBizCard(biz, idx);
+    list.appendChild(card);
+  });
+  const empty = document.getElementById('emptyState');
+  empty.classList.toggle('show', roster.businesses.length === 0);
+  updateKPI();
+}
+
+function buildBizCard(biz, idx) {
+  const color = BIZ_COLORS[idx % BIZ_COLORS.length];
+  const empCount = biz.employees.length;
+  const total = biz.employees.reduce((s,e) => s + (Number(e.monthlyAmount)||0), 0);
+
+  const wrap = document.createElement('div');
+  wrap.className = 'biz-card';
+  wrap.dataset.bizId = biz.id;
+  wrap.style.animationDelay = (idx * 0.06) + 's';
+
+  const collapsed = biz._collapsed ? 'collapsed' : '';
+
+  wrap.innerHTML = `
+    <div class="biz-header" onclick="handleBizHeaderClick(event,'${biz.id}')">
+      <div class="biz-color-bar" style="background:${color}"></div>
+      <div class="biz-info">
+        <input class="biz-name-input" data-field="name" data-biz="${biz.id}"
+          value="${esc(biz.name)}" placeholder="사업자명"
+          onclick="event.stopPropagation()"
+          onchange="updateBizField('${biz.id}','name',this.value)"
+          oninput="autoWidth(this)">
+        <span class="biz-sep">·</span>
+        <input class="biz-card-input" data-field="card" data-biz="${biz.id}"
+          value="${esc(biz.card)}" placeholder="카드명"
+          onclick="event.stopPropagation()"
+          onchange="updateBizField('${biz.id}','card',this.value)"
+          oninput="autoWidth(this)">
+      </div>
+      <div class="biz-meta">
+        <span class="biz-badge">${empCount}명</span>
+        <div class="biz-total">${fmt(total)}<span class="biz-total-unit">원</span></div>
+      </div>
+      <div class="biz-actions" onclick="event.stopPropagation()">
+        <div class="del-confirm-inline" id="bizDelConfirm_${biz.id}">
+          <span>정말요?</span>
+          <button class="yes-btn" onclick="deleteBiz('${biz.id}')">네</button>
+          <button class="no-btn" onclick="hideBizDelConfirm('${biz.id}')">취소</button>
+        </div>
+        <button class="icon-btn danger" title="사업자 삭제"
+          onclick="showBizDelConfirm('${biz.id}')">✕</button>
+        <button class="toggle-btn ${biz._collapsed ? '' : 'open'}" id="toggleBtn_${biz.id}"
+          onclick="toggleBiz('${biz.id}', event)">▼</button>
+      </div>
+    </div>
+    <div class="biz-body ${collapsed}" id="bizBody_${biz.id}">
+      <div class="emp-table-wrap">
+        <table class="emp-table" id="empTable_${biz.id}">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>직원명</th>
+              <th style="text-align:right; padding-right:16px">월결제액</th>
+              <th>사용처</th>
+              <th>사용계정</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="empTbody_${biz.id}">
+          </tbody>
+        </table>
+      </div>
+      <button class="add-emp-btn" onclick="addEmployee('${biz.id}')">
+        <span class="add-emp-plus">＋</span> 직원 추가
+      </button>
+    </div>
+  `;
+
+  // Auto-width after render
+  setTimeout(() => {
+    wrap.querySelectorAll('.biz-name-input, .biz-card-input').forEach(autoWidth);
+  }, 0);
+
+  // Render employees
+  setTimeout(() => renderEmployees(biz.id), 0);
+
+  return wrap;
+}
+
+function renderEmployees(bizId) {
+  const biz = getBiz(bizId);
+  if (!biz) return;
+  const tbody = document.getElementById('empTbody_' + bizId);
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  biz.employees.forEach((emp, i) => {
+    tbody.appendChild(buildEmpRow(bizId, emp, i));
+  });
+  updateBizHeader(bizId);
+}
+
+function buildEmpRow(bizId, emp, idx) {
+  const tr = document.createElement('tr');
+  tr.dataset.empId = emp.id;
+  tr.dataset.bizId = bizId;
+  tr.style.animation = 'rowIn .3s ease both';
+  tr.innerHTML = `
+    <td>${idx + 1}</td>
+    <td>
+      <input class="cell-input" value="${esc(emp.name)}" placeholder="직원명"
+        onchange="updateEmpField('${bizId}','${emp.id}','name',this.value)"
+        onkeydown="handleCellKey(event)"
+        tabindex="0">
+    </td>
+    <td>
+      <input class="cell-input amount-input" value="${emp.monthlyAmount ? fmt(emp.monthlyAmount) : ''}"
+        placeholder="0"
+        onfocus="this.value = parseFmt(this.value) || ''"
+        onblur="this.value = this.value ? fmt(parseFmt(this.value)) : ''; updateEmpField('${bizId}','${emp.id}','monthlyAmount', parseFmt(this.value))"
+        onkeydown="handleCellKey(event)"
+        tabindex="0">
+    </td>
+    <td>
+      <input class="cell-input" value="${esc(emp.usage)}" placeholder="사용처"
+        onchange="updateEmpField('${bizId}','${emp.id}','usage',this.value)"
+        onkeydown="handleCellKey(event)"
+        tabindex="0">
+    </td>
+    <td>
+      <input class="cell-input" value="${esc(emp.account)}" placeholder="사용계정"
+        onchange="updateEmpField('${bizId}','${emp.id}','account',this.value)"
+        onkeydown="handleCellKey(event)"
+        tabindex="0">
+    </td>
+    <td>
+      <div class="row-del-confirm" id="rowDelConfirm_${emp.id}">
+        <span>정말요?</span>
+        <button class="yes" onclick="deleteEmployee('${bizId}','${emp.id}')">네</button>
+        <button class="no" onclick="hideRowDelConfirm('${emp.id}')">취소</button>
+      </div>
+      <button class="row-del-btn" id="rowDelBtn_${emp.id}"
+        onclick="showRowDelConfirm('${bizId}','${emp.id}')">✕</button>
+    </td>
+  `;
+  return tr;
+}
+
+// ── BIZ OPERATIONS ──
+function getBiz(id) {
+  return roster.businesses.find(b => b.id === id);
+}
+function getBizIndex(id) {
+  return roster.businesses.findIndex(b => b.id === id);
+}
+
+function handleBizHeaderClick(e, bizId) {
+  // Don't toggle if clicking inside inputs/buttons
+  if (e.target.closest('input,button,.biz-actions')) return;
+  toggleBiz(bizId, e);
+}
+
+function toggleBiz(bizId, e) {
+  if (e) e.stopPropagation();
+  const biz = getBiz(bizId);
+  if (!biz) return;
+  biz._collapsed = !biz._collapsed;
+  const body = document.getElementById('bizBody_' + bizId);
+  const btn = document.getElementById('toggleBtn_' + bizId);
+  if (body) body.classList.toggle('collapsed', biz._collapsed);
+  if (btn) btn.classList.toggle('open', !biz._collapsed);
+}
+
+function updateBizField(bizId, field, value) {
+  const biz = getBiz(bizId);
+  if (!biz) return;
+  biz[field] = value;
+  scheduleSave();
+}
+
+function showBizDelConfirm(bizId) {
+  document.getElementById('bizDelConfirm_' + bizId).classList.add('show');
+}
+function hideBizDelConfirm(bizId) {
+  document.getElementById('bizDelConfirm_' + bizId).classList.remove('show');
+}
+function deleteBiz(bizId) {
+  roster.businesses = roster.businesses.filter(b => b.id !== bizId);
+  render();
+  scheduleSave();
+}
+
+function addBiz() {
+  const newBiz = {
+    id: uid(),
+    name: '새 사업자',
+    card: '카드명',
+    employees: [],
+    _collapsed: false
+  };
+  roster.businesses.push(newBiz);
+  render();
+  scheduleSave();
+  // Focus the name input
+  setTimeout(() => {
+    const input = document.querySelector(`[data-biz="${newBiz.id}"][data-field="name"]`);
+    if (input) { input.focus(); input.select(); }
+  }, 50);
+}
+
+function updateBizHeader(bizId) {
+  const biz = getBiz(bizId);
+  if (!biz) return;
+  const card = document.querySelector(`.biz-card[data-biz-id="${bizId}"]`);
+  if (!card) return;
+  const total = biz.employees.reduce((s,e) => s + (Number(e.monthlyAmount)||0), 0);
+  const empCount = biz.employees.length;
+  const totalEl = card.querySelector('.biz-total');
+  const badgeEl = card.querySelector('.biz-badge');
+  if (totalEl) totalEl.innerHTML = fmt(total) + '<span class="biz-total-unit">원</span>';
+  if (badgeEl) badgeEl.textContent = empCount + '명';
+  updateKPI();
+}
+
+// ── EMPLOYEE OPERATIONS ──
+function getEmp(bizId, empId) {
+  const biz = getBiz(bizId);
+  return biz ? biz.employees.find(e => e.id === empId) : null;
+}
+
+function updateEmpField(bizId, empId, field, value) {
+  const emp = getEmp(bizId, empId);
+  if (!emp) return;
+  emp[field] = field === 'monthlyAmount' ? (parseInt(value) || 0) : value;
+  updateBizHeader(bizId);
+  scheduleSave();
+}
+
+function addEmployee(bizId) {
+  const biz = getBiz(bizId);
+  if (!biz) return;
+  const newEmp = { id: uid(), name: '', monthlyAmount: 0, usage: '', account: '' };
+  biz.employees.push(newEmp);
+  renderEmployees(bizId);
+  scheduleSave();
+  // Focus new row
+  setTimeout(() => {
+    const tbody = document.getElementById('empTbody_' + bizId);
+    if (tbody) {
+      const lastRow = tbody.lastElementChild;
+      if (lastRow) {
+        const input = lastRow.querySelector('.cell-input');
+        if (input) input.focus();
+      }
+    }
+  }, 50);
+}
+
+function showRowDelConfirm(bizId, empId) {
+  const btn = document.getElementById('rowDelBtn_' + empId);
+  const conf = document.getElementById('rowDelConfirm_' + empId);
+  if (btn) btn.style.display = 'none';
+  if (conf) conf.classList.add('show');
+  const tr = conf ? conf.closest('tr') : null;
+  if (tr) tr.classList.add('confirming-del');
+}
+function hideRowDelConfirm(empId) {
+  const btn = document.getElementById('rowDelBtn_' + empId);
+  const conf = document.getElementById('rowDelConfirm_' + empId);
+  if (btn) btn.style.display = '';
+  if (conf) conf.classList.remove('show');
+  const tr = conf ? conf.closest('tr') : null;
+  if (tr) tr.classList.remove('confirming-del');
+}
+function deleteEmployee(bizId, empId) {
+  const biz = getBiz(bizId);
+  if (!biz) return;
+  biz.employees = biz.employees.filter(e => e.id !== empId);
+  renderEmployees(bizId);
+  scheduleSave();
+}
+
+// ── TABLE KEY NAV ──
+function handleCellKey(e) {
+  if (e.key === 'Tab') return; // natural tab
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const tr = e.target.closest('tr');
+    const next = tr ? tr.nextElementSibling : null;
+    if (next) {
+      const inputs = next.querySelectorAll('.cell-input');
+      if (inputs.length) inputs[0].focus();
+    } else {
+      // Add new row
+      const bizId = tr ? tr.dataset.bizId : null;
+      if (bizId) addEmployee(bizId);
+    }
+  }
+}
+
+// ── AUTO-WIDTH INPUT ──
+function autoWidth(input) {
+  const tmp = document.createElement('span');
+  tmp.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;font:' + getComputedStyle(input).font;
+  tmp.textContent = input.value || input.placeholder || ' ';
+  document.body.appendChild(tmp);
+  input.style.width = (tmp.offsetWidth + 16) + 'px';
+  document.body.removeChild(tmp);
+}
+
+// ── CSV MODAL ──
+function openCsvModal() {
+  parsedCSV = [];
+  document.getElementById('dropzoneFilename').classList.remove('show');
+  document.getElementById('previewBox').classList.remove('show');
+  document.getElementById('csvImportBtn').disabled = true;
+  document.getElementById('csvFileInput').value = '';
+  openModal('csvModal');
+}
+
+// Drag & Drop
+const dz = document.getElementById('dropzone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+dz.addEventListener('drop', e => {
+  e.preventDefault();
+  dz.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f) processFile(f);
+});
+
+function handleFileSelect(e) {
+  const f = e.target.files[0];
+  if (f) processFile(f);
+}
+
+function processFile(file) {
+  const name = file.name;
+  document.getElementById('dropzoneFilename').textContent = '✓ ' + name;
+  document.getElementById('dropzoneFilename').classList.add('show');
+
+  const ext = name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    let rows = [];
+    if (ext === 'csv') {
+      const text = new TextDecoder('utf-8').decode(e.target.result);
+      rows = parseCSVText(text);
+    } else {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+    }
+    parsedCSV = extractMerchantData(rows);
+    showPreview(parsedCSV, rows.length);
+  };
+  if (ext === 'csv') {
+    reader.readAsArrayBuffer(file);
+  } else {
+    reader.readAsArrayBuffer(file);
+  }
+}
+
+function parseCSVText(text) {
+  return text.trim().split('\n').map(line => {
+    const cells = [];
+    let cur = ''; let inQ = false;
+    for (let c of line) {
+      if (c === '"') { inQ = !inQ; }
+      else if (c === ',' && !inQ) { cells.push(cur.trim()); cur = ''; }
+      else cur += c;
+    }
+    cells.push(cur.trim());
+    return cells;
+  });
+}
+
+// Auto-detect column indices
+function detectColumns(header) {
+  const h = header.map(c => String(c).toLowerCase());
+  const dateIdx = h.findIndex(c => c.includes('날짜') || c.includes('일자') || c.includes('date') || c.includes('거래일'));
+  const nameIdx = h.findIndex(c => c.includes('가맹점') || c.includes('상호') || c.includes('merchant') || c.includes('업종') || c.includes('이용처'));
+  const amtIdx  = h.findIndex(c => c.includes('금액') || c.includes('amount') || c.includes('이용금액') || c.includes('결제금액') || c.includes('승인금액'));
+  return { dateIdx, nameIdx, amtIdx };
+}
+
+function extractMerchantData(rows) {
+  if (rows.length < 2) return [];
+  const header = rows[0];
+  const { nameIdx, amtIdx } = detectColumns(header);
+  if (nameIdx < 0 || amtIdx < 0) return [];
+
+  const map = new Map();
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    const merchant = String(row[nameIdx] || '').trim();
+    const amt = parseInt(String(row[amtIdx] || '').replace(/[^0-9-]/g,'')) || 0;
+    if (!merchant || !amt || amt < 0) continue;
+    if (map.has(merchant)) map.set(merchant, map.get(merchant) + amt);
+    else map.set(merchant, amt);
+  }
+  return Array.from(map, ([merchant, amount]) => ({ merchant, amount }));
+}
+
+function showPreview(data, totalRows) {
+  const box = document.getElementById('previewBox');
+  const rowsEl = document.getElementById('previewRows');
+  const sampleEl = document.getElementById('previewSample');
+  box.classList.add('show');
+  rowsEl.textContent = `총 ${totalRows}행 파싱 → ${data.length}개 가맹점 집계`;
+  if (data.length > 0) {
+    const sample = data.slice(0,3).map(d => `${d.merchant} ${fmt(d.amount)}원`).join(' | ');
+    sampleEl.textContent = '예시: ' + sample + (data.length > 3 ? ' ...' : '');
+  }
+  document.getElementById('csvImportBtn').disabled = data.length === 0;
+}
+
+// ── DIFF LOGIC ──
+function runDiff() {
+  if (!parsedCSV.length) return;
+  closeModal('csvModal');
+
+  // All known merchants from roster
+  const allUsages = roster.businesses.flatMap(b =>
+    b.employees.flatMap(e => e.usage ? [e.usage.toLowerCase()] : [])
+  );
+
+  // New items: CSV merchants not found in any employee's usage
+  const newItems = parsedCSV.filter(d => {
+    const ml = d.merchant.toLowerCase();
+    return !allUsages.some(u => u.includes(ml) || ml.includes(u));
+  });
+
+  // Missing: employees' usage not found in CSV merchants
+  const csvMerchants = parsedCSV.map(d => d.merchant.toLowerCase());
+  const missingItems = [];
+  roster.businesses.forEach(biz => {
+    biz.employees.forEach(emp => {
+      if (!emp.usage) return;
+      const ul = emp.usage.toLowerCase();
+      const found = csvMerchants.some(m => m.includes(ul) || ul.includes(m));
+      if (!found) {
+        missingItems.push({ empName: emp.name, bizName: biz.name, usage: emp.usage, empId: emp.id, bizId: biz.id });
+      }
+    });
+  });
+
+  renderDiff(newItems, missingItems);
+  document.getElementById('diffSection').classList.add('show');
+  document.getElementById('diffSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function renderDiff(newItems, missingItems) {
+  document.getElementById('newCountBadge').textContent = newItems.length;
+  document.getElementById('missingCountBadge').textContent = missingItems.length;
+
+  const newList = document.getElementById('newItemsList');
+  newList.innerHTML = '';
+  if (newItems.length === 0) {
+    newList.innerHTML = '<div class="diff-empty">신규 항목 없음</div>';
+  } else {
+    newItems.forEach(item => {
+      const el = document.createElement('div');
+      el.className = 'diff-item';
+      el.innerHTML = `
+        <div class="diff-item-info">
+          <div class="diff-item-name">${esc(item.merchant)}</div>
+          <div class="diff-item-meta">명부에 없는 가맹점</div>
+        </div>
+        <div class="diff-item-amount">+${fmt(item.amount)}원</div>
+        <button class="diff-action-btn" onclick='openAssignModal(${JSON.stringify(item)})'>명부에 추가</button>
+      `;
+      newList.appendChild(el);
+    });
+  }
+
+  const missList = document.getElementById('missingItemsList');
+  missList.innerHTML = '';
+  if (missingItems.length === 0) {
+    missList.innerHTML = '<div class="diff-empty">미확인 항목 없음</div>';
+  } else {
+    missingItems.forEach(item => {
+      const el = document.createElement('div');
+      el.className = 'diff-item';
+      el.innerHTML = `
+        <div class="diff-item-info">
+          <div class="diff-item-name">${esc(item.empName)} · ${esc(item.bizName)}</div>
+          <div class="diff-item-meta">사용처: ${esc(item.usage)}</div>
+        </div>
+        <button class="diff-action-btn" onclick="removeEmpFromDiff('${item.bizId}','${item.empId}',this)">명부에서 제거</button>
+      `;
+      missList.appendChild(el);
+    });
+  }
+}
+
+function removeEmpFromDiff(bizId, empId, btn) {
+  deleteEmployee(bizId, empId);
+  const item = btn.closest('.diff-item');
+  if (item) item.remove();
+  const badge = document.getElementById('missingCountBadge');
+  badge.textContent = Math.max(0, parseInt(badge.textContent) - 1);
+}
+
+// ── ASSIGN MODAL ──
+function openAssignModal(item) {
+  assigningItem = item;
+  document.getElementById('assignMerchant').textContent = item.merchant;
+  document.getElementById('assignAmountDisplay').textContent = fmt(item.amount) + '원';
+  document.getElementById('assignUsage').value = item.merchant;
+  document.getElementById('assignAccount').value = '';
+
+  // Build biz select
+  const bizSel = document.getElementById('assignBizSelect');
+  bizSel.innerHTML = '';
+  roster.businesses.forEach(b => {
+    const opt = document.createElement('option');
+    opt.value = b.id;
+    opt.textContent = b.name + ' (' + b.card + ')';
+    bizSel.appendChild(opt);
+  });
+  if (roster.businesses.length === 0) {
+    const opt = document.createElement('option');
+    opt.value = '';
+    opt.textContent = '(사업자 없음)';
+    bizSel.appendChild(opt);
+  }
+  updateEmpSelect();
+  openModal('assignModal');
+}
+
+function updateEmpSelect() {
+  const bizId = document.getElementById('assignBizSelect').value;
+  const biz = getBiz(bizId);
+  const sel = document.getElementById('assignEmpSelect');
+  sel.innerHTML = '';
+  if (biz && biz.employees.length > 0) {
+    biz.employees.forEach(e => {
+      const opt = document.createElement('option');
+      opt.value = e.id;
+      opt.textContent = e.name;
+      sel.appendChild(opt);
+    });
+  }
+  const newOpt = document.createElement('option');
+  newOpt.value = '__new__';
+  newOpt.textContent = '＋ 새 직원으로 추가';
+  sel.appendChild(newOpt);
+}
+
+function confirmAssign() {
+  if (!assigningItem) return;
+  const bizId = document.getElementById('assignBizSelect').value;
+  const empId = document.getElementById('assignEmpSelect').value;
+  const usage = document.getElementById('assignUsage').value;
+  const account = document.getElementById('assignAccount').value;
+  const biz = getBiz(bizId);
+  if (!biz) return;
+
+  if (empId === '__new__') {
+    const newEmp = {
+      id: uid(),
+      name: assigningItem.merchant,
+      monthlyAmount: assigningItem.amount,
+      usage, account
+    };
+    biz.employees.push(newEmp);
+  } else {
+    const emp = getEmp(bizId, empId);
+    if (emp) {
+      emp.usage = usage;
+      emp.account = account;
+      emp.monthlyAmount = assigningItem.amount;
+    }
+  }
+
+  renderEmployees(bizId);
+  scheduleSave();
+  closeModal('assignModal');
+
+  // Remove from diff list
+  const newList = document.getElementById('newItemsList');
+  const items = newList.querySelectorAll('.diff-item');
+  items.forEach(item => {
+    if (item.querySelector('.diff-item-name') &&
+        item.querySelector('.diff-item-name').textContent === assigningItem.merchant) {
+      item.remove();
+    }
+  });
+  const badge = document.getElementById('newCountBadge');
+  badge.textContent = Math.max(0, parseInt(badge.textContent) - 1);
+  assigningItem = null;
+}
+
+// ── MODAL HELPERS ──
+function openModal(id) {
+  document.getElementById(id).classList.add('show');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('show');
+}
+function handleOverlayClick(e, id) {
+  if (e.target === document.getElementById(id)) closeModal(id);
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.show').forEach(m => m.classList.remove('show'));
+  }
+});
+
+// ── UTIL ──
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── INIT ──
+loadRoster();
+</script>
+</body>
+</html>

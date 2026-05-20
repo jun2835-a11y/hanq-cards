@@ -18,6 +18,7 @@ const FILE_TO_KEY = {
   'card-replan-state.json':   'card-replan-state',
   'tx-data-state.json':       'tx-data-state',
   'activity-log.json':        'activity-log',
+  'card-roster-state.json':   'card-roster-state',
 };
 
 // 인메모리 캐시 — 서버 시작 시 로드, 이후 동기 읽기 가능
@@ -137,6 +138,7 @@ const ROUTES = {
   '/spend':    '법인카드_일회성지출관리.html',
   '/report':   '법인카드_분석리포트.html',
   '/quick':    '빠른입력.html',
+  '/roster':   '관리명부.html',
 };
 
 function serveHTML(res, file) {
@@ -174,6 +176,7 @@ const server = http.createServer((req, res) => {
     '/api/card-replan-state':  'card-replan-state.json',
     '/api/tx-data-state':      'tx-data-state.json',
     '/api/activity-log':       'activity-log.json',
+    '/api/card-roster-state':  'card-roster-state.json',
   };
   if (getStateRoutes[url] && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -189,6 +192,7 @@ const server = http.createServer((req, res) => {
     '/api/card-replan-state':  'card-replan-state.json',
     '/api/tx-data-state':      'tx-data-state.json',
     '/api/activity-log':       'activity-log.json',
+    '/api/card-roster-state':  'card-roster-state.json',
   };
   if (postRoutes[url] && req.method === 'POST') {
     let body = '';
