@@ -12,15 +12,6 @@
   --muted:#9A958F;--accent:#C8380A;
 }
 body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;min-height:100vh;display:flex;flex-direction:column}
-.app-nav{background:#1A1814;padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:40px;position:sticky;top:0;z-index:200;font-family:inherit}
-.app-nav-brand{font-size:11px;font-weight:700;letter-spacing:.1em;color:rgba(255,255,255,.9);text-transform:uppercase;text-decoration:none}
-.app-nav-links{display:flex;gap:0;height:100%}
-.app-nav-link{padding:0 12px;display:flex;align-items:center;gap:5px;font-size:11px;color:rgba(255,255,255,.5);text-decoration:none;letter-spacing:.04em;border-bottom:2px solid transparent;transition:all .15s}
-.app-nav-link:hover{color:rgba(255,255,255,.85)}
-.app-nav-link.active{color:white;border-bottom-color:#C8380A;font-weight:700}
-.app-nav-sep{color:rgba(255,255,255,.15);padding:0 4px;font-size:10px;display:flex;align-items:center}
-.app-nav-badge{background:#C8380A;color:white;font-size:8px;padding:1px 4px;font-weight:700;letter-spacing:.04em;line-height:1.4}
-@media print{.app-nav{display:none!important}}
 .page-main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 32px;text-align:center}
 .wip-icon{font-size:48px;margin-bottom:24px;opacity:.35}
 .wip-badge{display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:white;font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;padding:4px 12px;margin-bottom:20px}
@@ -32,10 +23,30 @@ body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;background:var(--bg);
 .wip-scope-item{display:flex;align-items:flex-start;gap:10px;font-size:12px;color:var(--ink2);line-height:1.6;padding:6px 0;border-bottom:1px solid var(--border)}
 .wip-scope-item:last-child{border-bottom:none}
 .wip-scope-dot{width:4px;height:4px;border-radius:50%;background:var(--muted);flex-shrink:0;margin-top:7px}
+
+/* 카운트다운 */
+.countdown{
+  position:fixed;bottom:28px;right:28px;
+  background:var(--ink);color:rgba(255,255,255,.9);
+  padding:12px 18px;
+  font-size:12px;letter-spacing:.03em;
+  display:flex;align-items:center;gap:10px;
+}
+.countdown-num{
+  font-size:22px;font-weight:700;color:white;
+  min-width:20px;text-align:center;line-height:1;
+}
+.countdown-bar-wrap{
+  position:fixed;bottom:0;left:0;right:0;height:2px;background:rgba(0,0,0,.08);
+}
+.countdown-bar{
+  height:100%;background:var(--accent);
+  width:100%;
+  transition:width 1s linear;
+}
 </style>
 </head>
 <body>
-
 
 <div class="page-main">
   <div class="wip-icon">🏗</div>
@@ -52,5 +63,38 @@ body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;background:var(--bg);
     <div class="wip-scope-item"><div class="wip-scope-dot"></div>인건비 상세 (비밀번호 보호) · 전체 / 직원용 토글</div>
   </div>
 </div>
+
+<div class="countdown" id="cdBox">
+  <div class="countdown-num" id="cdNum">3</div>
+  <div>초 후 본 페이지로 진입합니다</div>
+</div>
+<div class="countdown-bar-wrap">
+  <div class="countdown-bar" id="cdBar"></div>
+</div>
+
+<script>
+(function(){
+  var n = 3;
+  var bar = document.getElementById('cdBar');
+  var num = document.getElementById('cdNum');
+
+  // 1초 후 바 줄어들기 시작
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){
+      bar.style.width = '0%';
+    });
+  });
+
+  var iv = setInterval(function(){
+    n--;
+    if(n <= 0){
+      clearInterval(iv);
+      window.location.href = '/finance-work';
+    } else {
+      num.textContent = n;
+    }
+  }, 1000);
+})();
+</script>
 </body>
 </html>

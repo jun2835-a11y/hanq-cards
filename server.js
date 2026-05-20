@@ -171,6 +171,7 @@ const ROUTES = {
   '/quick':        '빠른입력.html',
   '/roster':       '관리명부.html',
   '/finance-new':  '재무관리(신).html',
+  '/finance-work': '재무관리(신)_작업.html',
 };
 
 function serveHTML(res, file) {
