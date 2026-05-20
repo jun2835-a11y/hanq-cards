@@ -867,6 +867,113 @@ body {
 }
 .add-item-btn:hover { color: var(--pos); background: var(--pos-bg); }
 
+/* ── PAGE BODY / SIDEBAR ── */
+.page-body {
+  display: flex;
+  align-items: flex-start;
+}
+.page-body .main {
+  flex: 1;
+  min-width: 0;
+  max-width: none;
+}
+.sidebar {
+  width: 200px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  min-height: calc(100vh - 180px);
+}
+.sidebar-hdr {
+  padding: 16px 14px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border2);
+}
+.sidebar-label {
+  font-size: 9px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.sidebar-count-badge {
+  font-size: 10px;
+  color: var(--muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.sidebar-nav { padding: 4px 0; }
+.sidebar-biz-item {
+  display: flex;
+  align-items: stretch;
+  cursor: pointer;
+  transition: background .12s;
+  border-bottom: 1px solid var(--border2);
+}
+.sidebar-biz-item:last-child { border-bottom: none; }
+.sidebar-biz-item:hover { background: var(--bg); }
+.sidebar-biz-color { width: 3px; flex-shrink: 0; }
+.sidebar-biz-info {
+  padding: 10px 12px;
+  flex: 1;
+  min-width: 0;
+}
+.sidebar-biz-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
+.sidebar-biz-sub {
+  font-size: 10px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sidebar-biz-total {
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink2);
+  margin-top: 3px;
+}
+.sidebar-empty-msg {
+  padding: 24px 14px;
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.8;
+}
+.sidebar-footer {
+  padding: 10px 12px;
+  border-top: 1px solid var(--border2);
+}
+.sidebar-add-btn {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px dashed var(--border);
+  background: none;
+  cursor: pointer;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 11px;
+  border-radius: 2px;
+  transition: all .15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+.sidebar-add-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--neg-bg); }
+
 /* ── RESPONSIVE ── */
 @media (max-width: 960px) {
   .header { padding: 28px 20px 22px; }
@@ -874,6 +981,10 @@ body {
   .main { padding: 24px 20px 60px; }
   .kpi-item { padding: 16px 20px 16px 0; margin-right: 20px; min-width: 90px; }
   .kpi-val { font-size: 20px; }
+  .sidebar { width: 170px; }
+}
+@media (max-width: 768px) {
+  .sidebar { display: none; }
 }
 @media (max-width: 600px) {
   .header { padding: 20px 16px 18px; flex-direction: column; align-items: flex-start; }
@@ -901,6 +1012,7 @@ body {
       <span class="save-indicator-dot"></span>
       <span class="save-indicator-text">저장됨 ✓</span>
     </div>
+    <button class="hdr-btn" onclick="exportExcel()">엑셀 내보내기</button>
     <button class="hdr-btn accent-btn" onclick="openCsvModal()">CSV 가져오기</button>
   </div>
 </header>
@@ -924,6 +1036,25 @@ body {
     <div class="kpi-val" style="font-size:14px; line-height:1.3;" id="kpiLastUpdated">—</div>
   </div>
 </div>
+
+<!-- PAGE BODY -->
+<div class="page-body">
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-hdr">
+    <span class="sidebar-label">사업자</span>
+    <span class="sidebar-count-badge" id="sidebarBizCount">0</span>
+  </div>
+  <div class="sidebar-nav" id="sidebarNav">
+    <div class="sidebar-empty-msg">사업자를 추가하세요</div>
+  </div>
+  <div class="sidebar-footer">
+    <button class="sidebar-add-btn" onclick="addBiz()">
+      <span style="font-size:14px;font-weight:300;line-height:1">＋</span> 사업자 추가
+    </button>
+  </div>
+</aside>
 
 <!-- MAIN -->
 <div class="main">
@@ -967,7 +1098,9 @@ body {
     </div>
   </div>
 
-</div>
+</div><!-- /.main -->
+
+</div><!-- /.page-body -->
 
 <!-- CSV MODAL -->
 <div class="modal-overlay" id="csvModal" onclick="handleOverlayClick(event,'csvModal')">
@@ -1099,6 +1232,7 @@ function scheduleSave() {
 async function doSave() {
   roster.lastUpdated = new Date().toISOString();
   updateKPI();
+  updateSidebar();
   try {
     const r = await fetch(API, {
       method: 'POST',
@@ -1154,6 +1288,7 @@ function render() {
   });
   document.getElementById('emptyState').classList.toggle('show', roster.businesses.length === 0);
   updateKPI();
+  updateSidebar();
 }
 
 function buildBizCard(biz, idx) {
@@ -1821,6 +1956,84 @@ document.addEventListener('keydown', e => {
     document.querySelectorAll('.modal-overlay.show').forEach(m => m.classList.remove('show'));
   }
 });
+
+// ── SIDEBAR ──
+function updateSidebar() {
+  const nav = document.getElementById('sidebarNav');
+  const countEl = document.getElementById('sidebarBizCount');
+  if (!nav) return;
+  if (countEl) countEl.textContent = roster.businesses.length;
+  if (roster.businesses.length === 0) {
+    nav.innerHTML = '<div class="sidebar-empty-msg">사업자를<br>추가하세요</div>';
+    return;
+  }
+  nav.innerHTML = '';
+  roster.businesses.forEach((biz, idx) => {
+    const color = BIZ_COLORS[idx % BIZ_COLORS.length];
+    const total = biz.employees.reduce((s,e) =>
+      s + (e.items||[]).reduce((ss,i) => ss + (Number(i.monthlyAmount)||0), 0), 0);
+    const empCount = biz.employees.length;
+    const itemCount = biz.employees.reduce((s,e) => s + (e.items||[]).length, 0);
+    const el = document.createElement('div');
+    el.className = 'sidebar-biz-item';
+    el.dataset.bizId = biz.id;
+    el.onclick = () => scrollToBiz(biz.id);
+    el.innerHTML = `
+      <div class="sidebar-biz-color" style="background:${color}"></div>
+      <div class="sidebar-biz-info">
+        <div class="sidebar-biz-name">${esc(biz.name)}</div>
+        <div class="sidebar-biz-sub">${esc(biz.card)} · ${empCount}명 · ${itemCount}건</div>
+        <div class="sidebar-biz-total">${total ? fmt(total) + '원' : '—'}</div>
+      </div>
+    `;
+    nav.appendChild(el);
+  });
+}
+
+function scrollToBiz(bizId) {
+  const el = document.querySelector(`.biz-card[data-biz-id="${bizId}"]`);
+  if (!el) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const biz = getBiz(bizId);
+  if (biz && biz._collapsed) {
+    biz._collapsed = false;
+    const body = document.getElementById('bizBody_' + bizId);
+    const btn = document.getElementById('toggleBtn_' + bizId);
+    if (body) body.classList.remove('collapsed');
+    if (btn) btn.classList.add('open');
+  }
+  el.style.outline = '2px solid var(--accent)';
+  el.style.outlineOffset = '-2px';
+  setTimeout(() => { el.style.outline = ''; el.style.outlineOffset = ''; }, 1000);
+}
+
+// ── EXCEL EXPORT ──
+function exportExcel() {
+  if (!roster.businesses.length) { alert('내보낼 데이터가 없습니다.'); return; }
+  const wb = XLSX.utils.book_new();
+  const rows = [['사업자명', '카드명', '직원명', '월결제액', '사용처', '사용계정']];
+  roster.businesses.forEach(biz => {
+    if (biz.employees.length === 0) {
+      rows.push([biz.name, biz.card, '', '', '', '']);
+      return;
+    }
+    biz.employees.forEach(emp => {
+      if (!(emp.items||[]).length) {
+        rows.push([biz.name, biz.card, emp.name, '', '', '']);
+        return;
+      }
+      emp.items.forEach(item => {
+        rows.push([biz.name, biz.card, emp.name, item.monthlyAmount || 0, item.usage || '', item.account || '']);
+      });
+    });
+  });
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{ wch: 18 }, { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 22 }, { wch: 16 }];
+  XLSX.utils.book_append_sheet(wb, ws, '관리명부');
+  const d = new Date();
+  const dateStr = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+  XLSX.writeFile(wb, `관리명부_${dateStr}.xlsx`);
+}
 
 // ── UTIL ──
 function esc(s) {
