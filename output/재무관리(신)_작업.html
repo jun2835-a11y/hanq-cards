@@ -332,13 +332,19 @@ function parseAmount(s) {
 }
 
 function normalizeDate(s) {
-  s = s.trim().replace(/"/g, '');
-  // YYYY-MM-DD or YYYY/MM/DD
-  var m = s.match(/^(\d{4})[\/\-](\d{2})[\/\-](\d{2})/);
-  if (m) return m[1] + '-' + m[2] + '-' + m[3];
+  s = String(s).trim().replace(/"/g, '');
+  // YYYY-MM-DD or YYYY/MM/DD (with optional time)
+  var m = s.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/);
+  if (m) return m[1] + '-' + pad2(+m[2]) + '-' + pad2(+m[3]);
   // YYYYMMDD
   m = s.match(/^(\d{4})(\d{2})(\d{2})/);
   if (m) return m[1] + '-' + m[2] + '-' + m[3];
+  // Excel serial (숫자 5자리, 40000~50000 범위)
+  var n = parseFloat(s);
+  if (!isNaN(n) && n > 40000 && n < 60000) {
+    var d = new Date(Math.round((n - 25569) * 86400000));
+    return d.getUTCFullYear() + '-' + pad2(d.getUTCMonth()+1) + '-' + pad2(d.getUTCDate());
+  }
   return '';
 }
 
@@ -387,43 +393,66 @@ function handleFiles(files) {
       };
       reader.readAsText(file, 'euc-kr');
     } else if (ext === 'xlsx' || ext === 'xls') {
-      var reader2 = new FileReader();
-      reader2.onload = function(e) {
-        try {
-          var wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
-          // 첫 번째 시트 사용 (거래내역 시트)
-          var sheetName = wb.SheetNames[0];
-          var ws = wb.Sheets[sheetName];
-          var rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
-          // 헤더 탐색
-          var headerIdx = -1;
-          for (var i = 0; i < Math.min(rows.length, 30); i++) {
-            var row = rows[i].map(function(c){ return String(c).toLowerCase(); });
-            if (row.some(function(c){ return c.includes('거래일'); })) { headerIdx = i; break; }
+      (function(f2){
+        var reader2 = new FileReader();
+        reader2.onload = function(e) {
+          try {
+            var wb = XLSX.read(e.target.result, { type: 'array', cellDates: false, raw: false });
+            // 거래내역 시트 탐색 (이름에 '거래' 포함하는 시트 우선)
+            var sheetName = wb.SheetNames.find(function(n){ return n.includes('거래'); }) || wb.SheetNames[0];
+            var ws = wb.Sheets[sheetName];
+            var rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false });
+
+            // 헤더 행 탐색 (최대 40행 탐색)
+            var headerIdx = -1;
+            for (var i = 0; i < Math.min(rows.length, 40); i++) {
+              var joined = rows[i].map(function(c){ return String(c); }).join(',');
+              if (joined.includes('거래일')) { headerIdx = i; break; }
+            }
+            if (headerIdx < 0) { alert(f2.name + ': 헤더를 찾을 수 없습니다'); return; }
+
+            var headers = rows[headerIdx].map(function(c){ return String(c).trim(); });
+            var bank = detectBank(headers);
+
+            // 컬럼 인덱스 매핑
+            var iDate=-1, iTime=-1, iMerchant=-1, iOut=-1, iIn=-1;
+            headers.forEach(function(h, i){
+              var t = h.replace(/\s/g,'');
+              if (iDate < 0 && (t==='거래일시'||t==='거래일자'||t==='날짜')) iDate=i;
+              if (iTime < 0 && t==='거래시간') iTime=i;
+              if (iMerchant < 0 && (t==='보낸분/받는분'||t==='거래내용'||t==='적요'||t==='내용'||t==='거래기록사항')) iMerchant=i;
+              if (iOut < 0 && (t==='출금액'||t==='출금금액'||t==='출금'||t==='출금(원)')) iOut=i;
+              if (iIn < 0 && (t==='입금액'||t==='입금금액'||t==='입금'||t==='입금(원)')) iIn=i;
+            });
+
+            // 직접 거래 배열 생성
+            var parsed = [];
+            for (var j = headerIdx+1; j < rows.length; j++) {
+              var row = rows[j];
+              if (!row || row.length < 3) continue;
+              var dateRaw = iDate >= 0 ? String(row[iDate]||'') : '';
+              var merchant = iMerchant >= 0 ? String(row[iMerchant]||'').trim() : '';
+              var outRaw = iOut >= 0 ? String(row[iOut]||'') : '';
+              var inRaw  = iIn  >= 0 ? String(row[iIn]||'')  : '';
+
+              if (!merchant || merchant==='-' || merchant==='') continue;
+              var date = normalizeDate(dateRaw);
+              if (!date) continue;
+
+              parsed.push({ date:date, merchant:merchant, out:parseAmount(outRaw), in:parseAmount(inRaw), bank:bank });
+            }
+
+            var existing = _files.findIndex(function(f){ return f.name === f2.name; });
+            var entry = { name: f2.name, bank: bank, parsed: parsed, type: 'excel', rows: 0 };
+            if (existing >= 0) _files[existing] = entry;
+            else _files.push(entry);
+            renderFileList();
+          } catch(err) {
+            alert('엑셀 파일 읽기 오류: ' + err.message);
           }
-          if (headerIdx < 0) headerIdx = 0;
-          var headers = rows[headerIdx].map(function(c){ return String(c).trim(); });
-          var bank = detectBank(headers);
-          // rows를 CSV 텍스트로 변환 (기존 파서 재사용)
-          var csvLines = rows.slice(headerIdx).map(function(row){
-            return row.map(function(c){
-              var s = c instanceof Date
-                ? (c.getFullYear()+'-'+pad2(c.getMonth()+1)+'-'+pad2(c.getDate()))
-                : String(c);
-              return '"' + s.replace(/"/g,'""') + '"';
-            }).join(',');
-          });
-          var text = csvLines.join('\n');
-          var existing = _files.findIndex(function(f){ return f.name === file.name; });
-          var entry = { name: file.name, bank: bank, text: text, type: 'excel', rows: 0 };
-          if (existing >= 0) _files[existing] = entry;
-          else _files.push(entry);
-          renderFileList();
-        } catch(err) {
-          alert('엑셀 파일 읽기 오류: ' + err.message);
-        }
-      };
-      reader2.readAsArrayBuffer(file);
+        };
+        reader2.readAsArrayBuffer(f2);
+      })(file);
     }
   });
 }
@@ -454,7 +483,7 @@ function removeFile(i) {
 function parseAll() {
   _txns = [];
   _files.forEach(function(f){
-    var rows = parseCSVText(f.text, f.bank);
+    var rows = f.parsed ? f.parsed : parseCSVText(f.text, f.bank);
     f.rows = rows.length;
     _txns = _txns.concat(rows);
   });
