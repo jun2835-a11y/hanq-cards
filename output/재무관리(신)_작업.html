@@ -294,9 +294,26 @@ function detectBank(headers) {
   if (h.includes('보낸분') || h.includes('받는분')) return 'KB';
   if (h.includes('거래기록사항') || h.includes('출금금액')) return '농협';
   if (h.includes('출금(원)') || h.includes('입금(원)')) return '신한';
-  // 광주: 위 은행에 해당 안 되고 '적요' 또는 '입/출금' 있으면
   if (h.includes('입/출금') || h.includes('통장잔액') || h.includes('적요')) return '광주';
   return '?';
+}
+
+// 은행별 거래내용 컬럼 인덱스 반환
+// KB→보낸분/받는분, 농협→거래기록사항, 신한→내용, 광주→적요
+function findMerchantCol(headers, bank) {
+  var BANK_COL = {
+    'KB':   ['보낸분/받는분'],
+    '농협': ['거래기록사항'],
+    '신한': ['내용'],
+    '광주': ['적요'],
+  };
+  var candidates = (BANK_COL[bank] || ['보낸분/받는분','거래기록사항','적요','내용']);
+  for (var ci = 0; ci < candidates.length; ci++) {
+    for (var hi = 0; hi < headers.length; hi++) {
+      if (headers[hi].replace(/\s/g,'') === candidates[ci]) return hi;
+    }
+  }
+  return -1;
 }
 
 function bankClass(bank) {
@@ -320,14 +337,12 @@ function parseCSVText(text, bank) {
 
   // 컬럼 인덱스
   var iDate = -1, iMerchant = -1, iOut = -1, iIn = -1;
+  iMerchant = findMerchantCol(headers.map(function(h){ return h.trim(); }), bank);
   headers.forEach(function(h, i) {
     var t = h.trim();
     if (iDate < 0 && (t === '거래일시' || t === '거래일자')) iDate = i;
-    if (iMerchant < 0 && (t === '보낸분/받는분' || t === '거래내용' || t === '적요' || t === '내용')) iMerchant = i;
     if (iOut < 0 && (t === '출금액' || t === '출금금액' || t === '출금' || t === '출금(원)')) iOut = i;
     if (iIn < 0 && (t === '입금액' || t === '입금금액' || t === '입금' || t === '입금(원)')) iIn = i;
-    // 신한: 날짜/시간 분리
-    if (t === '거래시간' && bank === '신한') {} // 무시 (날짜만 사용)
   });
 
   for (var j = headerIdx + 1; j < lines.length; j++) {
@@ -524,10 +539,10 @@ function parseHtmlXlsTable(text) {
     var headers = rows[headerIdx];
     var bank = detectBank(headers);
     var iDate=-1, iMerchant=-1, iOut=-1, iIn=-1;
+    iMerchant = findMerchantCol(headers, bank);
     headers.forEach(function(h, i){
       var t = h.replace(/\s/g,'');
       if (iDate < 0 && (t==='거래일시'||t==='거래일자'||t==='날짜')) iDate=i;
-      if (iMerchant < 0 && (t==='보낸분/받는분'||t==='거래내용'||t==='적요'||t==='내용'||t==='거래기록사항')) iMerchant=i;
       if (iOut < 0 && (t==='출금액'||t==='출금금액'||t==='출금'||t==='출금(원)')) iOut=i;
       if (iIn < 0 && (t==='입금액'||t==='입금금액'||t==='입금'||t==='입금(원)')) iIn=i;
     });
@@ -588,10 +603,10 @@ function parseExcelData(data, type, filename) {
     var headers = rows[headerIdx].map(function(c){ return String(c).trim(); });
     var bank = detectBank(headers);
     var iDate=-1, iMerchant=-1, iOut=-1, iIn=-1;
+    iMerchant = findMerchantCol(headers, bank);
     headers.forEach(function(h, i){
       var t = h.replace(/\s/g,'');
       if (iDate < 0 && (t==='거래일시'||t==='거래일자'||t==='날짜')) iDate=i;
-      if (iMerchant < 0 && (t==='보낸분/받는분'||t==='거래내용'||t==='적요'||t==='내용'||t==='거래기록사항')) iMerchant=i;
       if (iOut < 0 && (t==='출금액'||t==='출금금액'||t==='출금'||t==='출금(원)')) iOut=i;
       if (iIn < 0 && (t==='입금액'||t==='입금금액'||t==='입금'||t==='입금(원)')) iIn=i;
     });
