@@ -94,17 +94,21 @@ async function writeJSON(file, data) {
 
 // 서버 시작 시 전체 state 로드
 async function loadAllState() {
+  // Supabase 연결 가능 여부 먼저 확인 (어느 키든 1개만 응답하면 reachable)
+  let sbReachable = false;
+
   for (const [file, key] of Object.entries(FILE_TO_KEY)) {
     let data = null;
     if (SB_URL && SB_KEY) {
       data = await sbReadWithRetry(key);
+      if (data !== null) sbReachable = true;
     }
     if (data !== null) {
       _sbLoaded[file] = true;
       _cache[file] = data;
       console.log(`[state] loaded ${file} from Supabase (${Object.keys(data).length} keys)`);
     } else {
-      // Supabase 미설정이거나 연결 실패 → 로컬 파일로 폴백
+      // Supabase 미설정이거나 키 없음 → 로컬 파일로 폴백
       data = localRead(file);
       _cache[file] = data;
       if (SB_URL && SB_KEY) {
@@ -113,9 +117,13 @@ async function loadAllState() {
           console.log(`[state] seeding ${key} to Supabase from local…`);
           await sbWrite(key, data);
           _sbLoaded[file] = true;
+        } else if (sbReachable) {
+          // Supabase 연결은 되는데 이 키만 없음 → 신규 키, 쓰기 허용
+          console.log(`[state] new key ${file} — writes allowed`);
+          _sbLoaded[file] = true;
         } else {
-          // 로컬도 비어있고 Supabase도 실패 → 쓰기 차단
-          console.warn(`[state] WARNING: ${file} load FAILED — writes blocked to protect Supabase data`);
+          // Supabase 자체가 응답 없음 → 기존 데이터 보호를 위해 쓰기 차단
+          console.warn(`[state] WARNING: ${file} load FAILED (Supabase unreachable) — writes blocked`);
           _sbLoaded[file] = false;
         }
       } else {

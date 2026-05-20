@@ -407,13 +407,23 @@ function handleFiles(files) {
             var ws = wb.Sheets[sheetName];
             var rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false });
 
-            // 헤더 행 탐색 (최대 40행 탐색)
+            // 헤더 행 탐색 (최대 60행, 키워드 2개 이상 매칭 우선)
             var headerIdx = -1;
-            for (var i = 0; i < Math.min(rows.length, 40); i++) {
-              var joined = rows[i].map(function(c){ return String(c); }).join(',');
-              if (joined.includes('거래일')) { headerIdx = i; break; }
+            var HDR_KEYS = ['거래일','출금','입금','순번','날짜','적요','거래내용','잔액'];
+            for (var hi = 0; hi < Math.min(rows.length, 60); hi++) {
+              var joined = rows[hi].map(function(c){ return String(c); }).join(',');
+              var hitCount = HDR_KEYS.filter(function(k){ return joined.includes(k); }).length;
+              if (hitCount >= 2) { headerIdx = hi; break; }
             }
-            if (headerIdx < 0) { alert(f2.name + ': 헤더를 찾을 수 없습니다'); return; }
+            // 2개 매칭 없으면 '거래일' 단독 허용
+            if (headerIdx < 0) {
+              for (var hi2 = 0; hi2 < Math.min(rows.length, 60); hi2++) {
+                if (rows[hi2].map(function(c){ return String(c); }).join(',').includes('거래일')) {
+                  headerIdx = hi2; break;
+                }
+              }
+            }
+            if (headerIdx < 0) { alert(f2.name + ': 헤더를 찾을 수 없습니다 (60행 내 헤더 없음)'); return; }
 
             var headers = rows[headerIdx].map(function(c){ return String(c).trim(); });
             var bank = detectBank(headers);
@@ -752,5 +762,6 @@ function exportCSV() {
   a.click();
 }
 </script>
+<script>(function(){if(window.self===window.top)return;var s=document.createElement("style");s.textContent="html,html *{cursor:none!important}";document.head.appendChild(s);document.addEventListener("mousemove",function(e){window.parent.postMessage({type:"cursor-move",x:e.clientX,y:e.clientY},"*");});})();</script>
 </body>
 </html>
