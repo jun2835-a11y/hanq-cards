@@ -132,7 +132,7 @@ body {
   padding: 0 40px;
   display: flex;
   align-items: stretch;
-  animation: fadeIn .5s ease .2s both;
+  animation: fadeIn .2s ease .2s both;
 }
 .kpi-item {
   padding: 20px 32px 20px 0;
@@ -143,6 +143,10 @@ body {
   transition: background .2s;
 }
 .kpi-item:last-child { border-right: none; margin-right: 0; }
+.kpi-item:nth-child(1) { animation: slideUp .32s ease .42s both; }
+.kpi-item:nth-child(2) { animation: slideUp .32s ease .50s both; }
+.kpi-item:nth-child(3) { animation: slideUp .32s ease .58s both; }
+.kpi-item:nth-child(4) { animation: slideUp .32s ease .66s both; }
 .kpi-item:hover { background: rgba(200,56,10,.02); }
 .kpi-label {
   font-size: 9px;
@@ -322,6 +326,7 @@ body {
 .emp-table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
   font-size: 12px;
 }
 .emp-table th {
@@ -338,6 +343,10 @@ body {
 }
 .emp-table th:first-child { width: 32px; text-align: center; }
 .emp-table th:last-child { width: 36px; }
+.emp-table th:nth-child(4),
+.emp-item-row td:nth-child(4) {
+  border-left: 1px solid var(--border2);
+}
 .emp-table tbody tr {
   border-bottom: 1px solid var(--border2);
   transition: background .12s;
@@ -458,6 +467,7 @@ body {
   justify-content: center;
   gap: 8px;
   margin-top: 16px;
+  animation: fadeIn .4s ease .8s both;
 }
 .add-biz-btn:hover {
   border-color: var(--accent);
@@ -473,7 +483,7 @@ body {
   color: var(--muted);
   display: none;
 }
-.empty-state.show { display: block; }
+.empty-state.show { display: block; animation: fadeIn .4s ease .75s both; }
 .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: .3; }
 .empty-title { font-size: 16px; font-weight: 600; color: var(--ink2); margin-bottom: 8px; }
 .empty-sub { font-size: 13px; }
@@ -803,6 +813,10 @@ body {
   from { opacity: 0; background: rgba(45,102,68,.08); }
   to { opacity: 1; background: transparent; }
 }
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-14px); }
+  to { opacity: 1; transform: none; }
+}
 
 /* ── EMPLOYEE EXPAND / ITEM ROWS ── */
 .emp-name-cell {
@@ -883,6 +897,7 @@ body {
   background: var(--surface);
   border-right: 1px solid var(--border);
   min-height: calc(100vh - 180px);
+  animation: slideInLeft .38s ease .22s both;
 }
 .sidebar-hdr {
   padding: 16px 14px 12px;
@@ -1338,6 +1353,14 @@ function buildBizCard(biz, idx) {
     <div class="biz-body ${collapsed}" id="bizBody_${biz.id}">
       <div class="emp-table-wrap">
         <table class="emp-table" id="empTable_${biz.id}">
+          <colgroup>
+            <col style="width:32px">
+            <col style="width:16%">
+            <col style="width:115px">
+            <col>
+            <col style="width:145px">
+            <col style="width:36px">
+          </colgroup>
           <thead>
             <tr>
               <th>#</th>
