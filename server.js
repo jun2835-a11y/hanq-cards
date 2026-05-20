@@ -23,6 +23,8 @@ const FILE_TO_KEY = {
 
 // 인메모리 캐시 — 서버 시작 시 로드, 이후 동기 읽기 가능
 const _cache = {};
+// 초기 로드 성공 여부 — false면 Supabase 쓰기 차단 (덮어쓰기 방지)
+const _sbLoaded = {};
 
 async function sbRead(key) {
   try {
@@ -33,6 +35,16 @@ async function sbRead(key) {
     const rows = await res.json();
     return (Array.isArray(rows) && rows.length > 0) ? rows[0].value : null;
   } catch { return null; }
+}
+
+// 재시도 포함 읽기 — 최대 3회, 1초 간격
+async function sbReadWithRetry(key) {
+  for (let i = 0; i < 3; i++) {
+    const data = await sbRead(key);
+    if (data !== null) return data;
+    if (i < 2) await new Promise(r => setTimeout(r, 1000));
+  }
+  return null;
 }
 
 async function sbWrite(key, data) {
@@ -64,11 +76,16 @@ function localWrite(file, data) {
 function readJSON(file) { return _cache[file] ?? {}; }
 
 // 쓰기 — 캐시 + 영구저장소에 동시 반영
+// 초기 Supabase 로드가 실패한 경우 쓰기 차단 (기존 데이터 덮어쓰기 방지)
 function writeJSON(file, data) {
   _cache[file] = data;
   const key = FILE_TO_KEY[file];
   if (SB_URL && SB_KEY && key) {
-    sbWrite(key, data); // 비동기, 응답 기다리지 않음
+    if (_sbLoaded[file]) {
+      sbWrite(key, data);
+    } else {
+      console.warn(`[writeJSON] BLOCKED write to Supabase for ${file} — initial load not confirmed`);
+    }
   } else {
     localWrite(file, data);
   }
@@ -79,18 +96,32 @@ async function loadAllState() {
   for (const [file, key] of Object.entries(FILE_TO_KEY)) {
     let data = null;
     if (SB_URL && SB_KEY) {
-      data = await sbRead(key);
+      data = await sbReadWithRetry(key);
     }
-    if (data === null) {
-      // Supabase 미설정이거나 아직 데이터 없음 → 로컬 파일에서 읽어서 Supabase에 seed
+    if (data !== null) {
+      _sbLoaded[file] = true;
+      _cache[file] = data;
+      console.log(`[state] loaded ${file} from Supabase (${Object.keys(data).length} keys)`);
+    } else {
+      // Supabase 미설정이거나 연결 실패 → 로컬 파일로 폴백
       data = localRead(file);
-      if (SB_URL && SB_KEY && Object.keys(data).length > 0) {
-        console.log(`[state] seeding ${key} to Supabase…`);
-        await sbWrite(key, data);
+      _cache[file] = data;
+      if (SB_URL && SB_KEY) {
+        if (Object.keys(data).length > 0) {
+          // 로컬에 데이터 있으면 Supabase에 seed하고 로드 성공으로 표시
+          console.log(`[state] seeding ${key} to Supabase from local…`);
+          await sbWrite(key, data);
+          _sbLoaded[file] = true;
+        } else {
+          // 로컬도 비어있고 Supabase도 실패 → 쓰기 차단
+          console.warn(`[state] WARNING: ${file} load FAILED — writes blocked to protect Supabase data`);
+          _sbLoaded[file] = false;
+        }
+      } else {
+        _sbLoaded[file] = true; // 로컬 모드는 항상 허용
       }
+      console.log(`[state] loaded ${file} from local (${Object.keys(data).length} keys)`);
     }
-    _cache[file] = data;
-    console.log(`[state] loaded ${file} (${Object.keys(data).length} keys)`);
   }
 }
 
