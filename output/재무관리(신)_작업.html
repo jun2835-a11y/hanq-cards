@@ -108,6 +108,9 @@ input[type=file]{display:none}
 
 .no-data{text-align:center;padding:60px 20px;color:var(--muted);font-size:13px}
 
+.cat-filter-sel{border:1px solid var(--border);background:var(--surface);padding:6px 10px;font-size:11px;font-family:inherit;color:var(--ink);cursor:pointer;outline:none;max-width:140px}
+.cat-filter-sel:focus{border-color:var(--ink)}
+
 /* 저장 상태 */
 .save-indicator{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:white;font-size:11px;padding:8px 18px;letter-spacing:.04em;opacity:0;transition:opacity .3s;pointer-events:none}
 .save-indicator.show{opacity:1}
@@ -149,6 +152,9 @@ input[type=file]{display:none}
     <button class="filter-btn active" id="filterAll" onclick="setFilter('all')">전체</button>
     <button class="filter-btn" id="filterPending" onclick="setFilter('pending')">미분류만</button>
     <button class="filter-btn" id="filterDone" onclick="setFilter('done')">완료만</button>
+    <select class="cat-filter-sel" id="filterCat" onchange="renderMerchants()">
+      <option value="">카테고리 전체</option>
+    </select>
     <button class="filter-btn" onclick="resetTags()" style="color:var(--accent);border-color:rgba(200,56,10,.4)">태그 초기화</button>
     <span class="tag-count" id="tagCount"></span>
   </div>
@@ -180,6 +186,16 @@ input[type=file]{display:none}
 // ── 상수 ──────────────────────────────────────────────
 const CATS = ['인건비','4대보험','3.3소득세','식비/경비','임대료','공과금','통신비',
   '마케팅/광고비','특허','변호사비','인증비','IT인프라비','사무용품/사무집기','복리후생비','기타'];
+
+// 카테고리 필터 드롭다운 초기화
+(function(){
+  var sel = document.getElementById('filterCat');
+  CATS.forEach(function(c){
+    var opt = document.createElement('option');
+    opt.value = c; opt.textContent = c;
+    sel.appendChild(opt);
+  });
+})();
 
 const BIZS = ['한솔','수복지','한큐','교육원','미배분'];
 
@@ -609,11 +625,13 @@ function renderMerchants() {
   if (keys.length === 0) return;
 
   var q = document.getElementById('tagSearch').value.toLowerCase();
+  var catFilter = document.getElementById('filterCat') ? document.getElementById('filterCat').value : '';
   var filtered = keys.filter(function(k){
     var m = _merchants[k];
     if (q && !m.name.toLowerCase().includes(q)) return false;
     if (_filter === 'pending' && m.cat) return false;
     if (_filter === 'done' && !m.cat) return false;
+    if (catFilter && m.cat !== catFilter) return false;
     return true;
   });
 
@@ -630,7 +648,7 @@ function renderMerchants() {
   var html = '<table class="merchant-table">' +
     '<thead><tr>' +
     '<th style="width:24px"></th>' +
-    '<th>거래처명</th>' +
+    '<th>거래내용</th>' +
     '<th style="width:80px;text-align:right">건수</th>' +
     '<th style="width:110px;text-align:right">총 출금액</th>' +
     '<th style="width:140px">카테고리</th>' +
@@ -709,7 +727,7 @@ function renderAgg() {
   var filtered = _txns.filter(function(t){
     if (t.out === 0) return false;
     var m = _merchants[t.merchant];
-    if (!m || !m.cat) return false;
+    if (!m || (!m.cat && !m.biz)) return false;  // 둘 다 없으면 제외
     if (year && t.date.substring(0,4) !== year) return false;
     var mBiz = m.biz || '미배분';
     if (biz && mBiz !== biz) return false;
@@ -732,13 +750,15 @@ function renderAggMonth(txns) {
   txns.forEach(function(t){
     var m = _merchants[t.merchant];
     var ym = t.date.substring(0, 7);
+    var catKey = m.cat || '미분류';
     if (!data[ym]) data[ym] = {};
-    data[ym][m.cat] = (data[ym][m.cat] || 0) + t.out;
-    allCats[m.cat] = 1;
+    data[ym][catKey] = (data[ym][catKey] || 0) + t.out;
+    allCats[catKey] = 1;
   });
 
   var months = Object.keys(data).sort();
   var cats = CATS.filter(function(c){ return allCats[c]; });
+  if (allCats['미분류']) cats.push('미분류');
 
   var html = '<table class="agg-table"><thead><tr><th>월</th>';
   cats.forEach(function(c){ html += '<th>' + c + '</th>'; });
@@ -769,12 +789,15 @@ function renderAggCat(txns) {
   var data = {};
   txns.forEach(function(t){
     var m = _merchants[t.merchant];
-    if (!data[m.cat]) data[m.cat] = 0;
-    data[m.cat] += t.out;
+    var catKey = m.cat || '미분류';
+    if (!data[catKey]) data[catKey] = 0;
+    data[catKey] += t.out;
   });
   var total = Object.values(data).reduce(function(s,v){ return s+v; }, 0);
   var html = '<table class="agg-table"><thead><tr><th>카테고리</th><th>금액</th><th>비중</th></tr></thead><tbody>';
-  CATS.filter(function(c){ return data[c]; }).sort(function(a,b){ return data[b]-data[a]; }).forEach(function(c){
+  var ordered = CATS.filter(function(c){ return data[c]; });
+  if (data['미분류']) ordered.push('미분류');
+  ordered.forEach(function(c){
     var pct = total ? (data[c]/total*100).toFixed(1) : 0;
     html += '<tr><td>' + c + '</td><td>' + fmt(data[c]) + '</td><td>' + pct + '%</td></tr>';
   });
