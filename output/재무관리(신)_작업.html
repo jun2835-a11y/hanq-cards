@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>재무관리(신) 작업 — hanQ</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -131,10 +132,10 @@ input[type=file]{display:none}
   <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
     <div class="upload-icon">📂</div>
     <div class="upload-title">CSV 파일을 드래그하거나 클릭해서 업로드</div>
-    <div class="upload-sub">KB · 농협 · 광주 · 신한 CSV 지원<br>여러 파일 동시 선택 가능 · 은행 자동 감지</div>
+    <div class="upload-sub">KB · 농협 · 광주 · 신한 지원<br>CSV · Excel(.xlsx/.xls) · 여러 파일 동시 선택 · 은행 자동 감지</div>
     <div class="upload-btn">파일 선택</div>
   </div>
-  <input type="file" id="fileInput" accept=".csv" multiple>
+  <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" multiple>
 
   <div class="file-list" id="fileList"></div>
   <button class="parse-btn" id="parseBtn" disabled onclick="parseAll()">파싱 시작</button>
@@ -369,24 +370,65 @@ _fileInput.addEventListener('change', function(){ handleFiles(this.files); });
 
 function handleFiles(files) {
   Array.from(files).forEach(function(file) {
-    if (!file.name.endsWith('.csv')) return;
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      var text = e.target.result;
-      var firstLines = text.split(/\r?\n/).slice(0, 30);
-      // 헤더 탐색
-      var headerLine = firstLines.find(function(l){ return l.toLowerCase().includes('거래일'); }) || firstLines[0];
-      var headers = splitCSVLine(headerLine || '');
-      var bank = detectBank(headers);
-      var existing = _files.findIndex(function(f){ return f.name === file.name; });
-      var entry = { name: file.name, bank: bank, text: text, rows: 0 };
-      if (existing >= 0) _files[existing] = entry;
-      else _files.push(entry);
-      renderFileList();
-    };
-    reader.readAsText(file, 'euc-kr');
+    var ext = file.name.split('.').pop().toLowerCase();
+    if (ext === 'csv') {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var text = e.target.result;
+        var firstLines = text.split(/\r?\n/).slice(0, 30);
+        var headerLine = firstLines.find(function(l){ return l.toLowerCase().includes('거래일'); }) || firstLines[0];
+        var headers = splitCSVLine(headerLine || '');
+        var bank = detectBank(headers);
+        var existing = _files.findIndex(function(f){ return f.name === file.name; });
+        var entry = { name: file.name, bank: bank, text: text, type: 'csv', rows: 0 };
+        if (existing >= 0) _files[existing] = entry;
+        else _files.push(entry);
+        renderFileList();
+      };
+      reader.readAsText(file, 'euc-kr');
+    } else if (ext === 'xlsx' || ext === 'xls') {
+      var reader2 = new FileReader();
+      reader2.onload = function(e) {
+        try {
+          var wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+          // 첫 번째 시트 사용 (거래내역 시트)
+          var sheetName = wb.SheetNames[0];
+          var ws = wb.Sheets[sheetName];
+          var rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+          // 헤더 탐색
+          var headerIdx = -1;
+          for (var i = 0; i < Math.min(rows.length, 30); i++) {
+            var row = rows[i].map(function(c){ return String(c).toLowerCase(); });
+            if (row.some(function(c){ return c.includes('거래일'); })) { headerIdx = i; break; }
+          }
+          if (headerIdx < 0) headerIdx = 0;
+          var headers = rows[headerIdx].map(function(c){ return String(c).trim(); });
+          var bank = detectBank(headers);
+          // rows를 CSV 텍스트로 변환 (기존 파서 재사용)
+          var csvLines = rows.slice(headerIdx).map(function(row){
+            return row.map(function(c){
+              var s = c instanceof Date
+                ? (c.getFullYear()+'-'+pad2(c.getMonth()+1)+'-'+pad2(c.getDate()))
+                : String(c);
+              return '"' + s.replace(/"/g,'""') + '"';
+            }).join(',');
+          });
+          var text = csvLines.join('\n');
+          var existing = _files.findIndex(function(f){ return f.name === file.name; });
+          var entry = { name: file.name, bank: bank, text: text, type: 'excel', rows: 0 };
+          if (existing >= 0) _files[existing] = entry;
+          else _files.push(entry);
+          renderFileList();
+        } catch(err) {
+          alert('엑셀 파일 읽기 오류: ' + err.message);
+        }
+      };
+      reader2.readAsArrayBuffer(file);
+    }
   });
 }
+
+function pad2(n){ return n < 10 ? '0'+n : String(n); }
 
 function renderFileList() {
   var wrap = document.getElementById('fileList');
