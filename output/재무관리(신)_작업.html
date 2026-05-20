@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>재무관리(신) 작업 — hanQ</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F7F5F0;--surface:#FFFFFF;--border:#E2DED7;--ink:#1A1814;--ink2:#5C5851;
+  --muted:#9A958F;--accent:#C8380A;--green:#2E7D32;--yellow:#F9A825;
+}
+body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;min-height:100vh;display:flex;flex-direction:column}
+
+/* ── 탭바 ── */
+.tab-bar{background:var(--surface);border-bottom:1px solid var(--border);display:flex;padding:0 24px;position:sticky;top:0;z-index:100}
+.tab-btn{padding:14px 18px;font-size:12px;font-weight:500;letter-spacing:.03em;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit}
+.tab-btn:hover{color:var(--ink)}
+.tab-btn.active{color:var(--ink);border-bottom-color:var(--accent);font-weight:700}
+.tab-badge{display:inline-block;background:var(--accent);color:white;font-size:9px;font-weight:700;padding:1px 5px;margin-left:5px;vertical-align:middle}
+
+/* ── 진행률 헤더 ── */
+.progress-bar-wrap{background:var(--ink);padding:10px 24px;display:flex;align-items:center;gap:16px}
+.progress-label{font-size:11px;color:rgba(255,255,255,.6);letter-spacing:.04em;white-space:nowrap}
+.progress-track{flex:1;height:4px;background:rgba(255,255,255,.12)}
+.progress-fill{height:100%;background:var(--accent);transition:width .4s ease}
+.progress-stats{font-size:11px;color:rgba(255,255,255,.5);white-space:nowrap}
+.progress-stats b{color:white;font-weight:700}
+
+/* ── 패널 ── */
+.panel{display:none;padding:28px 24px;flex:1}
+.panel.active{display:block}
+
+/* ── 업로드 탭 ── */
+.upload-zone{border:2px dashed var(--border);background:var(--surface);padding:48px 32px;text-align:center;cursor:pointer;transition:all .2s;max-width:600px;margin:0 auto}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:#FFF8F6}
+.upload-icon{font-size:36px;margin-bottom:16px;opacity:.4}
+.upload-title{font-size:15px;font-weight:700;color:var(--ink);margin-bottom:6px}
+.upload-sub{font-size:12px;color:var(--muted);line-height:1.7}
+.upload-btn{display:inline-block;margin-top:20px;background:var(--ink);color:white;font-size:11px;font-weight:700;letter-spacing:.06em;padding:9px 20px;cursor:pointer;text-transform:uppercase}
+input[type=file]{display:none}
+
+.file-list{max-width:600px;margin:20px auto 0}
+.file-item{background:var(--surface);border:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.file-bank{font-size:10px;font-weight:700;letter-spacing:.08em;color:white;padding:2px 7px;background:var(--ink)}
+.file-bank.kb{background:#0050A0}
+.file-bank.nh{background:#006236}
+.file-bank.gj{background:#0067B1}
+.file-bank.sh{background:#0046AF}
+.file-bank.unknown{background:var(--muted)}
+.file-name{flex:1;font-size:12px;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-rows{font-size:11px;color:var(--muted)}
+.file-remove{cursor:pointer;color:var(--muted);font-size:16px;line-height:1;padding:2px}
+.file-remove:hover{color:var(--accent)}
+
+.parse-btn{display:block;max-width:600px;margin:16px auto 0;background:var(--accent);color:white;font-size:12px;font-weight:700;letter-spacing:.06em;padding:12px;text-align:center;cursor:pointer;border:none;font-family:inherit;text-transform:uppercase;width:100%}
+.parse-btn:disabled{opacity:.4;cursor:not-allowed}
+
+.parse-result{max-width:600px;margin:16px auto 0;background:var(--surface);border:1px solid var(--border);padding:16px 20px;font-size:12px;line-height:1.8;color:var(--ink2)}
+.parse-result b{color:var(--ink);font-weight:700}
+
+/* ── 태깅 탭 ── */
+.tag-toolbar{display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+.search-box{border:1px solid var(--border);background:var(--surface);padding:7px 12px;font-size:12px;font-family:inherit;color:var(--ink);width:220px;outline:none}
+.search-box:focus{border-color:var(--ink)}
+.filter-btn{padding:6px 12px;font-size:11px;font-weight:500;letter-spacing:.04em;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--ink2);font-family:inherit;transition:all .15s}
+.filter-btn:hover{border-color:var(--ink);color:var(--ink)}
+.filter-btn.active{background:var(--ink);color:white;border-color:var(--ink)}
+.tag-count{font-size:11px;color:var(--muted);margin-left:auto}
+
+.merchant-table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border)}
+.merchant-table th{background:var(--ink);color:rgba(255,255,255,.7);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:9px 12px;text-align:left;white-space:nowrap}
+.merchant-table td{padding:8px 12px;border-bottom:1px solid var(--border);vertical-align:middle;font-size:12px}
+.merchant-table tr:last-child td{border-bottom:none}
+.merchant-table tr.untagged td{background:#FFFBF0}
+.merchant-table tr:hover td{background:#F2F0EB}
+.merchant-table tr.untagged:hover td{background:#FFF5DC}
+
+.td-merchant{font-weight:500;color:var(--ink);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.td-count{color:var(--muted);text-align:right;white-space:nowrap}
+.td-amount{text-align:right;font-weight:500;white-space:nowrap}
+.td-sample{color:var(--muted);font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.cat-select,.biz-select{border:1px solid var(--border);background:var(--bg);padding:5px 8px;font-size:11px;font-family:inherit;color:var(--ink);cursor:pointer;outline:none;max-width:130px}
+.cat-select:focus,.biz-select:focus{border-color:var(--ink)}
+.cat-select.tagged{background:#EFF6EE;border-color:#A5D6A7;color:var(--green)}
+.cat-select.untagged{background:#FFF8E1;border-color:#FFE082;color:#7B6200}
+
+.tag-status{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:6px;flex-shrink:0}
+.tag-status.done{background:#4CAF50}
+.tag-status.pending{background:#FFC107}
+
+/* ── 집계 탭 ── */
+.agg-controls{display:flex;gap:10px;align-items:center;margin-bottom:20px;flex-wrap:wrap}
+.agg-select{border:1px solid var(--border);background:var(--surface);padding:7px 12px;font-size:12px;font-family:inherit;color:var(--ink);outline:none;cursor:pointer}
+.export-btn{margin-left:auto;background:var(--ink);color:white;font-size:11px;font-weight:700;letter-spacing:.05em;padding:8px 16px;cursor:pointer;border:none;font-family:inherit}
+
+.agg-table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);font-size:12px}
+.agg-table th{background:#2A2622;color:rgba(255,255,255,.7);font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:9px 12px;text-align:right;white-space:nowrap}
+.agg-table th:first-child{text-align:left}
+.agg-table td{padding:8px 12px;border-bottom:1px solid var(--border);text-align:right;color:var(--ink2);white-space:nowrap}
+.agg-table td:first-child{text-align:left;font-weight:500;color:var(--ink)}
+.agg-table tr.total td{font-weight:700;color:var(--ink);background:#F2F0EB;border-top:2px solid var(--border)}
+.agg-table tr:last-child td{border-bottom:none}
+.agg-table .zero{color:var(--muted)}
+
+.no-data{text-align:center;padding:60px 20px;color:var(--muted);font-size:13px}
+
+/* 저장 상태 */
+.save-indicator{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:white;font-size:11px;padding:8px 18px;letter-spacing:.04em;opacity:0;transition:opacity .3s;pointer-events:none}
+.save-indicator.show{opacity:1}
+</style>
+</head>
+<body>
+
+<div class="progress-bar-wrap" id="progressWrap" style="display:none">
+  <span class="progress-label">태깅 진행률</span>
+  <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  <span class="progress-stats"><b id="progressDone">0</b> / <b id="progressTotal">0</b> 거래처 · <span id="progressPct">0%</span></span>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('upload')">CSV 업로드</button>
+  <button class="tab-btn" id="tabTag" onclick="switchTab('tag')">태깅 작업 <span class="tab-badge" id="pendingBadge" style="display:none">0</span></button>
+  <button class="tab-btn" id="tabAgg" onclick="switchTab('agg')">집계</button>
+</div>
+
+<!-- ── 탭 1: 업로드 ── -->
+<div class="panel active" id="panelUpload">
+  <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+    <div class="upload-icon">📂</div>
+    <div class="upload-title">CSV 파일을 드래그하거나 클릭해서 업로드</div>
+    <div class="upload-sub">KB · 농협 · 광주 · 신한 CSV 지원<br>여러 파일 동시 선택 가능 · 은행 자동 감지</div>
+    <div class="upload-btn">파일 선택</div>
+  </div>
+  <input type="file" id="fileInput" accept=".csv" multiple>
+
+  <div class="file-list" id="fileList"></div>
+  <button class="parse-btn" id="parseBtn" disabled onclick="parseAll()">파싱 시작</button>
+  <div class="parse-result" id="parseResult" style="display:none"></div>
+</div>
+
+<!-- ── 탭 2: 태깅 ── -->
+<div class="panel" id="panelTag">
+  <div class="tag-toolbar">
+    <input class="search-box" id="tagSearch" placeholder="거래처명 검색..." oninput="renderMerchants()">
+    <button class="filter-btn active" id="filterAll" onclick="setFilter('all')">전체</button>
+    <button class="filter-btn" id="filterPending" onclick="setFilter('pending')">미분류만</button>
+    <button class="filter-btn" id="filterDone" onclick="setFilter('done')">완료만</button>
+    <span class="tag-count" id="tagCount"></span>
+  </div>
+  <div id="merchantTableWrap">
+    <div class="no-data">CSV를 먼저 업로드하고 파싱해주세요</div>
+  </div>
+</div>
+
+<!-- ── 탭 3: 집계 ── -->
+<div class="panel" id="panelAgg">
+  <div class="agg-controls">
+    <select class="agg-select" id="aggYear" onchange="renderAgg()"><option value="">연도 선택</option></select>
+    <select class="agg-select" id="aggBiz" onchange="renderAgg()">
+      <option value="">전체 사업자</option>
+      <option>한솔</option><option>수복지</option><option>한큐</option><option>교육원</option><option>미배분</option>
+    </select>
+    <select class="agg-select" id="aggView" onchange="renderAgg()">
+      <option value="month">월별</option>
+      <option value="cat">카테고리별</option>
+    </select>
+    <button class="export-btn" onclick="exportCSV()">CSV 내보내기</button>
+  </div>
+  <div id="aggTableWrap"><div class="no-data">태깅 완료 후 집계를 확인하세요</div></div>
+</div>
+
+<div class="save-indicator" id="saveInd">저장됨</div>
+
+<script>
+// ── 상수 ──────────────────────────────────────────────
+const CATS = ['인건비','4대보험','3.3소득세','식비/경비','임대료','공과금','통신비',
+  '마케팅/광고비','특허','변호사비','인증비','IT인프라비','사무용품/사무집기','복리후생비','기타'];
+
+const BIZS = ['한솔','수복지','한큐','교육원','미배분'];
+
+// 키워드 자동 태깅 룰 (거래처명에서 매칭)
+const AUTO_RULES = [
+  { cat:'4대보험',    biz:'',     kw:['건강보험','국민연금','고용보험','산재','4대보험','건강공단','연금공단'] },
+  { cat:'3.3소득세',  biz:'',     kw:['소득세','원천세','세무서'] },
+  { cat:'통신비',     biz:'',     kw:['KT','SKT','LGU','SK텔레콤','LG유플러스','통신','스카이라이프','텔레캅','인터넷'] },
+  { cat:'IT인프라비', biz:'한솔', kw:['ANTHROPIC','OPENAI','CURSOR','NOTION','AWS','AMAZON','AZURE','GOOGLE','구글','CLAUDE','CHATGPT','FIGMA','GITHUB','VERCEL','CLOUDFLARE','PADDLE','ADOBE'] },
+  { cat:'IT인프라비', biz:'',     kw:['서버','호스팅','클라우드','도메인','SSL'] },
+  { cat:'임대료',     biz:'',     kw:['월세','임대','부동산','임대료'] },
+  { cat:'공과금',     biz:'',     kw:['전기','한전','가스','수도','공과금','도시가스','전력'] },
+  { cat:'식비/경비',  biz:'',     kw:['식당','카페','커피','배달','배민','쿠팡이츠','스타벅스','맥도날드','편의점','GS25','CU','세븐일레븐','이마트','코스트코','마트'] },
+  { cat:'복리후생비', biz:'',     kw:['회식','간식','복지','경조','헬스','피트니스'] },
+  { cat:'마케팅/광고비',biz:'',   kw:['광고','마케팅','홍보','카카오','네이버광고','메타','페이스북'] },
+  { cat:'특허',       biz:'',     kw:['특허','특허청','변리사','지식재산'] },
+  { cat:'변호사비',   biz:'',     kw:['법무','변호사','법률','법원'] },
+  { cat:'인증비',     biz:'',     kw:['인증','CE','ISO','KC','의료기기','시험인증'] },
+  { cat:'사무용품/사무집기', biz:'', kw:['사무','문구','소모품','복합기','프린터','잉크','토너'] },
+  { cat:'인건비',     biz:'',     kw:[] }, // 이름 있는 이체는 사람이 판단
+];
+
+// ── 상태 ──────────────────────────────────────────────
+var _txns = [];       // 전체 파싱된 거래 [{date,merchant,out,in,bank}]
+var _merchants = {};  // {merchantKey: {name,count,totalOut,cat,biz,sampleDate,autoTagged}}
+var _files = [];      // 업로드된 파일 목록 [{name,bank,rows}]
+var _filter = 'all';
+
+// ── localStorage 저장/복원 ──────────────────────────
+var STORE_KEY = 'hanq-finance-tags-v1';
+
+function saveState() {
+  try {
+    var tags = {};
+    Object.keys(_merchants).forEach(function(k){
+      tags[k] = { cat: _merchants[k].cat, biz: _merchants[k].biz };
+    });
+    localStorage.setItem(STORE_KEY, JSON.stringify(tags));
+    flashSave();
+  } catch(e){}
+}
+
+function loadSavedTags() {
+  try {
+    var saved = JSON.parse(localStorage.getItem(STORE_KEY) || '{}');
+    Object.keys(saved).forEach(function(k){
+      if (_merchants[k]) {
+        _merchants[k].cat = saved[k].cat || _merchants[k].cat;
+        _merchants[k].biz = saved[k].biz || _merchants[k].biz;
+      }
+    });
+  } catch(e){}
+}
+
+function flashSave() {
+  var el = document.getElementById('saveInd');
+  el.classList.add('show');
+  setTimeout(function(){ el.classList.remove('show'); }, 1200);
+}
+
+// ── 탭 전환 ──────────────────────────────────────────
+function switchTab(t) {
+  ['upload','tag','agg'].forEach(function(id){
+    document.getElementById('panel'+id.charAt(0).toUpperCase()+id.slice(1)).classList.toggle('active', id===t);
+  });
+  document.querySelectorAll('.tab-btn').forEach(function(b,i){
+    b.classList.toggle('active', ['upload','tag','agg'][i]===t);
+  });
+  if (t === 'agg') renderAgg();
+}
+
+// ── 은행 감지 ─────────────────────────────────────────
+function detectBank(headers) {
+  var h = headers.join(',');
+  if (h.includes('보낸분') || h.includes('받는분')) return 'KB';
+  if (h.includes('거래기록사항') || h.includes('출금금액')) return '농협';
+  if (h.includes('입/출금') || h.includes('통장잔액')) return '광주';
+  if (h.includes('출금(원)') || h.includes('입금(원)')) return '신한';
+  return '?';
+}
+
+function bankClass(bank) {
+  return {KB:'kb','농협':'nh','광주':'gj','신한':'sh'}[bank] || 'unknown';
+}
+
+// ── CSV 파싱 ──────────────────────────────────────────
+function parseCSVText(text, bank) {
+  var lines = text.split(/\r?\n/).filter(function(l){ return l.trim(); });
+  var result = [];
+
+  // 헤더 행 찾기 (날짜 키워드로)
+  var headerIdx = -1;
+  for (var i = 0; i < Math.min(lines.length, 30); i++) {
+    var lower = lines[i].toLowerCase();
+    if (lower.includes('거래일') || lower.includes('날짜')) { headerIdx = i; break; }
+  }
+  if (headerIdx < 0) return result;
+
+  var headers = splitCSVLine(lines[headerIdx]);
+
+  // 컬럼 인덱스
+  var iDate = -1, iMerchant = -1, iOut = -1, iIn = -1;
+  headers.forEach(function(h, i) {
+    var t = h.trim();
+    if (iDate < 0 && (t === '거래일시' || t === '거래일자')) iDate = i;
+    if (iMerchant < 0 && (t === '보낸분/받는분' || t === '거래내용' || t === '적요' || t === '내용')) iMerchant = i;
+    if (iOut < 0 && (t === '출금액' || t === '출금금액' || t === '출금' || t === '출금(원)')) iOut = i;
+    if (iIn < 0 && (t === '입금액' || t === '입금금액' || t === '입금' || t === '입금(원)')) iIn = i;
+    // 신한: 날짜/시간 분리
+    if (t === '거래시간' && bank === '신한') {} // 무시 (날짜만 사용)
+  });
+
+  for (var j = headerIdx + 1; j < lines.length; j++) {
+    var cols = splitCSVLine(lines[j]);
+    if (cols.length < 3) continue;
+    var dateRaw = iDate >= 0 ? cols[iDate] : '';
+    var merchant = iMerchant >= 0 ? cols[iMerchant] : '';
+    var outRaw = iOut >= 0 ? cols[iOut] : '';
+    var inRaw = iIn >= 0 ? cols[iIn] : '';
+
+    merchant = merchant.trim().replace(/"/g, '');
+    if (!merchant || merchant === '-') continue;
+
+    var out = parseAmount(outRaw);
+    var inn = parseAmount(inRaw);
+    var date = normalizeDate(dateRaw);
+
+    if (!date) continue;
+
+    result.push({ date: date, merchant: merchant, out: out, in: inn, bank: bank });
+  }
+  return result;
+}
+
+function splitCSVLine(line) {
+  var result = [], cur = '', inQ = false;
+  for (var i = 0; i < line.length; i++) {
+    var c = line[i];
+    if (c === '"') { inQ = !inQ; }
+    else if (c === ',' && !inQ) { result.push(cur); cur = ''; }
+    else cur += c;
+  }
+  result.push(cur);
+  return result;
+}
+
+function parseAmount(s) {
+  if (!s) return 0;
+  var n = parseInt(s.replace(/[^0-9]/g, ''), 10);
+  return isNaN(n) ? 0 : n;
+}
+
+function normalizeDate(s) {
+  s = s.trim().replace(/"/g, '');
+  // YYYY-MM-DD or YYYY/MM/DD
+  var m = s.match(/^(\d{4})[\/\-](\d{2})[\/\-](\d{2})/);
+  if (m) return m[1] + '-' + m[2] + '-' + m[3];
+  // YYYYMMDD
+  m = s.match(/^(\d{4})(\d{2})(\d{2})/);
+  if (m) return m[1] + '-' + m[2] + '-' + m[3];
+  return '';
+}
+
+// ── 자동 태깅 ─────────────────────────────────────────
+function autoTag(merchantName) {
+  var upper = merchantName.toUpperCase();
+  for (var i = 0; i < AUTO_RULES.length; i++) {
+    var rule = AUTO_RULES[i];
+    for (var j = 0; j < rule.kw.length; j++) {
+      if (upper.includes(rule.kw[j].toUpperCase())) {
+        return { cat: rule.cat, biz: rule.biz, autoTagged: true };
+      }
+    }
+  }
+  return { cat: '', biz: '', autoTagged: false };
+}
+
+// ── 파일 업로드 처리 ──────────────────────────────────
+var _zone = document.getElementById('uploadZone');
+var _fileInput = document.getElementById('fileInput');
+
+_zone.addEventListener('dragover', function(e){ e.preventDefault(); _zone.classList.add('drag'); });
+_zone.addEventListener('dragleave', function(){ _zone.classList.remove('drag'); });
+_zone.addEventListener('drop', function(e){
+  e.preventDefault(); _zone.classList.remove('drag');
+  handleFiles(e.dataTransfer.files);
+});
+_fileInput.addEventListener('change', function(){ handleFiles(this.files); });
+
+function handleFiles(files) {
+  Array.from(files).forEach(function(file) {
+    if (!file.name.endsWith('.csv')) return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var text = e.target.result;
+      var firstLines = text.split(/\r?\n/).slice(0, 30);
+      // 헤더 탐색
+      var headerLine = firstLines.find(function(l){ return l.toLowerCase().includes('거래일'); }) || firstLines[0];
+      var headers = splitCSVLine(headerLine || '');
+      var bank = detectBank(headers);
+      var existing = _files.findIndex(function(f){ return f.name === file.name; });
+      var entry = { name: file.name, bank: bank, text: text, rows: 0 };
+      if (existing >= 0) _files[existing] = entry;
+      else _files.push(entry);
+      renderFileList();
+    };
+    reader.readAsText(file, 'euc-kr');
+  });
+}
+
+function renderFileList() {
+  var wrap = document.getElementById('fileList');
+  if (_files.length === 0) { wrap.innerHTML = ''; return; }
+  wrap.innerHTML = _files.map(function(f, i){
+    return '<div class="file-item">' +
+      '<span class="file-bank ' + bankClass(f.bank) + '">' + f.bank + '</span>' +
+      '<span class="file-name">' + f.name + '</span>' +
+      (f.rows ? '<span class="file-rows">' + f.rows.toLocaleString() + '건</span>' : '') +
+      '<span class="file-remove" onclick="removeFile('+i+')">&times;</span>' +
+    '</div>';
+  }).join('');
+  document.getElementById('parseBtn').disabled = false;
+}
+
+function removeFile(i) {
+  _files.splice(i, 1);
+  renderFileList();
+  if (_files.length === 0) document.getElementById('parseBtn').disabled = true;
+}
+
+// ── 파싱 실행 ─────────────────────────────────────────
+function parseAll() {
+  _txns = [];
+  _files.forEach(function(f){
+    var rows = parseCSVText(f.text, f.bank);
+    f.rows = rows.length;
+    _txns = _txns.concat(rows);
+  });
+
+  // 거래처 집계
+  _merchants = {};
+  _txns.forEach(function(t){
+    var k = t.merchant;
+    if (!_merchants[k]) {
+      var tag = autoTag(k);
+      _merchants[k] = {
+        name: k, count: 0, totalOut: 0, totalIn: 0,
+        cat: tag.cat, biz: tag.biz, autoTagged: tag.autoTagged,
+        sampleDate: t.date
+      };
+    }
+    _merchants[k].count++;
+    _merchants[k].totalOut += t.out;
+    _merchants[k].totalIn += t.in;
+  });
+
+  // 저장된 태그 복원
+  loadSavedTags();
+
+  renderFileList();
+  showParseResult();
+  updateProgress();
+  renderMerchants();
+  populateYears();
+
+  // 탭 전환
+  switchTab('tag');
+}
+
+function showParseResult() {
+  var total = _txns.length;
+  var mCount = Object.keys(_merchants).length;
+  var autoCount = Object.values(_merchants).filter(function(m){ return m.autoTagged; }).length;
+  var pendingCount = Object.values(_merchants).filter(function(m){ return !m.cat; }).length;
+
+  var el = document.getElementById('parseResult');
+  el.style.display = 'block';
+  el.innerHTML =
+    '<b>파싱 완료</b> — 총 <b>' + total.toLocaleString() + '건</b>, ' +
+    '거래처 <b>' + mCount.toLocaleString() + '개</b><br>' +
+    '자동 분류: <b>' + autoCount + '개</b> · ' +
+    '검수 필요: <b style="color:var(--accent)">' + pendingCount + '개</b>';
+}
+
+// ── 진행률 ────────────────────────────────────────────
+function updateProgress() {
+  var keys = Object.keys(_merchants);
+  if (keys.length === 0) { document.getElementById('progressWrap').style.display = 'none'; return; }
+  var done = keys.filter(function(k){ return _merchants[k].cat; }).length;
+  var total = keys.length;
+  var pct = Math.round(done / total * 100);
+
+  document.getElementById('progressWrap').style.display = 'flex';
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressDone').textContent = done;
+  document.getElementById('progressTotal').textContent = total;
+  document.getElementById('progressPct').textContent = pct + '%';
+
+  var pending = total - done;
+  var badge = document.getElementById('pendingBadge');
+  badge.style.display = pending > 0 ? '' : 'none';
+  badge.textContent = pending;
+}
+
+// ── 거래처 테이블 ─────────────────────────────────────
+var _filter = 'all';
+function setFilter(f) {
+  _filter = f;
+  ['All','Pending','Done'].forEach(function(x){
+    document.getElementById('filter'+x).classList.toggle('active', f === x.toLowerCase());
+  });
+  renderMerchants();
+}
+
+function renderMerchants() {
+  var keys = Object.keys(_merchants);
+  if (keys.length === 0) return;
+
+  var q = document.getElementById('tagSearch').value.toLowerCase();
+  var filtered = keys.filter(function(k){
+    var m = _merchants[k];
+    if (q && !m.name.toLowerCase().includes(q)) return false;
+    if (_filter === 'pending' && m.cat) return false;
+    if (_filter === 'done' && !m.cat) return false;
+    return true;
+  });
+
+  // 정렬: 미분류 먼저, 그 다음 금액 큰 순
+  filtered.sort(function(a, b){
+    var ma = _merchants[a], mb = _merchants[b];
+    if (!ma.cat && mb.cat) return -1;
+    if (ma.cat && !mb.cat) return 1;
+    return mb.totalOut - ma.totalOut;
+  });
+
+  document.getElementById('tagCount').textContent = filtered.length + '개 거래처';
+
+  var html = '<table class="merchant-table">' +
+    '<thead><tr>' +
+    '<th style="width:24px"></th>' +
+    '<th>거래처명</th>' +
+    '<th style="width:80px;text-align:right">건수</th>' +
+    '<th style="width:110px;text-align:right">총 출금액</th>' +
+    '<th style="width:140px">카테고리</th>' +
+    '<th style="width:120px">사업자</th>' +
+    '</tr></thead><tbody>';
+
+  filtered.forEach(function(k){
+    var m = _merchants[k];
+    var isTagged = !!m.cat;
+    html += '<tr class="' + (isTagged ? '' : 'untagged') + '">' +
+      '<td><span class="tag-status ' + (isTagged ? 'done' : 'pending') + '"></span></td>' +
+      '<td class="td-merchant" title="' + m.name + '">' + m.name + '</td>' +
+      '<td class="td-count">' + m.count + '</td>' +
+      '<td class="td-amount">' + (m.totalOut > 0 ? (m.totalOut/10000).toFixed(0) + '만' : '-') + '</td>' +
+      '<td>' + catSelect(k, m.cat) + '</td>' +
+      '<td>' + bizSelect(k, m.biz) + '</td>' +
+    '</tr>';
+  });
+
+  html += '</tbody></table>';
+  document.getElementById('merchantTableWrap').innerHTML = html;
+}
+
+function catSelect(key, val) {
+  var opts = '<option value="">-- 미분류 --</option>';
+  CATS.forEach(function(c){ opts += '<option' + (c === val ? ' selected' : '') + '>' + c + '</option>'; });
+  var cls = val ? 'tagged' : 'untagged';
+  return '<select class="cat-select ' + cls + '" onchange="setTag(\'' + escKey(key) + '\',\'cat\',this.value)">' + opts + '</select>';
+}
+
+function bizSelect(key, val) {
+  var opts = '<option value="">-- 미배분 --</option>';
+  BIZS.forEach(function(b){ opts += '<option' + (b === val ? ' selected' : '') + '>' + b + '</option>'; });
+  return '<select class="biz-select" onchange="setTag(\'' + escKey(key) + '\',\'biz\',this.value)">' + opts + '</select>';
+}
+
+function escKey(k) { return k.replace(/'/g, "\\'").replace(/\\/g, '\\\\'); }
+
+function setTag(key, field, val) {
+  if (!_merchants[key]) return;
+  _merchants[key][field] = val;
+  updateProgress();
+  saveState();
+  // select 스타일 업데이트
+  renderMerchants();
+}
+
+// ── 집계 ──────────────────────────────────────────────
+function populateYears() {
+  var years = {};
+  _txns.forEach(function(t){ years[t.date.substring(0,4)] = 1; });
+  var sel = document.getElementById('aggYear');
+  var prev = sel.value;
+  sel.innerHTML = '<option value="">전체 연도</option>';
+  Object.keys(years).sort().forEach(function(y){
+    sel.innerHTML += '<option' + (y === prev ? ' selected' : '') + '>' + y + '</option>';
+  });
+}
+
+function renderAgg() {
+  var year = document.getElementById('aggYear').value;
+  var biz = document.getElementById('aggBiz').value;
+  var view = document.getElementById('aggView').value;
+
+  var filtered = _txns.filter(function(t){
+    if (t.out === 0) return false;
+    var m = _merchants[t.merchant];
+    if (!m || !m.cat) return false;
+    if (year && t.date.substring(0,4) !== year) return false;
+    var mBiz = m.biz || '미배분';
+    if (biz && mBiz !== biz) return false;
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    document.getElementById('aggTableWrap').innerHTML = '<div class="no-data">해당 조건의 데이터가 없습니다</div>';
+    return;
+  }
+
+  if (view === 'month') renderAggMonth(filtered);
+  else renderAggCat(filtered);
+}
+
+function renderAggMonth(txns) {
+  // 월별 × 카테고리
+  var data = {}; // {YYYY-MM: {cat: amount}}
+  var allCats = {};
+  txns.forEach(function(t){
+    var m = _merchants[t.merchant];
+    var ym = t.date.substring(0, 7);
+    if (!data[ym]) data[ym] = {};
+    data[ym][m.cat] = (data[ym][m.cat] || 0) + t.out;
+    allCats[m.cat] = 1;
+  });
+
+  var months = Object.keys(data).sort();
+  var cats = CATS.filter(function(c){ return allCats[c]; });
+
+  var html = '<table class="agg-table"><thead><tr><th>월</th>';
+  cats.forEach(function(c){ html += '<th>' + c + '</th>'; });
+  html += '<th>합계</th></tr></thead><tbody>';
+
+  var totals = {};
+  months.forEach(function(ym){
+    var row = data[ym];
+    var rowTotal = cats.reduce(function(s, c){ return s + (row[c] || 0); }, 0);
+    html += '<tr><td>' + ym + '</td>';
+    cats.forEach(function(c){
+      var v = row[c] || 0;
+      html += '<td class="' + (v ? '' : 'zero') + '">' + (v ? fmt(v) : '-') + '</td>';
+      totals[c] = (totals[c] || 0) + v;
+    });
+    html += '<td><b>' + fmt(rowTotal) + '</b></td></tr>';
+  });
+
+  var grandTotal = cats.reduce(function(s,c){ return s + (totals[c]||0); }, 0);
+  html += '<tr class="total"><td>합계</td>';
+  cats.forEach(function(c){ html += '<td>' + fmt(totals[c]||0) + '</td>'; });
+  html += '<td>' + fmt(grandTotal) + '</td></tr>';
+  html += '</tbody></table>';
+  document.getElementById('aggTableWrap').innerHTML = html;
+}
+
+function renderAggCat(txns) {
+  var data = {};
+  txns.forEach(function(t){
+    var m = _merchants[t.merchant];
+    if (!data[m.cat]) data[m.cat] = 0;
+    data[m.cat] += t.out;
+  });
+  var total = Object.values(data).reduce(function(s,v){ return s+v; }, 0);
+  var html = '<table class="agg-table"><thead><tr><th>카테고리</th><th>금액</th><th>비중</th></tr></thead><tbody>';
+  CATS.filter(function(c){ return data[c]; }).sort(function(a,b){ return data[b]-data[a]; }).forEach(function(c){
+    var pct = total ? (data[c]/total*100).toFixed(1) : 0;
+    html += '<tr><td>' + c + '</td><td>' + fmt(data[c]) + '</td><td>' + pct + '%</td></tr>';
+  });
+  html += '<tr class="total"><td>합계</td><td>' + fmt(total) + '</td><td>100%</td></tr>';
+  html += '</tbody></table>';
+  document.getElementById('aggTableWrap').innerHTML = html;
+}
+
+function fmt(n) { return n.toLocaleString() + '원'; }
+
+// ── CSV 내보내기 ──────────────────────────────────────
+function exportCSV() {
+  if (_txns.length === 0) { alert('데이터가 없습니다'); return; }
+  var rows = [['날짜','거래처','출금','입금','은행','카테고리','사업자']];
+  _txns.forEach(function(t){
+    var m = _merchants[t.merchant] || {};
+    rows.push([t.date, t.merchant, t.out, t.in, t.bank, m.cat||'', m.biz||'']);
+  });
+  var csv = rows.map(function(r){ return r.map(function(c){ return '"'+String(c).replace(/"/g,'""')+'"'; }).join(','); }).join('\n');
+  var blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8'});
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'hanq_finance_tagged_' + new Date().toISOString().substring(0,10) + '.csv';
+  a.click();
+}
+</script>
+</body>
+</html>
