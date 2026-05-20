@@ -149,6 +149,7 @@ input[type=file]{display:none}
     <button class="filter-btn active" id="filterAll" onclick="setFilter('all')">전체</button>
     <button class="filter-btn" id="filterPending" onclick="setFilter('pending')">미분류만</button>
     <button class="filter-btn" id="filterDone" onclick="setFilter('done')">완료만</button>
+    <button class="filter-btn" onclick="resetTags()" style="color:var(--accent);border-color:rgba(200,56,10,.4)">태그 초기화</button>
     <span class="tag-count" id="tagCount"></span>
   </div>
   <div id="merchantTableWrap">
@@ -337,13 +338,16 @@ function parseAmount(s) {
 
 function normalizeDate(s) {
   s = String(s).trim().replace(/"/g, '');
-  // YYYY-MM-DD or YYYY/MM/DD (with optional time)
+  // YYYY-MM-DD or YYYY/MM/DD or YYYY.MM.DD (with optional time)
   var m = s.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/);
   if (m) return m[1] + '-' + pad2(+m[2]) + '-' + pad2(+m[3]);
   // YYYYMMDD
   m = s.match(/^(\d{4})(\d{2})(\d{2})/);
   if (m) return m[1] + '-' + m[2] + '-' + m[3];
-  // Excel serial (숫자 5자리, 40000~50000 범위)
+  // M/D/YYYY (SheetJS raw:false 출력 포맷)
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (m) return m[3] + '-' + pad2(+m[1]) + '-' + pad2(+m[2]);
+  // Excel serial number (raw:true 시)
   var n = parseFloat(s);
   if (!isNaN(n) && n > 40000 && n < 60000) {
     var d = new Date(Math.round((n - 25569) * 86400000));
@@ -396,82 +400,105 @@ function handleFiles(files) {
         renderFileList();
       };
       reader.readAsText(file, 'euc-kr');
-    } else if (ext === 'xlsx' || ext === 'xls') {
+    } else if (ext === 'xlsx') {
       (function(f2){
         var reader2 = new FileReader();
         reader2.onload = function(e) {
-          try {
-            var wb = XLSX.read(e.target.result, { type: 'array', cellDates: false, raw: false });
-            // 거래내역 시트 탐색 (이름에 '거래' 포함하는 시트 우선)
-            var sheetName = wb.SheetNames.find(function(n){ return n.includes('거래'); }) || wb.SheetNames[0];
-            var ws = wb.Sheets[sheetName];
-            var rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false });
-
-            // 헤더 행 탐색 (최대 60행, 키워드 2개 이상 매칭 우선)
-            var headerIdx = -1;
-            var HDR_KEYS = ['거래일','출금','입금','순번','날짜','적요','거래내용','잔액'];
-            for (var hi = 0; hi < Math.min(rows.length, 60); hi++) {
-              var joined = rows[hi].map(function(c){ return String(c); }).join(',');
-              var hitCount = HDR_KEYS.filter(function(k){ return joined.includes(k); }).length;
-              if (hitCount >= 2) { headerIdx = hi; break; }
-            }
-            // 2개 매칭 없으면 '거래일' 단독 허용
-            if (headerIdx < 0) {
-              for (var hi2 = 0; hi2 < Math.min(rows.length, 60); hi2++) {
-                if (rows[hi2].map(function(c){ return String(c); }).join(',').includes('거래일')) {
-                  headerIdx = hi2; break;
-                }
-              }
-            }
-            if (headerIdx < 0) { alert(f2.name + ': 헤더를 찾을 수 없습니다 (60행 내 헤더 없음)'); return; }
-
-            var headers = rows[headerIdx].map(function(c){ return String(c).trim(); });
-            var bank = detectBank(headers);
-
-            // 컬럼 인덱스 매핑
-            var iDate=-1, iTime=-1, iMerchant=-1, iOut=-1, iIn=-1;
-            headers.forEach(function(h, i){
-              var t = h.replace(/\s/g,'');
-              if (iDate < 0 && (t==='거래일시'||t==='거래일자'||t==='날짜')) iDate=i;
-              if (iTime < 0 && t==='거래시간') iTime=i;
-              if (iMerchant < 0 && (t==='보낸분/받는분'||t==='거래내용'||t==='적요'||t==='내용'||t==='거래기록사항')) iMerchant=i;
-              if (iOut < 0 && (t==='출금액'||t==='출금금액'||t==='출금'||t==='출금(원)')) iOut=i;
-              if (iIn < 0 && (t==='입금액'||t==='입금금액'||t==='입금'||t==='입금(원)')) iIn=i;
-            });
-
-            // 직접 거래 배열 생성
-            var parsed = [];
-            for (var j = headerIdx+1; j < rows.length; j++) {
-              var row = rows[j];
-              if (!row || row.length < 3) continue;
-              var dateRaw = iDate >= 0 ? String(row[iDate]||'') : '';
-              var merchant = iMerchant >= 0 ? String(row[iMerchant]||'').trim() : '';
-              var outRaw = iOut >= 0 ? String(row[iOut]||'') : '';
-              var inRaw  = iIn  >= 0 ? String(row[iIn]||'')  : '';
-
-              if (!merchant || merchant==='-' || merchant==='') continue;
-              var date = normalizeDate(dateRaw);
-              if (!date) continue;
-
-              parsed.push({ date:date, merchant:merchant, out:parseAmount(outRaw), in:parseAmount(inRaw), bank:bank });
-            }
-
-            var existing = _files.findIndex(function(f){ return f.name === f2.name; });
-            var entry = { name: f2.name, bank: bank, parsed: parsed, type: 'excel', rows: 0 };
-            if (existing >= 0) _files[existing] = entry;
-            else _files.push(entry);
-            renderFileList();
-          } catch(err) {
-            alert('엑셀 파일 읽기 오류: ' + err.message);
-          }
+          var parsed = parseExcelData(e.target.result, 'array', f2.name);
+          var bank = parsed.bank; var rows = parsed.rows;
+          var existing = _files.findIndex(function(f){ return f.name === f2.name; });
+          var entry = { name: f2.name, bank: bank, parsed: rows, type: 'excel', rows: 0 };
+          if (existing >= 0) _files[existing] = entry; else _files.push(entry);
+          renderFileList();
         };
         reader2.readAsArrayBuffer(f2);
+      })(file);
+    } else if (ext === 'xls') {
+      // KB .xls는 HTML 포맷이 많음 — EUC-KR 텍스트로 읽고 SheetJS string 모드 사용
+      (function(f2){
+        var reader2 = new FileReader();
+        reader2.onload = function(e) {
+          var text = e.target.result;
+          var parsed;
+          try {
+            parsed = parseExcelData(text, 'string', f2.name);
+          } catch(err) {
+            parsed = { bank: '?', rows: [] };
+          }
+          // SheetJS가 0건이면 CSV 파서로 폴백
+          if (parsed.rows.length === 0) {
+            var csvRows = parseCSVText(text, '?');
+            if (csvRows.length > 0) {
+              parsed = { bank: csvRows[0].bank, rows: csvRows };
+            }
+          }
+          var bank = parsed.bank; var rows = parsed.rows;
+          var existing = _files.findIndex(function(f){ return f.name === f2.name; });
+          var entry = { name: f2.name, bank: bank, parsed: rows, type: 'excel', rows: 0 };
+          if (existing >= 0) _files[existing] = entry; else _files.push(entry);
+          renderFileList();
+        };
+        reader2.readAsText(f2, 'euc-kr');
       })(file);
     }
   });
 }
 
 function pad2(n){ return n < 10 ? '0'+n : String(n); }
+
+// SheetJS 공용 파서 — type: 'array'(xlsx) 또는 'string'(xls HTML)
+function parseExcelData(data, type, filename) {
+  try {
+    var wb = XLSX.read(data, { type: type, cellDates: false, raw: true });
+    var sheetName = wb.SheetNames.find(function(n){ return n.includes('거래'); }) || wb.SheetNames[0];
+    var ws = wb.Sheets[sheetName];
+    var rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: true });
+
+    var headerIdx = -1;
+    var HDR_KEYS = ['거래일','출금','입금','순번','날짜','적요','거래내용','잔액'];
+    for (var hi = 0; hi < Math.min(rows.length, 60); hi++) {
+      var joined = rows[hi].map(function(c){ return String(c); }).join(',');
+      var hitCount = HDR_KEYS.filter(function(k){ return joined.includes(k); }).length;
+      if (hitCount >= 2) { headerIdx = hi; break; }
+    }
+    if (headerIdx < 0) {
+      for (var hi2 = 0; hi2 < Math.min(rows.length, 60); hi2++) {
+        if (rows[hi2].map(function(c){ return String(c); }).join(',').includes('거래일')) {
+          headerIdx = hi2; break;
+        }
+      }
+    }
+    if (headerIdx < 0) return { bank: '?', rows: [] };
+
+    var headers = rows[headerIdx].map(function(c){ return String(c).trim(); });
+    var bank = detectBank(headers);
+    var iDate=-1, iMerchant=-1, iOut=-1, iIn=-1;
+    headers.forEach(function(h, i){
+      var t = h.replace(/\s/g,'');
+      if (iDate < 0 && (t==='거래일시'||t==='거래일자'||t==='날짜')) iDate=i;
+      if (iMerchant < 0 && (t==='보낸분/받는분'||t==='거래내용'||t==='적요'||t==='내용'||t==='거래기록사항')) iMerchant=i;
+      if (iOut < 0 && (t==='출금액'||t==='출금금액'||t==='출금'||t==='출금(원)')) iOut=i;
+      if (iIn < 0 && (t==='입금액'||t==='입금금액'||t==='입금'||t==='입금(원)')) iIn=i;
+    });
+
+    var parsed = [];
+    for (var j = headerIdx+1; j < rows.length; j++) {
+      var row = rows[j];
+      if (!row || row.length < 3) continue;
+      var dateRaw = iDate >= 0 ? String(row[iDate]||'') : '';
+      var merchant = iMerchant >= 0 ? String(row[iMerchant]||'').trim() : '';
+      var outRaw = iOut >= 0 ? String(row[iOut]||'') : '';
+      var inRaw  = iIn  >= 0 ? String(row[iIn]||'')  : '';
+      if (!merchant || merchant==='-') continue;
+      var date = normalizeDate(dateRaw);
+      if (!date) continue;
+      parsed.push({ date:date, merchant:merchant, out:parseAmount(outRaw), in:parseAmount(inRaw), bank:bank });
+    }
+    return { bank: bank, rows: parsed };
+  } catch(e) {
+    return { bank: '?', rows: [] };
+  }
+}
 
 function renderFileList() {
   var wrap = document.getElementById('fileList');
@@ -647,7 +674,18 @@ function setTag(key, field, val) {
   _merchants[key][field] = val;
   updateProgress();
   saveState();
-  // select 스타일 업데이트
+  renderMerchants();
+}
+
+function resetTags() {
+  if (!confirm('모든 태그를 초기화하시겠습니까?\n(서버에 저장된 태그도 삭제됩니다)')) return;
+  Object.keys(_merchants).forEach(function(k){
+    _merchants[k].cat = '';
+    _merchants[k].biz = '';
+    _merchants[k].autoTagged = false;
+  });
+  saveState();
+  updateProgress();
   renderMerchants();
 }
 
