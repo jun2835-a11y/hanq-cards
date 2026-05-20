@@ -42,7 +42,7 @@ body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;background:var(--bg);
 .countdown-bar{
   height:100%;background:var(--accent);
   width:100%;
-  transition:width 1s linear;
+  transition:width 4.5s linear;
 }
 </style>
 </head>
@@ -74,7 +74,7 @@ body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;background:var(--bg);
 
 <script>
 (function(){
-  var n = 3;
+  var n = 5;
   var bar = document.getElementById('cdBar');
   var num = document.getElementById('cdNum');
 
@@ -93,7 +93,7 @@ body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;background:var(--bg);
     } else {
       num.textContent = n;
     }
-  }, 1000);
+  }, 900);
 })();
 </script>
 </body>
