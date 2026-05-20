@@ -75,14 +75,14 @@ function localWrite(file, data) {
 // 동기 읽기 — 항상 캐시에서 반환
 function readJSON(file) { return _cache[file] ?? {}; }
 
-// 쓰기 — 캐시 + 영구저장소에 동시 반영
+// 쓰기 — 캐시 + 영구저장소에 동시 반영 (await 가능)
 // 초기 Supabase 로드가 실패한 경우 쓰기 차단 (기존 데이터 덮어쓰기 방지)
-function writeJSON(file, data) {
+async function writeJSON(file, data) {
   _cache[file] = data;
   const key = FILE_TO_KEY[file];
   if (SB_URL && SB_KEY && key) {
     if (_sbLoaded[file]) {
-      sbWrite(key, data);
+      await sbWrite(key, data);   // 완료 확인 후 반환 (배포 재시작 시 유실 방지)
     } else {
       console.warn(`[writeJSON] BLOCKED write to Supabase for ${file} — initial load not confirmed`);
     }
@@ -230,10 +230,10 @@ const server = http.createServer((req, res) => {
   if (postRoutes[url] && req.method === 'POST') {
     let body = '';
     req.on('data', c => { body += c; });
-    req.on('end', () => {
+    req.on('end', async () => {
       try {
         const data = JSON.parse(body);
-        writeJSON(postRoutes[url], data);
+        await writeJSON(postRoutes[url], data);   // Supabase 쓰기 완료 후 응답
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end('{"ok":true}');
       } catch { res.writeHead(400); res.end('Bad JSON'); }
