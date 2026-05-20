@@ -228,31 +228,38 @@ var _filter = 'all';
 var API = (location.hostname === 'localhost' ? 'http://localhost:3005' : '') + '/api/finance-work-tags';
 
 function saveState() {
-  var tags = {};
-  Object.keys(_merchants).forEach(function(k){
-    tags[k] = { cat: _merchants[k].cat, biz: _merchants[k].biz };
-  });
   fetch(API, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(tags)
+    body: JSON.stringify({ merchants: _merchants })
   }).then(function(){ flashSave(); }).catch(function(){});
 }
 
 function loadSavedTags() {
-  // 서버에서 태그 불러와서 현재 _merchants에 덮어씌우기
   fetch(API).then(function(r){ return r.json(); }).then(function(saved){
     if (!saved || typeof saved !== 'object') return;
-    Object.keys(saved).forEach(function(k){
+    var data = saved.merchants || saved;
+    Object.keys(data).forEach(function(k){
       if (_merchants[k]) {
-        if (saved[k].cat) _merchants[k].cat = saved[k].cat;
-        if (saved[k].biz) _merchants[k].biz = saved[k].biz;
+        if (data[k].cat) _merchants[k].cat = data[k].cat;
+        if (data[k].biz) _merchants[k].biz = data[k].biz;
       }
     });
     updateProgress();
     renderMerchants();
   }).catch(function(){});
 }
+
+function loadStateOnInit() {
+  fetch(API).then(function(r){ return r.json(); }).then(function(saved){
+    if (!saved || !saved.merchants || Object.keys(saved.merchants).length === 0) return;
+    _merchants = saved.merchants;
+    document.getElementById('progressWrap').style.display = 'flex';
+    updateProgress();
+    renderMerchants();
+  }).catch(function(){});
+}
+loadStateOnInit();
 
 function flashSave() {
   var el = document.getElementById('saveInd');
@@ -276,8 +283,9 @@ function detectBank(headers) {
   var h = headers.join(',');
   if (h.includes('보낸분') || h.includes('받는분')) return 'KB';
   if (h.includes('거래기록사항') || h.includes('출금금액')) return '농협';
-  if (h.includes('입/출금') || h.includes('통장잔액')) return '광주';
   if (h.includes('출금(원)') || h.includes('입금(원)')) return '신한';
+  // 광주: 위 은행에 해당 안 되고 '적요' 또는 '입/출금' 있으면
+  if (h.includes('입/출금') || h.includes('통장잔액') || h.includes('적요')) return '광주';
   return '?';
 }
 
@@ -430,35 +438,28 @@ function handleFiles(files) {
         reader2.readAsArrayBuffer(f2);
       })(file);
     } else if (ext === 'xls') {
-      // 1차: ArrayBuffer (이진 XLS + HTML XLS SheetJS 자동감지)
-      // 2차: EUC-KR 텍스트 (일부 KB HTML XLS 대응)
+      // 1차: ArrayBuffer (이진 XLS)
+      // 2차: EUC-KR 텍스트 → DOMParser (KB·광주 HTML-format XLS)
       // 3차: CSV 파서 폴백
       (function(f2){
         var reader2 = new FileReader();
         reader2.onload = function(e) {
           var parsed = parseExcelData(e.target.result, 'array', f2.name);
-          if (parsed.rows.length === 0) {
-            var textReader = new FileReader();
-            textReader.onload = function(te) {
-              var text = te.target.result;
-              var parsed2 = parseExcelData(text, 'string', f2.name);
-              if (parsed2.rows.length === 0) {
-                var detectedBank = detectBankFromText(text);
-                var csvRows = parseCSVText(text, detectedBank);
-                parsed2 = { bank: csvRows.length ? detectedBank : '?', rows: csvRows };
-              }
-              var existing = _files.findIndex(function(f){ return f.name === f2.name; });
-              var entry = { name: f2.name, bank: parsed2.bank, parsed: parsed2.rows, type: 'excel', rows: 0 };
-              if (existing >= 0) _files[existing] = entry; else _files.push(entry);
-              renderFileList();
-            };
-            textReader.readAsText(f2, 'euc-kr');
-            return;
+          if (parsed.rows.length > 0 && parsed.bank !== '?') {
+            registerEntry(f2, parsed); return;
           }
-          var existing = _files.findIndex(function(f){ return f.name === f2.name; });
-          var entry = { name: f2.name, bank: parsed.bank, parsed: parsed.rows, type: 'excel', rows: 0 };
-          if (existing >= 0) _files[existing] = entry; else _files.push(entry);
-          renderFileList();
+          var textReader = new FileReader();
+          textReader.onload = function(te) {
+            var text = te.target.result;
+            var parsed2 = parseHtmlXlsTable(text);
+            if (parsed2.rows.length === 0) {
+              var detectedBank = detectBankFromText(text);
+              var csvRows = parseCSVText(text, detectedBank);
+              parsed2 = { bank: csvRows.length ? detectedBank : '?', rows: csvRows };
+            }
+            registerEntry(f2, parsed2);
+          };
+          textReader.readAsText(f2, 'euc-kr');
         };
         reader2.readAsArrayBuffer(f2);
       })(file);
@@ -478,7 +479,79 @@ function detectBankFromText(text) {
   return '?';
 }
 
-// SheetJS 공용 파서 — type: 'array'(xlsx) 또는 'string'(xls HTML)
+// EUC-KR 텍스트로 읽은 HTML-format XLS를 DOMParser로 파싱
+// (XLSX.read type:'string'는 유니코드 문자열에 사용 불가 — 깨짐)
+function parseHtmlXlsTable(text) {
+  try {
+    var parser = new DOMParser();
+    var doc = parser.parseFromString(text, 'text/html');
+    // 행이 가장 많은 테이블 선택
+    var bestTable = null;
+    doc.querySelectorAll('table').forEach(function(t) {
+      if (!bestTable || t.rows.length > bestTable.rows.length) bestTable = t;
+    });
+    if (!bestTable) return { bank: '?', rows: [] };
+
+    var rows = [];
+    for (var r = 0; r < bestTable.rows.length; r++) {
+      var cells = [];
+      for (var c = 0; c < bestTable.rows[r].cells.length; c++) {
+        cells.push(bestTable.rows[r].cells[c].textContent.replace(/\s+/g,' ').trim());
+      }
+      rows.push(cells);
+    }
+
+    // 헤더 탐색 (최대 60행)
+    var headerIdx = -1;
+    var HDR_KEYS = ['거래일','출금','입금','순번','날짜','적요','거래내용','잔액'];
+    for (var hi = 0; hi < Math.min(rows.length, 60); hi++) {
+      var joined = rows[hi].join(',');
+      var hitCount = HDR_KEYS.filter(function(k){ return joined.includes(k); }).length;
+      if (hitCount >= 2) { headerIdx = hi; break; }
+    }
+    if (headerIdx < 0) return { bank: '?', rows: [] };
+
+    var headers = rows[headerIdx];
+    var bank = detectBank(headers);
+    var iDate=-1, iMerchant=-1, iOut=-1, iIn=-1;
+    headers.forEach(function(h, i){
+      var t = h.replace(/\s/g,'');
+      if (iDate < 0 && (t==='거래일시'||t==='거래일자'||t==='날짜')) iDate=i;
+      if (iMerchant < 0 && (t==='보낸분/받는분'||t==='거래내용'||t==='적요'||t==='내용'||t==='거래기록사항')) iMerchant=i;
+      if (iOut < 0 && (t==='출금액'||t==='출금금액'||t==='출금'||t==='출금(원)')) iOut=i;
+      if (iIn < 0 && (t==='입금액'||t==='입금금액'||t==='입금'||t==='입금(원)')) iIn=i;
+    });
+
+    var parsed = [];
+    for (var j = headerIdx+1; j < rows.length; j++) {
+      var row = rows[j];
+      if (!row || row.length < 3) continue;
+      var merchant = iMerchant >= 0 ? row[iMerchant] : '';
+      if (!merchant || merchant==='-') continue;
+      var date = normalizeDate(iDate >= 0 ? row[iDate] : '');
+      if (!date) continue;
+      parsed.push({
+        date: date, merchant: merchant,
+        out: parseAmount(iOut >= 0 ? row[iOut] : ''),
+        in:  parseAmount(iIn  >= 0 ? row[iIn]  : ''),
+        bank: bank
+      });
+    }
+    return { bank: bank, rows: parsed };
+  } catch(e) {
+    return { bank: '?', rows: [] };
+  }
+}
+
+// 파일 등록 공통 헬퍼
+function registerEntry(f2, parsed) {
+  var existing = _files.findIndex(function(f){ return f.name === f2.name; });
+  var entry = { name: f2.name, bank: parsed.bank, parsed: parsed.rows, type: 'excel', rows: 0 };
+  if (existing >= 0) _files[existing] = entry; else _files.push(entry);
+  renderFileList();
+}
+
+// SheetJS 공용 파서 — type: 'array'(xlsx)
 function parseExcelData(data, type, filename) {
   try {
     var wb = XLSX.read(data, { type: type, cellDates: false, raw: true });
