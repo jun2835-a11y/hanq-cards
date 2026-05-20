@@ -48,7 +48,7 @@ async function sbReadWithRetry(key) {
 
 async function sbWrite(key, data) {
   try {
-    await fetch(`${SB_URL}/rest/v1/kv_store`, {
+    const res = await fetch(`${SB_URL}/rest/v1/kv_store`, {
       method: 'POST',
       headers: {
         apikey: SB_KEY,
@@ -58,6 +58,10 @@ async function sbWrite(key, data) {
       },
       body: JSON.stringify({ key, value: data }),
     });
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      console.error(`[Supabase write error] ${res.status} for key "${key}":`, body);
+    }
   } catch (e) { console.error('[Supabase write error]', e.message); }
 }
 
@@ -197,8 +201,25 @@ const server = http.createServer((req, res) => {
     '/api/finance-work-tags':  'finance-work-tags.json',
   };
   if (getStateRoutes[url] && req.method === 'GET') {
+    const file   = getStateRoutes[url];
+    const cached = readJSON(file);
+    // 캐시가 비어있으면 Supabase에서 직접 재조회 (서버 재시작 시 로드 실패 복구)
+    if (SB_URL && SB_KEY && Object.keys(cached).length === 0) {
+      const key = FILE_TO_KEY[file];
+      (key ? sbRead(key) : Promise.resolve(null))
+        .then(fresh => {
+          if (fresh !== null) _cache[file] = fresh;
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(fresh !== null ? fresh : cached));
+        })
+        .catch(() => {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(cached));
+        });
+      return;
+    }
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(readJSON(getStateRoutes[url])));
+    res.end(JSON.stringify(cached));
     return;
   }
 

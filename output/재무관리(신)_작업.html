@@ -430,37 +430,53 @@ function handleFiles(files) {
         reader2.readAsArrayBuffer(f2);
       })(file);
     } else if (ext === 'xls') {
-      // KB .xls는 HTML 포맷이 많음 — EUC-KR 텍스트로 읽고 SheetJS string 모드 사용
+      // 1차: ArrayBuffer (이진 XLS + HTML XLS SheetJS 자동감지)
+      // 2차: EUC-KR 텍스트 (일부 KB HTML XLS 대응)
+      // 3차: CSV 파서 폴백
       (function(f2){
         var reader2 = new FileReader();
         reader2.onload = function(e) {
-          var text = e.target.result;
-          var parsed;
-          try {
-            parsed = parseExcelData(text, 'string', f2.name);
-          } catch(err) {
-            parsed = { bank: '?', rows: [] };
-          }
-          // SheetJS가 0건이면 CSV 파서로 폴백
+          var parsed = parseExcelData(e.target.result, 'array', f2.name);
           if (parsed.rows.length === 0) {
-            var csvRows = parseCSVText(text, '?');
-            if (csvRows.length > 0) {
-              parsed = { bank: csvRows[0].bank, rows: csvRows };
-            }
+            var textReader = new FileReader();
+            textReader.onload = function(te) {
+              var text = te.target.result;
+              var parsed2 = parseExcelData(text, 'string', f2.name);
+              if (parsed2.rows.length === 0) {
+                var detectedBank = detectBankFromText(text);
+                var csvRows = parseCSVText(text, detectedBank);
+                parsed2 = { bank: csvRows.length ? detectedBank : '?', rows: csvRows };
+              }
+              var existing = _files.findIndex(function(f){ return f.name === f2.name; });
+              var entry = { name: f2.name, bank: parsed2.bank, parsed: parsed2.rows, type: 'excel', rows: 0 };
+              if (existing >= 0) _files[existing] = entry; else _files.push(entry);
+              renderFileList();
+            };
+            textReader.readAsText(f2, 'euc-kr');
+            return;
           }
-          var bank = parsed.bank; var rows = parsed.rows;
           var existing = _files.findIndex(function(f){ return f.name === f2.name; });
-          var entry = { name: f2.name, bank: bank, parsed: rows, type: 'excel', rows: 0 };
+          var entry = { name: f2.name, bank: parsed.bank, parsed: parsed.rows, type: 'excel', rows: 0 };
           if (existing >= 0) _files[existing] = entry; else _files.push(entry);
           renderFileList();
         };
-        reader2.readAsText(f2, 'euc-kr');
+        reader2.readAsArrayBuffer(f2);
       })(file);
     }
   });
 }
 
 function pad2(n){ return n < 10 ? '0'+n : String(n); }
+
+// 텍스트에서 은행 감지 (CSV 폴백용)
+function detectBankFromText(text) {
+  var lines = text.split(/\r?\n/).slice(0, 30);
+  for (var i = 0; i < lines.length; i++) {
+    var bank = detectBank(splitCSVLine(lines[i]));
+    if (bank !== '?') return bank;
+  }
+  return '?';
+}
 
 // SheetJS 공용 파서 — type: 'array'(xlsx) 또는 'string'(xls HTML)
 function parseExcelData(data, type, filename) {
