@@ -347,6 +347,10 @@ body {
 .emp-item-row td:nth-child(4) {
   border-left: 1px solid var(--border2);
 }
+.emp-table th:nth-child(5),
+.emp-item-row td:nth-child(5) {
+  border-left: 1px solid var(--border2);
+}
 .emp-table tbody tr {
   border-bottom: 1px solid var(--border2);
   transition: background .12s;
@@ -376,7 +380,7 @@ body {
   color: var(--ink);
   border: none;
   background: transparent;
-  padding: 10px 12px;
+  padding: 12px 12px;
   width: 100%;
   display: block;
   outline: none;
@@ -842,18 +846,25 @@ body {
   font-variant-numeric: tabular-nums;
   font-weight: 500;
   font-size: 12px;
-  padding: 10px 16px 10px 12px;
+  padding: 12px 16px 12px 12px;
   text-align: right;
-  color: var(--ink2);
+  color: var(--ink);
 }
 .emp-item-count {
   font-size: 10px;
   color: var(--muted);
-  padding: 10px 12px;
+  padding: 12px 12px;
   letter-spacing: .5px;
 }
 .emp-table tbody tr.emp-item-row td { background: #FDFCFB; }
 .emp-table tbody tr.emp-item-row:hover td { background: #F7F6F2; }
+.emp-table tbody tr.emp-row td { background: var(--bg); }
+.emp-table tbody tr.emp-row:hover td { background: #F1EFE9; }
+.emp-table tbody tr.add-item-row + tr.emp-row td,
+.emp-table tbody tr.emp-row + tr.emp-row td {
+  border-top: 2px solid var(--border);
+}
+.emp-row .cell-input { font-weight: 600; }
 .emp-item-row.hidden { display: none; }
 .item-indent {
   color: var(--border);
@@ -1355,10 +1366,10 @@ function buildBizCard(biz, idx) {
         <table class="emp-table" id="empTable_${biz.id}">
           <colgroup>
             <col style="width:32px">
-            <col style="width:16%">
-            <col style="width:115px">
+            <col style="width:18%">
+            <col style="width:110px">
             <col>
-            <col style="width:145px">
+            <col style="width:155px">
             <col style="width:36px">
           </colgroup>
           <thead>
