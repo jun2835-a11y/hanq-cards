@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>재무관리(신) — hanQ</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F7F5F0;--surface:#FFFFFF;--border:#E2DED7;--ink:#1A1814;--ink2:#5C5851;
+  --muted:#9A958F;--accent:#C8380A;
+}
+body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;min-height:100vh;display:flex;flex-direction:column}
+.app-nav{background:#1A1814;padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:40px;position:sticky;top:0;z-index:200;font-family:inherit}
+.app-nav-brand{font-size:11px;font-weight:700;letter-spacing:.1em;color:rgba(255,255,255,.9);text-transform:uppercase;text-decoration:none}
+.app-nav-links{display:flex;gap:0;height:100%}
+.app-nav-link{padding:0 12px;display:flex;align-items:center;gap:5px;font-size:11px;color:rgba(255,255,255,.5);text-decoration:none;letter-spacing:.04em;border-bottom:2px solid transparent;transition:all .15s}
+.app-nav-link:hover{color:rgba(255,255,255,.85)}
+.app-nav-link.active{color:white;border-bottom-color:#C8380A;font-weight:700}
+.app-nav-sep{color:rgba(255,255,255,.15);padding:0 4px;font-size:10px;display:flex;align-items:center}
+.app-nav-badge{background:#C8380A;color:white;font-size:8px;padding:1px 4px;font-weight:700;letter-spacing:.04em;line-height:1.4}
+@media print{.app-nav{display:none!important}}
+.page-main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 32px;text-align:center}
+.wip-icon{font-size:48px;margin-bottom:24px;opacity:.35}
+.wip-badge{display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:white;font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;padding:4px 12px;margin-bottom:20px}
+.wip-title{font-size:28px;font-weight:700;letter-spacing:-.02em;color:var(--ink);margin-bottom:12px}
+.wip-sub{font-size:14px;color:var(--muted);line-height:1.7;max-width:480px;margin-bottom:40px}
+.wip-divider{width:40px;height:2px;background:var(--border);margin:0 auto 40px}
+.wip-scope{background:var(--surface);border:1px solid var(--border);padding:28px 36px;max-width:540px;width:100%;text-align:left}
+.wip-scope-title{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:16px;font-weight:700}
+.wip-scope-item{display:flex;align-items:flex-start;gap:10px;font-size:12px;color:var(--ink2);line-height:1.6;padding:6px 0;border-bottom:1px solid var(--border)}
+.wip-scope-item:last-child{border-bottom:none}
+.wip-scope-dot{width:4px;height:4px;border-radius:50%;background:var(--muted);flex-shrink:0;margin-top:7px}
+</style>
+</head>
+<body>
+<nav class="app-nav">
+  <a href="/" class="app-nav-brand">hanQ</a>
+  <div class="app-nav-links">
+    <a href="/accounts" class="app-nav-link">재무관리(구)</a>
+    <a href="/finance-new" class="app-nav-link">재무관리(신) <span class="app-nav-badge">개발중</span></a>
+    <a href="/plan" class="app-nav-link">자금계획</a>
+    <span class="app-nav-sep">|</span>
+    <a href="/roster" class="app-nav-link">관리명부</a>
+    <a href="/inspect" class="app-nav-link">카드실사</a>
+    <a href="/spend" class="app-nav-link">일회성지출</a>
+    <a href="/report" class="app-nav-link">분석리포트</a>
+    <a href="/quick" class="app-nav-link">빠른입력</a>
+  </div>
+</nav>
+<script>(function(){var p=location.pathname;document.querySelectorAll('.app-nav-link[href]').forEach(function(a){if(a.getAttribute('href')===p)a.classList.add('active');});})()</script>
+
+<div class="page-main">
+  <div class="wip-icon">🏗</div>
+  <div class="wip-badge">개발중</div>
+  <div class="wip-title">재무관리(신)</div>
+  <div class="wip-sub">5개년 계좌 거래내역 분류 및 사업자별 현금흐름 대시보드.<br>현재 설계 및 개발 중입니다.</div>
+  <div class="wip-divider"></div>
+  <div class="wip-scope">
+    <div class="wip-scope-title">구현 예정 기능</div>
+    <div class="wip-scope-item"><div class="wip-scope-dot"></div>CSV 다중 업로드 (KB · 농협 · 광주 · 신한)</div>
+    <div class="wip-scope-item"><div class="wip-scope-dot"></div>거래처별 자동 태깅 · 미분류 검수 인터페이스</div>
+    <div class="wip-scope-item"><div class="wip-scope-dot"></div>사업자별 비용 배분 (한솔 · 수복지 · 한큐 · 교육원)</div>
+    <div class="wip-scope-item"><div class="wip-scope-dot"></div>월별 매출 / 비용 / 이익 시각화 대시보드</div>
+    <div class="wip-scope-item"><div class="wip-scope-dot"></div>인건비 상세 (비밀번호 보호) · 전체 / 직원용 토글</div>
+  </div>
+</div>
+</body>
+</html>

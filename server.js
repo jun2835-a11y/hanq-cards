@@ -132,13 +132,14 @@ const CARD_PAYMENTS = [
 ];
 
 const ROUTES = {
-  '/accounts': '재무계좌현황.html',
-  '/plan':     '자금계획관리.html',
-  '/inspect':  '법인카드_실사결과보고.html',
-  '/spend':    '법인카드_일회성지출관리.html',
-  '/report':   '법인카드_분석리포트.html',
-  '/quick':    '빠른입력.html',
-  '/roster':   '관리명부.html',
+  '/accounts':     '재무계좌현황.html',
+  '/plan':         '자금계획관리.html',
+  '/inspect':      '법인카드_실사결과보고.html',
+  '/spend':        '법인카드_일회성지출관리.html',
+  '/report':       '법인카드_분석리포트.html',
+  '/quick':        '빠른입력.html',
+  '/roster':       '관리명부.html',
+  '/finance-new':  '재무관리(신).html',
 };
 
 function serveHTML(res, file) {
