@@ -345,12 +345,14 @@ body {
 .emp-table th:last-child { width: 36px; }
 .emp-table th:nth-child(3),
 .emp-table th:nth-child(4),
-.emp-table th:nth-child(5) {
+.emp-table th:nth-child(5),
+.emp-table th:nth-child(6) {
   border-left: 1px solid var(--border2);
 }
 .emp-item-row td:nth-child(3),
 .emp-item-row td:nth-child(4),
-.emp-item-row td:nth-child(5) {
+.emp-item-row td:nth-child(5),
+.emp-item-row td:nth-child(6) {
   border-left: 1px solid var(--border2);
 }
 .emp-row td:nth-child(3),
@@ -876,6 +878,28 @@ body {
 }
 .emp-table tbody tr.emp-row:hover td { background: #F1EFE9; }
 .emp-row .cell-input { font-weight: 600; }
+
+/* ── STATUS BADGE ── */
+.status-badge {
+  font-size: 9px;
+  padding: 3px 8px;
+  border-radius: 2px;
+  border: 1px solid;
+  cursor: pointer;
+  font-family: inherit;
+  letter-spacing: .5px;
+  white-space: nowrap;
+  transition: all .15s;
+  display: inline-block;
+  line-height: 1.6;
+}
+.status-badge.status-normal { color: var(--muted); border-color: var(--border2); background: none; }
+.status-badge.status-normal:hover { border-color: var(--border); color: var(--ink2); }
+.status-badge.status-excluded { color: var(--neg); border-color: var(--neg-bd); background: var(--neg-bg); }
+.status-badge.status-added { color: var(--pos); border-color: var(--pos-bd); background: var(--pos-bg); }
+.emp-table tbody tr.emp-item-row[data-status="excluded"] td { background: var(--neg-bg); }
+.emp-table tbody tr.emp-item-row[data-status="added"] td { background: var(--pos-bg); }
+.emp-table .status-cell { text-align: center; padding: 0 8px; }
 .emp-item-row.hidden { display: none; }
 .item-indent {
   color: var(--border);
@@ -1126,7 +1150,7 @@ body {
       </div>
       <div class="diff-col missing-items">
         <div class="diff-col-header">
-          미확인 항목
+          지출제외 처리
           <span class="diff-count-badge" id="missingCountBadge">0</span>
           건
         </div>
@@ -1214,6 +1238,8 @@ body {
 // ── CONSTANTS ──
 const API = '/api/card-roster-state';
 const BIZ_COLORS = ['#1A56D6','#2D6644','#6B3A7D','#C8380A','#8B5E14','#0E6B7A','#C86420'];
+const STATUS_LABELS = { normal: '정상사용', excluded: '지출제외', added: '지출추가' };
+const STATUS_CYCLE  = { normal: 'excluded', excluded: 'added', added: 'normal' };
 
 function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2,6);
@@ -1222,6 +1248,7 @@ function uid() {
 // ── DATA MIGRATION (old flat employee → items array) ──
 function migrateData(data) {
   if (!data || !data.businesses) return data;
+  const now = Date.now();
   data.businesses.forEach(biz => {
     biz.employees = (biz.employees || []).map(emp => {
       if (!emp.items) {
@@ -1231,6 +1258,15 @@ function migrateData(data) {
         delete emp.usage;
         delete emp.account;
       }
+      emp.items = emp.items.map(item => {
+        if (!item.status) item.status = 'normal';
+        // 지출추가 → 30일 경과 시 정상사용 자동 전환
+        if (item.status === 'added' && item.statusDate) {
+          const days = (now - new Date(item.statusDate).getTime()) / 86400000;
+          if (days > 30) { item.status = 'normal'; delete item.statusDate; }
+        }
+        return item;
+      });
       return emp;
     });
   });
@@ -1382,6 +1418,7 @@ function buildBizCard(biz, idx) {
             <col>
             <col>
             <col>
+            <col style="width:65px">
             <col style="width:36px">
           </colgroup>
           <thead>
@@ -1391,6 +1428,7 @@ function buildBizCard(biz, idx) {
               <th>결제액</th>
               <th>사용처</th>
               <th>사용계정</th>
+              <th>상태</th>
               <th></th>
             </tr>
           </thead>
@@ -1450,7 +1488,7 @@ function buildEmpRows(bizId, emp, idx) {
     <td>
       <div class="emp-total-display" id="empTotal_${emp.id}">${total ? fmt(total) + '<span style="font-size:10px;color:var(--muted);margin-left:2px">원</span>' : ''}</div>
     </td>
-    <td colspan="2">
+    <td colspan="3">
       <span class="emp-item-count" id="empItemCount_${emp.id}">${items.length > 0 ? items.length + '건' : ''}</span>
     </td>
     <td>
@@ -1475,7 +1513,7 @@ function buildEmpRows(bizId, emp, idx) {
   addRow.className = 'add-item-row' + (expanded ? '' : ' hidden');
   addRow.dataset.empId = emp.id;
   addRow.innerHTML = `
-    <td colspan="6" style="padding:0">
+    <td colspan="7" style="padding:0">
       <button class="add-item-btn" onclick="addEmpItem('${bizId}','${emp.id}')">
         <span style="font-size:14px;font-weight:300;line-height:1">＋</span> 항목 추가
       </button>
@@ -1491,6 +1529,7 @@ function buildItemRow(bizId, empId, item, visible) {
   itr.dataset.empId = empId;
   itr.dataset.itemId = item.id;
   itr.dataset.bizId = bizId;
+  itr.dataset.status = item.status || 'normal';
   itr.innerHTML = `
     <td class="item-indent">·</td>
     <td></td>
@@ -1513,6 +1552,11 @@ function buildItemRow(bizId, empId, item, visible) {
         onchange="updateEmpItemField('${bizId}','${empId}','${item.id}','account',this.value)"
         onkeydown="handleItemKey(event,'${bizId}','${empId}')"
         tabindex="0">
+    </td>
+    <td class="status-cell">
+      <button class="status-badge status-${item.status || 'normal'}"
+        onclick="cycleStatus('${bizId}','${empId}','${item.id}')"
+        title="클릭하여 상태 변경">${STATUS_LABELS[item.status || 'normal']}</button>
     </td>
     <td>
       <div class="row-del-confirm" id="itemDelConfirm_${item.id}">
@@ -1658,7 +1702,7 @@ function addEmpItem(bizId, empId) {
   const emp = getEmp(bizId, empId);
   if (!emp) return;
   if (!emp.items) emp.items = [];
-  emp.items.push({ id: uid(), monthlyAmount: 0, usage: '', account: '' });
+  emp.items.push({ id: uid(), monthlyAmount: 0, usage: '', account: '', status: 'normal' });
   emp._expanded = true;
   renderEmployees(bizId);
   scheduleSave();
@@ -1709,6 +1753,25 @@ function updateEmpItemField(bizId, empId, itemId, field, value) {
   if (totalEl) totalEl.innerHTML = total ? fmt(total) + '<span style="font-size:10px;color:var(--muted);margin-left:2px">원</span>' : '';
   if (countEl) countEl.textContent = items.length > 0 ? items.length + '건' : '';
   updateBizHeader(bizId);
+  scheduleSave();
+}
+
+function cycleStatus(bizId, empId, itemId) {
+  const emp = getEmp(bizId, empId);
+  if (!emp) return;
+  const item = (emp.items||[]).find(i => i.id === itemId);
+  if (!item) return;
+  item.status = STATUS_CYCLE[item.status || 'normal'];
+  item.statusDate = new Date().toISOString();
+  const row = document.querySelector(`tr.emp-item-row[data-item-id="${itemId}"]`);
+  if (row) {
+    row.dataset.status = item.status;
+    const badge = row.querySelector('.status-badge');
+    if (badge) {
+      badge.className = 'status-badge status-' + item.status;
+      badge.textContent = STATUS_LABELS[item.status];
+    }
+  }
   scheduleSave();
 }
 
@@ -1830,40 +1893,51 @@ function runDiff() {
   if (!parsedCSV.length) return;
   closeModal('csvModal');
 
-  // All known usages from items
-  const allUsages = roster.businesses.flatMap(b =>
-    b.employees.flatMap(e => (e.items||[]).map(i => i.usage ? i.usage.toLowerCase() : '').filter(Boolean))
-  );
+  const csvLower = parsedCSV.map(d => d.merchant.toLowerCase());
+  const statusDate = new Date().toISOString();
+  let excludedCount = 0;
 
-  // New: CSV merchants not found in any item's usage
-  const newItems = parsedCSV.filter(d => {
-    const ml = d.merchant.toLowerCase();
-    return !allUsages.some(u => u.includes(ml) || ml.includes(u));
-  });
-
-  // Missing: items' usage not found in CSV
-  const csvMerchants = parsedCSV.map(d => d.merchant.toLowerCase());
-  const missingItems = [];
+  // 기존 아이템 상태 자동 분류
   roster.businesses.forEach(biz => {
     biz.employees.forEach(emp => {
       (emp.items||[]).forEach(item => {
         if (!item.usage) return;
         const ul = item.usage.toLowerCase();
-        if (!csvMerchants.some(m => m.includes(ul) || ul.includes(m))) {
-          missingItems.push({ empName: emp.name, bizName: biz.name, usage: item.usage, empId: emp.id, bizId: biz.id, itemId: item.id });
+        const matched = csvLower.some(m => m.includes(ul) || ul.includes(m));
+        if (matched) {
+          if (item.status !== 'added') { item.status = 'normal'; delete item.statusDate; }
+        } else {
+          if (item.status === 'added') return; // 방금 추가된 건은 건드리지 않음
+          item.status = 'excluded';
+          item.statusDate = statusDate;
+          excludedCount++;
         }
       });
     });
   });
 
-  renderDiff(newItems, missingItems);
-  document.getElementById('diffSection').classList.add('show');
-  document.getElementById('diffSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  // CSV에만 있는 신규 가맹점 (명부에 없는 것)
+  const allUsages = roster.businesses.flatMap(b =>
+    b.employees.flatMap(e => (e.items||[]).map(i => i.usage ? i.usage.toLowerCase() : '').filter(Boolean))
+  );
+  const newItems = parsedCSV.filter(d => {
+    const ml = d.merchant.toLowerCase();
+    return !allUsages.some(u => u.includes(ml) || ml.includes(u));
+  });
+
+  render(); // 상태 변경 반영
+  scheduleSave();
+  renderDiff(newItems, excludedCount);
+
+  if (newItems.length > 0 || excludedCount > 0) {
+    document.getElementById('diffSection').classList.add('show');
+    document.getElementById('diffSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
 }
 
-function renderDiff(newItems, missingItems) {
+function renderDiff(newItems, excludedCount) {
   document.getElementById('newCountBadge').textContent = newItems.length;
-  document.getElementById('missingCountBadge').textContent = missingItems.length;
+  document.getElementById('missingCountBadge').textContent = excludedCount;
 
   const newList = document.getElementById('newItemsList');
   newList.innerHTML = '';
@@ -1887,21 +1961,15 @@ function renderDiff(newItems, missingItems) {
 
   const missList = document.getElementById('missingItemsList');
   missList.innerHTML = '';
-  if (missingItems.length === 0) {
-    missList.innerHTML = '<div class="diff-empty">미확인 항목 없음</div>';
+  if (excludedCount === 0) {
+    missList.innerHTML = '<div class="diff-empty">지출제외 항목 없음</div>';
   } else {
-    missingItems.forEach(item => {
-      const el = document.createElement('div');
-      el.className = 'diff-item';
-      el.innerHTML = `
-        <div class="diff-item-info">
-          <div class="diff-item-name">${esc(item.empName)} · ${esc(item.bizName)}</div>
-          <div class="diff-item-meta">사용처: ${esc(item.usage)}</div>
-        </div>
-        <button class="diff-action-btn" onclick="removeItemFromDiff('${item.bizId}','${item.empId}','${item.itemId}',this)">명부에서 제거</button>
-      `;
-      missList.appendChild(el);
-    });
+    missList.innerHTML = `
+      <div class="diff-item" style="flex-direction:column; align-items:flex-start; gap:6px;">
+        <div class="diff-item-name">${excludedCount}개 항목이 <b>지출제외</b>로 표시됨</div>
+        <div class="diff-item-meta" style="line-height:1.7">명부 테이블에서 직접 확인하세요.<br>상태 배지를 클릭하면 수동으로 변경할 수 있습니다.</div>
+      </div>
+    `;
   }
 }
 
@@ -1966,16 +2034,17 @@ function confirmAssign() {
   const biz = getBiz(bizId);
   if (!biz) return;
 
+  const statusDate = new Date().toISOString();
   if (empId === '__new__') {
     biz.employees.push({
       id: uid(), name: assigningItem.merchant, _expanded: true,
-      items: [{ id: uid(), monthlyAmount: assigningItem.amount, usage, account }]
+      items: [{ id: uid(), monthlyAmount: assigningItem.amount, usage, account, status: 'added', statusDate }]
     });
   } else {
     const emp = getEmp(bizId, empId);
     if (emp) {
       if (!emp.items) emp.items = [];
-      emp.items.push({ id: uid(), monthlyAmount: assigningItem.amount, usage, account });
+      emp.items.push({ id: uid(), monthlyAmount: assigningItem.amount, usage, account, status: 'added', statusDate });
     }
   }
 
