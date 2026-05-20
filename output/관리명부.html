@@ -343,12 +343,18 @@ body {
 }
 .emp-table th:first-child { width: 32px; text-align: center; }
 .emp-table th:last-child { width: 36px; }
+.emp-table th:nth-child(3),
 .emp-table th:nth-child(4),
-.emp-item-row td:nth-child(4) {
+.emp-table th:nth-child(5) {
   border-left: 1px solid var(--border2);
 }
-.emp-table th:nth-child(5),
+.emp-item-row td:nth-child(3),
+.emp-item-row td:nth-child(4),
 .emp-item-row td:nth-child(5) {
+  border-left: 1px solid var(--border2);
+}
+.emp-row td:nth-child(3),
+.emp-row td:nth-child(4) {
   border-left: 1px solid var(--border2);
 }
 .emp-table tbody tr {
@@ -821,6 +827,13 @@ body {
   from { opacity: 0; transform: translateX(-14px); }
   to { opacity: 1; transform: none; }
 }
+@keyframes breatheBar {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.biz-color-bar {
+  animation: breatheBar 3.5s ease-in-out infinite;
+}
 
 /* ── EMPLOYEE EXPAND / ITEM ROWS ── */
 .emp-name-cell {
@@ -858,12 +871,11 @@ body {
 }
 .emp-table tbody tr.emp-item-row td { background: #FDFCFB; }
 .emp-table tbody tr.emp-item-row:hover td { background: #F7F6F2; }
-.emp-table tbody tr.emp-row td { background: var(--bg); }
-.emp-table tbody tr.emp-row:hover td { background: #F1EFE9; }
-.emp-table tbody tr.add-item-row + tr.emp-row td,
-.emp-table tbody tr.emp-row + tr.emp-row td {
-  border-top: 2px solid var(--border);
+.emp-table tbody tr.emp-row td {
+  background: var(--bg);
+  border-bottom: 2px solid var(--biz-color, var(--border));
 }
+.emp-table tbody tr.emp-row:hover td { background: #F1EFE9; }
 .emp-row .cell-input { font-weight: 600; }
 .emp-item-row.hidden { display: none; }
 .item-indent {
@@ -1327,6 +1339,7 @@ function buildBizCard(biz, idx) {
   wrap.className = 'biz-card';
   wrap.dataset.bizId = biz.id;
   wrap.style.animationDelay = (idx * 0.06) + 's';
+  wrap.style.setProperty('--biz-color', color);
 
   const collapsed = biz._collapsed ? 'collapsed' : '';
   wrap.innerHTML = `
@@ -1367,9 +1380,9 @@ function buildBizCard(biz, idx) {
           <colgroup>
             <col style="width:32px">
             <col style="width:18%">
-            <col style="width:110px">
             <col>
-            <col style="width:155px">
+            <col>
+            <col>
             <col style="width:36px">
           </colgroup>
           <thead>
