@@ -788,6 +788,13 @@ body {
   0%, 100% { opacity: 1; }
   50% { opacity: .3; }
 }
+@keyframes pulseGreen {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(76,175,128,.55); }
+  70% { box-shadow: 0 0 0 6px rgba(76,175,128,0); }
+}
+.save-indicator.saved .save-indicator-dot {
+  animation: pulseGreen 2s ease-in-out infinite;
+}
 @keyframes modalIn {
   from { opacity: 0; transform: scale(.97) translateY(-8px); }
   to { opacity: 1; transform: none; }
@@ -796,6 +803,69 @@ body {
   from { opacity: 0; background: rgba(45,102,68,.08); }
   to { opacity: 1; background: transparent; }
 }
+
+/* ── EMPLOYEE EXPAND / ITEM ROWS ── */
+.emp-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.emp-expand-btn {
+  width: 20px; height: 20px;
+  border: none; background: none;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 9px;
+  padding: 0;
+  flex-shrink: 0;
+  transition: transform .2s, color .15s, background .12s;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 2px;
+}
+.emp-expand-btn:hover { color: var(--ink2); background: var(--border2); }
+.emp-expand-btn.open { transform: rotate(90deg); }
+.emp-total-display {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  font-size: 12px;
+  padding: 10px 16px 10px 12px;
+  text-align: right;
+  color: var(--ink2);
+}
+.emp-item-count {
+  font-size: 10px;
+  color: var(--muted);
+  padding: 10px 12px;
+  letter-spacing: .5px;
+}
+.emp-table tbody tr.emp-item-row td { background: #FDFCFB; }
+.emp-table tbody tr.emp-item-row:hover td { background: #F7F6F2; }
+.emp-item-row.hidden { display: none; }
+.item-indent {
+  color: var(--border);
+  font-size: 16px;
+  text-align: center;
+  width: 32px;
+  padding: 0 6px;
+}
+.add-item-row.hidden { display: none; }
+.add-item-btn {
+  width: 100%;
+  padding: 7px 20px 7px 44px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 11px;
+  text-align: left;
+  transition: color .15s, background .15s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  letter-spacing: .3px;
+}
+.add-item-btn:hover { color: var(--pos); background: var(--pos-bg); }
 
 /* ── RESPONSIVE ── */
 @media (max-width: 960px) {
@@ -979,6 +1049,24 @@ function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2,6);
 }
 
+// ── DATA MIGRATION (old flat employee → items array) ──
+function migrateData(data) {
+  if (!data || !data.businesses) return data;
+  data.businesses.forEach(biz => {
+    biz.employees = (biz.employees || []).map(emp => {
+      if (!emp.items) {
+        const hadData = emp.monthlyAmount || emp.usage || emp.account;
+        emp.items = hadData ? [{ id: uid(), monthlyAmount: emp.monthlyAmount || 0, usage: emp.usage || '', account: emp.account || '' }] : [];
+        delete emp.monthlyAmount;
+        delete emp.usage;
+        delete emp.account;
+      }
+      return emp;
+    });
+  });
+  return data;
+}
+
 // ── STATE ──
 let roster = { businesses: [], lastUpdated: null };
 let saveTimer = null;
@@ -992,14 +1080,12 @@ async function loadRoster() {
     if (r.ok) {
       const data = await r.json();
       if (data && data.businesses && data.businesses.length) {
-        roster = data;
+        roster = migrateData(data);
         render();
         return;
       }
     }
   } catch(e) { /* 서버 오류 시 빈 상태 */ }
-
-  // 빈 상태로 시작
   roster = { businesses: [], lastUpdated: null };
   render();
 }
@@ -1029,9 +1115,9 @@ function setSaveStatus(state) {
   const el = document.getElementById('saveIndicator');
   const txt = el.querySelector('.save-indicator-text');
   el.className = 'save-indicator ' + state;
-  if (state === 'saved')   txt.textContent = '저장됨 ✓';
-  if (state === 'saving')  txt.textContent = '저장 중...';
-  if (state === 'error')   txt.textContent = '저장 실패';
+  if (state === 'saved')  txt.textContent = '저장됨 ✓';
+  if (state === 'saving') txt.textContent = '저장 중...';
+  if (state === 'error')  txt.textContent = '저장 실패';
 }
 
 // ── KPI ──
@@ -1039,11 +1125,11 @@ function updateKPI() {
   const bizCount = roster.businesses.length;
   const empCount = roster.businesses.reduce((s,b) => s + b.employees.length, 0);
   const total = roster.businesses.reduce((s,b) =>
-    s + b.employees.reduce((ss,e) => ss + (Number(e.monthlyAmount)||0), 0), 0);
+    s + b.employees.reduce((ss,e) =>
+      ss + (e.items||[]).reduce((sss,i) => sss + (Number(i.monthlyAmount)||0), 0), 0), 0);
   const lastUpd = roster.lastUpdated
     ? new Date(roster.lastUpdated).toLocaleDateString('ko-KR', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' })
     : '—';
-
   document.getElementById('kpiBizCount').textContent = bizCount;
   document.getElementById('kpiEmpCount').textContent = empCount;
   document.getElementById('kpiTotal').innerHTML = fmt(total) + '<span class="kpi-unit">원</span>';
@@ -1064,18 +1150,17 @@ function render() {
   const list = document.getElementById('bizList');
   list.innerHTML = '';
   roster.businesses.forEach((biz, idx) => {
-    const card = buildBizCard(biz, idx);
-    list.appendChild(card);
+    list.appendChild(buildBizCard(biz, idx));
   });
-  const empty = document.getElementById('emptyState');
-  empty.classList.toggle('show', roster.businesses.length === 0);
+  document.getElementById('emptyState').classList.toggle('show', roster.businesses.length === 0);
   updateKPI();
 }
 
 function buildBizCard(biz, idx) {
   const color = BIZ_COLORS[idx % BIZ_COLORS.length];
   const empCount = biz.employees.length;
-  const total = biz.employees.reduce((s,e) => s + (Number(e.monthlyAmount)||0), 0);
+  const total = biz.employees.reduce((s,e) =>
+    s + (e.items||[]).reduce((ss,i) => ss + (Number(i.monthlyAmount)||0), 0), 0);
 
   const wrap = document.createElement('div');
   wrap.className = 'biz-card';
@@ -1083,7 +1168,6 @@ function buildBizCard(biz, idx) {
   wrap.style.animationDelay = (idx * 0.06) + 's';
 
   const collapsed = biz._collapsed ? 'collapsed' : '';
-
   wrap.innerHTML = `
     <div class="biz-header" onclick="handleBizHeaderClick(event,'${biz.id}')">
       <div class="biz-color-bar" style="background:${color}"></div>
@@ -1123,14 +1207,13 @@ function buildBizCard(biz, idx) {
             <tr>
               <th>#</th>
               <th>직원명</th>
-              <th style="text-align:right; padding-right:16px">월결제액</th>
+              <th style="text-align:right; padding-right:16px">결제액</th>
               <th>사용처</th>
               <th>사용계정</th>
               <th></th>
             </tr>
           </thead>
-          <tbody id="empTbody_${biz.id}">
-          </tbody>
+          <tbody id="empTbody_${biz.id}"></tbody>
         </table>
       </div>
       <button class="add-emp-btn" onclick="addEmployee('${biz.id}')">
@@ -1139,14 +1222,10 @@ function buildBizCard(biz, idx) {
     </div>
   `;
 
-  // Auto-width after render
   setTimeout(() => {
     wrap.querySelectorAll('.biz-name-input, .biz-card-input').forEach(autoWidth);
   }, 0);
-
-  // Render employees
   setTimeout(() => renderEmployees(biz.id), 0);
-
   return wrap;
 }
 
@@ -1157,43 +1236,41 @@ function renderEmployees(bizId) {
   if (!tbody) return;
   tbody.innerHTML = '';
   biz.employees.forEach((emp, i) => {
-    tbody.appendChild(buildEmpRow(bizId, emp, i));
+    const frag = buildEmpRows(bizId, emp, i);
+    tbody.appendChild(frag);
   });
   updateBizHeader(bizId);
 }
 
-function buildEmpRow(bizId, emp, idx) {
+function buildEmpRows(bizId, emp, idx) {
+  const frag = document.createDocumentFragment();
+  const items = emp.items || [];
+  const total = items.reduce((s,i) => s + (Number(i.monthlyAmount)||0), 0);
+  const expanded = emp._expanded !== false;
+
+  // ── Employee header row ──
   const tr = document.createElement('tr');
+  tr.className = 'emp-row';
   tr.dataset.empId = emp.id;
   tr.dataset.bizId = bizId;
   tr.style.animation = 'rowIn .3s ease both';
   tr.innerHTML = `
     <td>${idx + 1}</td>
     <td>
-      <input class="cell-input" value="${esc(emp.name)}" placeholder="직원명"
-        onchange="updateEmpField('${bizId}','${emp.id}','name',this.value)"
-        onkeydown="handleCellKey(event)"
-        tabindex="0">
+      <div class="emp-name-cell">
+        <button class="emp-expand-btn ${expanded ? 'open' : ''}" id="empExpandBtn_${emp.id}"
+          onclick="toggleEmp('${bizId}','${emp.id}')" title="항목 펼치기/접기">▶</button>
+        <input class="cell-input" value="${esc(emp.name)}" placeholder="직원명"
+          onchange="updateEmpName('${bizId}','${emp.id}',this.value)"
+          onkeydown="handleCellKey(event,'${bizId}','${emp.id}')"
+          tabindex="0">
+      </div>
     </td>
     <td>
-      <input class="cell-input amount-input" value="${emp.monthlyAmount ? fmt(emp.monthlyAmount) : ''}"
-        placeholder="0"
-        onfocus="this.value = parseFmt(this.value) || ''"
-        onblur="this.value = this.value ? fmt(parseFmt(this.value)) : ''; updateEmpField('${bizId}','${emp.id}','monthlyAmount', parseFmt(this.value))"
-        onkeydown="handleCellKey(event)"
-        tabindex="0">
+      <div class="emp-total-display" id="empTotal_${emp.id}">${total ? fmt(total) + '<span style="font-size:10px;color:var(--muted);margin-left:2px">원</span>' : ''}</div>
     </td>
-    <td>
-      <input class="cell-input" value="${esc(emp.usage)}" placeholder="사용처"
-        onchange="updateEmpField('${bizId}','${emp.id}','usage',this.value)"
-        onkeydown="handleCellKey(event)"
-        tabindex="0">
-    </td>
-    <td>
-      <input class="cell-input" value="${esc(emp.account)}" placeholder="사용계정"
-        onchange="updateEmpField('${bizId}','${emp.id}','account',this.value)"
-        onkeydown="handleCellKey(event)"
-        tabindex="0">
+    <td colspan="2">
+      <span class="emp-item-count" id="empItemCount_${emp.id}">${items.length > 0 ? items.length + '건' : ''}</span>
     </td>
     <td>
       <div class="row-del-confirm" id="rowDelConfirm_${emp.id}">
@@ -1205,19 +1282,75 @@ function buildEmpRow(bizId, emp, idx) {
         onclick="showRowDelConfirm('${bizId}','${emp.id}')">✕</button>
     </td>
   `;
-  return tr;
+  frag.appendChild(tr);
+
+  // ── Item rows ──
+  items.forEach(item => {
+    frag.appendChild(buildItemRow(bizId, emp.id, item, expanded));
+  });
+
+  // ── Add item button row ──
+  const addRow = document.createElement('tr');
+  addRow.className = 'add-item-row' + (expanded ? '' : ' hidden');
+  addRow.dataset.empId = emp.id;
+  addRow.innerHTML = `
+    <td colspan="6" style="padding:0">
+      <button class="add-item-btn" onclick="addEmpItem('${bizId}','${emp.id}')">
+        <span style="font-size:14px;font-weight:300;line-height:1">＋</span> 항목 추가
+      </button>
+    </td>
+  `;
+  frag.appendChild(addRow);
+  return frag;
+}
+
+function buildItemRow(bizId, empId, item, visible) {
+  const itr = document.createElement('tr');
+  itr.className = 'emp-item-row' + (visible ? '' : ' hidden');
+  itr.dataset.empId = empId;
+  itr.dataset.itemId = item.id;
+  itr.dataset.bizId = bizId;
+  itr.innerHTML = `
+    <td class="item-indent">·</td>
+    <td></td>
+    <td>
+      <input class="cell-input amount-input" value="${item.monthlyAmount ? fmt(item.monthlyAmount) : ''}"
+        placeholder="0"
+        onfocus="this.value = parseFmt(this.value) || ''"
+        onblur="this.value = this.value ? fmt(parseFmt(this.value)) : ''; updateEmpItemField('${bizId}','${empId}','${item.id}','monthlyAmount',parseFmt(this.value))"
+        onkeydown="handleItemKey(event,'${bizId}','${empId}')"
+        tabindex="0">
+    </td>
+    <td>
+      <input class="cell-input" value="${esc(item.usage)}" placeholder="사용처"
+        onchange="updateEmpItemField('${bizId}','${empId}','${item.id}','usage',this.value)"
+        onkeydown="handleItemKey(event,'${bizId}','${empId}')"
+        tabindex="0">
+    </td>
+    <td>
+      <input class="cell-input" value="${esc(item.account)}" placeholder="사용계정"
+        onchange="updateEmpItemField('${bizId}','${empId}','${item.id}','account',this.value)"
+        onkeydown="handleItemKey(event,'${bizId}','${empId}')"
+        tabindex="0">
+    </td>
+    <td>
+      <div class="row-del-confirm" id="itemDelConfirm_${item.id}">
+        <span>삭제?</span>
+        <button class="yes" onclick="deleteEmpItem('${bizId}','${empId}','${item.id}')">네</button>
+        <button class="no" onclick="hideItemDelConfirm('${item.id}')">취소</button>
+      </div>
+      <button class="row-del-btn" id="itemDelBtn_${item.id}"
+        onclick="showItemDelConfirm('${item.id}')">✕</button>
+    </td>
+  `;
+  return itr;
 }
 
 // ── BIZ OPERATIONS ──
-function getBiz(id) {
-  return roster.businesses.find(b => b.id === id);
-}
-function getBizIndex(id) {
-  return roster.businesses.findIndex(b => b.id === id);
-}
+function getBiz(id) { return roster.businesses.find(b => b.id === id); }
+function getBizIndex(id) { return roster.businesses.findIndex(b => b.id === id); }
 
 function handleBizHeaderClick(e, bizId) {
-  // Don't toggle if clicking inside inputs/buttons
   if (e.target.closest('input,button,.biz-actions')) return;
   toggleBiz(bizId, e);
 }
@@ -1240,12 +1373,8 @@ function updateBizField(bizId, field, value) {
   scheduleSave();
 }
 
-function showBizDelConfirm(bizId) {
-  document.getElementById('bizDelConfirm_' + bizId).classList.add('show');
-}
-function hideBizDelConfirm(bizId) {
-  document.getElementById('bizDelConfirm_' + bizId).classList.remove('show');
-}
+function showBizDelConfirm(bizId) { document.getElementById('bizDelConfirm_' + bizId).classList.add('show'); }
+function hideBizDelConfirm(bizId) { document.getElementById('bizDelConfirm_' + bizId).classList.remove('show'); }
 function deleteBiz(bizId) {
   roster.businesses = roster.businesses.filter(b => b.id !== bizId);
   render();
@@ -1253,17 +1382,10 @@ function deleteBiz(bizId) {
 }
 
 function addBiz() {
-  const newBiz = {
-    id: uid(),
-    name: '새 사업자',
-    card: '카드명',
-    employees: [],
-    _collapsed: false
-  };
+  const newBiz = { id: uid(), name: '새 사업자', card: '카드명', employees: [], _collapsed: false };
   roster.businesses.push(newBiz);
   render();
   scheduleSave();
-  // Focus the name input
   setTimeout(() => {
     const input = document.querySelector(`[data-biz="${newBiz.id}"][data-field="name"]`);
     if (input) { input.focus(); input.select(); }
@@ -1275,12 +1397,12 @@ function updateBizHeader(bizId) {
   if (!biz) return;
   const card = document.querySelector(`.biz-card[data-biz-id="${bizId}"]`);
   if (!card) return;
-  const total = biz.employees.reduce((s,e) => s + (Number(e.monthlyAmount)||0), 0);
-  const empCount = biz.employees.length;
+  const total = biz.employees.reduce((s,e) =>
+    s + (e.items||[]).reduce((ss,i) => ss + (Number(i.monthlyAmount)||0), 0), 0);
   const totalEl = card.querySelector('.biz-total');
   const badgeEl = card.querySelector('.biz-badge');
   if (totalEl) totalEl.innerHTML = fmt(total) + '<span class="biz-total-unit">원</span>';
-  if (badgeEl) badgeEl.textContent = empCount + '명';
+  if (badgeEl) badgeEl.textContent = biz.employees.length + '명';
   updateKPI();
 }
 
@@ -1290,31 +1412,39 @@ function getEmp(bizId, empId) {
   return biz ? biz.employees.find(e => e.id === empId) : null;
 }
 
-function updateEmpField(bizId, empId, field, value) {
+function toggleEmp(bizId, empId) {
   const emp = getEmp(bizId, empId);
   if (!emp) return;
-  emp[field] = field === 'monthlyAmount' ? (parseInt(value) || 0) : value;
-  updateBizHeader(bizId);
+  const wasExpanded = emp._expanded !== false;
+  emp._expanded = !wasExpanded;
+  const expanded = emp._expanded;
+  const tbody = document.getElementById('empTbody_' + bizId);
+  if (!tbody) return;
+  tbody.querySelectorAll(`tr.emp-item-row[data-emp-id="${empId}"]`).forEach(r => r.classList.toggle('hidden', !expanded));
+  tbody.querySelectorAll(`tr.add-item-row[data-emp-id="${empId}"]`).forEach(r => r.classList.toggle('hidden', !expanded));
+  const btn = document.getElementById('empExpandBtn_' + empId);
+  if (btn) btn.classList.toggle('open', expanded);
+}
+
+function updateEmpName(bizId, empId, value) {
+  const emp = getEmp(bizId, empId);
+  if (!emp) return;
+  emp.name = value;
   scheduleSave();
 }
 
 function addEmployee(bizId) {
   const biz = getBiz(bizId);
   if (!biz) return;
-  const newEmp = { id: uid(), name: '', monthlyAmount: 0, usage: '', account: '' };
+  const newEmp = { id: uid(), name: '', items: [], _expanded: true };
   biz.employees.push(newEmp);
   renderEmployees(bizId);
   scheduleSave();
-  // Focus new row
   setTimeout(() => {
     const tbody = document.getElementById('empTbody_' + bizId);
-    if (tbody) {
-      const lastRow = tbody.lastElementChild;
-      if (lastRow) {
-        const input = lastRow.querySelector('.cell-input');
-        if (input) input.focus();
-      }
-    }
+    if (!tbody) return;
+    const lastEmpRow = [...tbody.querySelectorAll('tr.emp-row')].pop();
+    if (lastEmpRow) { const inp = lastEmpRow.querySelector('.cell-input'); if (inp) inp.focus(); }
   }, 50);
 }
 
@@ -1342,22 +1472,73 @@ function deleteEmployee(bizId, empId) {
   scheduleSave();
 }
 
+// ── ITEM OPERATIONS ──
+function addEmpItem(bizId, empId) {
+  const emp = getEmp(bizId, empId);
+  if (!emp) return;
+  if (!emp.items) emp.items = [];
+  emp.items.push({ id: uid(), monthlyAmount: 0, usage: '', account: '' });
+  emp._expanded = true;
+  renderEmployees(bizId);
+  scheduleSave();
+  setTimeout(() => {
+    const tbody = document.getElementById('empTbody_' + bizId);
+    if (!tbody) return;
+    const rows = [...tbody.querySelectorAll(`tr.emp-item-row[data-emp-id="${empId}"]`)];
+    const last = rows[rows.length - 1];
+    if (last) { const inp = last.querySelector('.cell-input'); if (inp) inp.focus(); }
+  }, 50);
+}
+
+function showItemDelConfirm(itemId) {
+  const btn = document.getElementById('itemDelBtn_' + itemId);
+  const conf = document.getElementById('itemDelConfirm_' + itemId);
+  if (btn) btn.style.display = 'none';
+  if (conf) conf.classList.add('show');
+  const tr = conf ? conf.closest('tr') : null;
+  if (tr) tr.classList.add('confirming-del');
+}
+function hideItemDelConfirm(itemId) {
+  const btn = document.getElementById('itemDelBtn_' + itemId);
+  const conf = document.getElementById('itemDelConfirm_' + itemId);
+  if (btn) btn.style.display = '';
+  if (conf) conf.classList.remove('show');
+  const tr = conf ? conf.closest('tr') : null;
+  if (tr) tr.classList.remove('confirming-del');
+}
+function deleteEmpItem(bizId, empId, itemId) {
+  const emp = getEmp(bizId, empId);
+  if (!emp) return;
+  emp.items = (emp.items||[]).filter(i => i.id !== itemId);
+  renderEmployees(bizId);
+  scheduleSave();
+}
+
+function updateEmpItemField(bizId, empId, itemId, field, value) {
+  const emp = getEmp(bizId, empId);
+  if (!emp) return;
+  const item = (emp.items||[]).find(i => i.id === itemId);
+  if (!item) return;
+  item[field] = field === 'monthlyAmount' ? (parseInt(value) || 0) : value;
+  // Update employee total/count display inline (avoid full re-render)
+  const items = emp.items || [];
+  const total = items.reduce((s,i) => s + (Number(i.monthlyAmount)||0), 0);
+  const totalEl = document.getElementById('empTotal_' + empId);
+  const countEl = document.getElementById('empItemCount_' + empId);
+  if (totalEl) totalEl.innerHTML = total ? fmt(total) + '<span style="font-size:10px;color:var(--muted);margin-left:2px">원</span>' : '';
+  if (countEl) countEl.textContent = items.length > 0 ? items.length + '건' : '';
+  updateBizHeader(bizId);
+  scheduleSave();
+}
+
 // ── TABLE KEY NAV ──
-function handleCellKey(e) {
-  if (e.key === 'Tab') return; // natural tab
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    const tr = e.target.closest('tr');
-    const next = tr ? tr.nextElementSibling : null;
-    if (next) {
-      const inputs = next.querySelectorAll('.cell-input');
-      if (inputs.length) inputs[0].focus();
-    } else {
-      // Add new row
-      const bizId = tr ? tr.dataset.bizId : null;
-      if (bizId) addEmployee(bizId);
-    }
-  }
+function handleCellKey(e, bizId, empId) {
+  if (e.key === 'Tab') return;
+  if (e.key === 'Enter') { e.preventDefault(); addEmpItem(bizId, empId); }
+}
+function handleItemKey(e, bizId, empId) {
+  if (e.key === 'Tab') return;
+  if (e.key === 'Enter') { e.preventDefault(); addEmpItem(bizId, empId); }
 }
 
 // ── AUTO-WIDTH INPUT ──
@@ -1380,7 +1561,6 @@ function openCsvModal() {
   openModal('csvModal');
 }
 
-// Drag & Drop
 const dz = document.getElementById('dropzone');
 dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
 dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
@@ -1400,27 +1580,20 @@ function processFile(file) {
   const name = file.name;
   document.getElementById('dropzoneFilename').textContent = '✓ ' + name;
   document.getElementById('dropzoneFilename').classList.add('show');
-
   const ext = name.split('.').pop().toLowerCase();
   const reader = new FileReader();
   reader.onload = function(e) {
     let rows = [];
     if (ext === 'csv') {
-      const text = new TextDecoder('utf-8').decode(e.target.result);
-      rows = parseCSVText(text);
+      rows = parseCSVText(new TextDecoder('utf-8').decode(e.target.result));
     } else {
       const wb = XLSX.read(e.target.result, { type: 'array' });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+      rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' });
     }
     parsedCSV = extractMerchantData(rows);
     showPreview(parsedCSV, rows.length);
   };
-  if (ext === 'csv') {
-    reader.readAsArrayBuffer(file);
-  } else {
-    reader.readAsArrayBuffer(file);
-  }
+  reader.readAsArrayBuffer(file);
 }
 
 function parseCSVText(text) {
@@ -1437,7 +1610,6 @@ function parseCSVText(text) {
   });
 }
 
-// Auto-detect column indices
 function detectColumns(header) {
   const h = header.map(c => String(c).toLowerCase());
   const dateIdx = h.findIndex(c => c.includes('날짜') || c.includes('일자') || c.includes('date') || c.includes('거래일'));
@@ -1448,31 +1620,26 @@ function detectColumns(header) {
 
 function extractMerchantData(rows) {
   if (rows.length < 2) return [];
-  const header = rows[0];
-  const { nameIdx, amtIdx } = detectColumns(header);
+  const { nameIdx, amtIdx } = detectColumns(rows[0]);
   if (nameIdx < 0 || amtIdx < 0) return [];
-
   const map = new Map();
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
     const merchant = String(row[nameIdx] || '').trim();
     const amt = parseInt(String(row[amtIdx] || '').replace(/[^0-9-]/g,'')) || 0;
     if (!merchant || !amt || amt < 0) continue;
-    if (map.has(merchant)) map.set(merchant, map.get(merchant) + amt);
-    else map.set(merchant, amt);
+    map.set(merchant, (map.get(merchant) || 0) + amt);
   }
   return Array.from(map, ([merchant, amount]) => ({ merchant, amount }));
 }
 
 function showPreview(data, totalRows) {
   const box = document.getElementById('previewBox');
-  const rowsEl = document.getElementById('previewRows');
-  const sampleEl = document.getElementById('previewSample');
   box.classList.add('show');
-  rowsEl.textContent = `총 ${totalRows}행 파싱 → ${data.length}개 가맹점 집계`;
+  document.getElementById('previewRows').textContent = `총 ${totalRows}행 파싱 → ${data.length}개 가맹점 집계`;
   if (data.length > 0) {
     const sample = data.slice(0,3).map(d => `${d.merchant} ${fmt(d.amount)}원`).join(' | ');
-    sampleEl.textContent = '예시: ' + sample + (data.length > 3 ? ' ...' : '');
+    document.getElementById('previewSample').textContent = '예시: ' + sample + (data.length > 3 ? ' ...' : '');
   }
   document.getElementById('csvImportBtn').disabled = data.length === 0;
 }
@@ -1482,28 +1649,29 @@ function runDiff() {
   if (!parsedCSV.length) return;
   closeModal('csvModal');
 
-  // All known merchants from roster
+  // All known usages from items
   const allUsages = roster.businesses.flatMap(b =>
-    b.employees.flatMap(e => e.usage ? [e.usage.toLowerCase()] : [])
+    b.employees.flatMap(e => (e.items||[]).map(i => i.usage ? i.usage.toLowerCase() : '').filter(Boolean))
   );
 
-  // New items: CSV merchants not found in any employee's usage
+  // New: CSV merchants not found in any item's usage
   const newItems = parsedCSV.filter(d => {
     const ml = d.merchant.toLowerCase();
     return !allUsages.some(u => u.includes(ml) || ml.includes(u));
   });
 
-  // Missing: employees' usage not found in CSV merchants
+  // Missing: items' usage not found in CSV
   const csvMerchants = parsedCSV.map(d => d.merchant.toLowerCase());
   const missingItems = [];
   roster.businesses.forEach(biz => {
     biz.employees.forEach(emp => {
-      if (!emp.usage) return;
-      const ul = emp.usage.toLowerCase();
-      const found = csvMerchants.some(m => m.includes(ul) || ul.includes(m));
-      if (!found) {
-        missingItems.push({ empName: emp.name, bizName: biz.name, usage: emp.usage, empId: emp.id, bizId: biz.id });
-      }
+      (emp.items||[]).forEach(item => {
+        if (!item.usage) return;
+        const ul = item.usage.toLowerCase();
+        if (!csvMerchants.some(m => m.includes(ul) || ul.includes(m))) {
+          missingItems.push({ empName: emp.name, bizName: biz.name, usage: item.usage, empId: emp.id, bizId: biz.id, itemId: item.id });
+        }
+      });
     });
   });
 
@@ -1549,15 +1717,15 @@ function renderDiff(newItems, missingItems) {
           <div class="diff-item-name">${esc(item.empName)} · ${esc(item.bizName)}</div>
           <div class="diff-item-meta">사용처: ${esc(item.usage)}</div>
         </div>
-        <button class="diff-action-btn" onclick="removeEmpFromDiff('${item.bizId}','${item.empId}',this)">명부에서 제거</button>
+        <button class="diff-action-btn" onclick="removeItemFromDiff('${item.bizId}','${item.empId}','${item.itemId}',this)">명부에서 제거</button>
       `;
       missList.appendChild(el);
     });
   }
 }
 
-function removeEmpFromDiff(bizId, empId, btn) {
-  deleteEmployee(bizId, empId);
+function removeItemFromDiff(bizId, empId, itemId, btn) {
+  deleteEmpItem(bizId, empId, itemId);
   const item = btn.closest('.diff-item');
   if (item) item.remove();
   const badge = document.getElementById('missingCountBadge');
@@ -1571,8 +1739,6 @@ function openAssignModal(item) {
   document.getElementById('assignAmountDisplay').textContent = fmt(item.amount) + '원';
   document.getElementById('assignUsage').value = item.merchant;
   document.getElementById('assignAccount').value = '';
-
-  // Build biz select
   const bizSel = document.getElementById('assignBizSelect');
   bizSel.innerHTML = '';
   roster.businesses.forEach(b => {
@@ -1620,19 +1786,15 @@ function confirmAssign() {
   if (!biz) return;
 
   if (empId === '__new__') {
-    const newEmp = {
-      id: uid(),
-      name: assigningItem.merchant,
-      monthlyAmount: assigningItem.amount,
-      usage, account
-    };
-    biz.employees.push(newEmp);
+    biz.employees.push({
+      id: uid(), name: assigningItem.merchant, _expanded: true,
+      items: [{ id: uid(), monthlyAmount: assigningItem.amount, usage, account }]
+    });
   } else {
     const emp = getEmp(bizId, empId);
     if (emp) {
-      emp.usage = usage;
-      emp.account = account;
-      emp.monthlyAmount = assigningItem.amount;
+      if (!emp.items) emp.items = [];
+      emp.items.push({ id: uid(), monthlyAmount: assigningItem.amount, usage, account });
     }
   }
 
@@ -1640,14 +1802,9 @@ function confirmAssign() {
   scheduleSave();
   closeModal('assignModal');
 
-  // Remove from diff list
   const newList = document.getElementById('newItemsList');
-  const items = newList.querySelectorAll('.diff-item');
-  items.forEach(item => {
-    if (item.querySelector('.diff-item-name') &&
-        item.querySelector('.diff-item-name').textContent === assigningItem.merchant) {
-      item.remove();
-    }
+  newList.querySelectorAll('.diff-item').forEach(el => {
+    if (el.querySelector('.diff-item-name')?.textContent === assigningItem.merchant) el.remove();
   });
   const badge = document.getElementById('newCountBadge');
   badge.textContent = Math.max(0, parseInt(badge.textContent) - 1);
@@ -1655,15 +1812,9 @@ function confirmAssign() {
 }
 
 // ── MODAL HELPERS ──
-function openModal(id) {
-  document.getElementById(id).classList.add('show');
-}
-function closeModal(id) {
-  document.getElementById(id).classList.remove('show');
-}
-function handleOverlayClick(e, id) {
-  if (e.target === document.getElementById(id)) closeModal(id);
-}
+function openModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+function handleOverlayClick(e, id) { if (e.target === document.getElementById(id)) closeModal(id); }
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
