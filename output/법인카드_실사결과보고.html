@@ -291,7 +291,7 @@ tr:last-child td { border-bottom: none; }
 .search-bar {
   background: #1E1C18; padding: 10px 40px;
   display: flex; align-items: center; gap: 12px;
-  position: sticky; top: 40px; z-index: 800;
+  position: sticky; top: 0; z-index: 800;
   border-bottom: 1px solid #2E2C28;
 }
 .search-wrap { position: relative; flex: 1; max-width: 520px; }
@@ -335,33 +335,9 @@ tr.food-hidden { display: none !important; }
 .month-dot .m-amt { font-size: 10px; font-weight: 600; color: var(--ink2); white-space: nowrap; }
 .month-dot .m-amt.paid { color: var(--s-ok-fg); }
 .month-dot .m-amt.none { color: #D0CCC5; }
-.app-nav{background:#1A1814;padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:40px;position:sticky;top:0;z-index:200;font-family:inherit}
-.app-nav-brand{font-size:11px;font-weight:700;letter-spacing:.1em;color:rgba(255,255,255,.9);text-transform:uppercase;text-decoration:none}
-.app-nav-links{display:flex;gap:0;height:100%}
-.app-nav-link{padding:0 12px;display:flex;align-items:center;gap:5px;font-size:11px;color:rgba(255,255,255,.5);text-decoration:none;letter-spacing:.04em;border-bottom:2px solid transparent;transition:all .15s}
-.app-nav-link:hover{color:rgba(255,255,255,.85)}
-.app-nav-link.active{color:white;border-bottom-color:#C8380A;font-weight:700}
-.app-nav-sep{color:rgba(255,255,255,.15);padding:0 4px;font-size:10px;display:flex;align-items:center}
-.app-nav-badge{background:#C8380A;color:white;font-size:8px;padding:1px 4px;font-weight:700;letter-spacing:.04em;line-height:1.4}
-@media print{.app-nav{display:none!important}}
 </style>
 </head>
 <body>
-<nav class="app-nav">
-  <a href="/" class="app-nav-brand">hanQ</a>
-  <div class="app-nav-links">
-    <a href="/accounts" class="app-nav-link">재무관리(구)</a>
-    <a href="/finance-new" class="app-nav-link">재무관리(신) <span class="app-nav-badge">개발중</span></a>
-    <a href="/plan" class="app-nav-link">자금계획</a>
-    <span class="app-nav-sep">|</span>
-    <a href="/roster" class="app-nav-link">관리명부</a>
-    <a href="/inspect" class="app-nav-link">카드실사</a>
-    <a href="/spend" class="app-nav-link">일회성지출</a>
-    <a href="/report" class="app-nav-link">분석리포트</a>
-    <a href="/quick" class="app-nav-link">빠른입력</a>
-  </div>
-</nav>
-<script>(function(){var p=location.pathname;document.querySelectorAll('.app-nav-link[href]').forEach(function(a){if(a.getAttribute('href')===p)a.classList.add('active');});if(window.self!==window.top){var n=document.querySelector('.app-nav');if(n)n.style.display='none';}})()</script>
 
 <div id="save-toast">✓ 저장됨</div>
 

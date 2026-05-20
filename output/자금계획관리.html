@@ -9,7 +9,7 @@
 *{box-sizing:border-box;margin:0;padding:0}
 
 /* ── HEADER ── */
-.header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 60px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:40px;z-index:100}
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 60px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100}
 .header-left{display:flex;align-items:center;gap:16px}
 .header-title{font-size:14px;font-weight:700;letter-spacing:.05em;color:var(--ink)}
 .header-sub{font-size:11px;color:var(--muted);letter-spacing:.03em}
@@ -47,7 +47,7 @@
 .ticker-sep{display:inline-block;color:var(--warn);opacity:.35;font-size:13px;margin:0 18px;font-weight:300}
 
 /* ── TABS ── */
-.tab-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 60px;display:flex;gap:0;position:sticky;top:96px;z-index:99}
+.tab-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 60px;display:flex;gap:0;position:sticky;top:56px;z-index:99}
 .tab-btn{padding:14px 22px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);cursor:pointer;border:none;background:none;font-family:inherit;border-bottom:2px solid transparent;transition:all .15s}
 .tab-btn:hover{color:var(--ink2)}
 .tab-btn.active{color:var(--ink);border-bottom-color:var(--accent);font-weight:800}
@@ -181,30 +181,7 @@ textarea.modal-input{resize:vertical;min-height:80px;border:1px solid var(--bord
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;min-height:100vh}
-.app-nav{background:#1A1814;padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:40px;position:sticky;top:0;z-index:200;font-family:inherit}
-.app-nav-brand{font-size:11px;font-weight:700;letter-spacing:.1em;color:rgba(255,255,255,.9);text-transform:uppercase;text-decoration:none}
-.app-nav-links{display:flex;gap:0;height:100%}
-.app-nav-link{padding:0 12px;display:flex;align-items:center;gap:5px;font-size:11px;color:rgba(255,255,255,.5);text-decoration:none;letter-spacing:.04em;border-bottom:2px solid transparent;transition:all .15s}
-.app-nav-link:hover{color:rgba(255,255,255,.85)}
-.app-nav-link.active{color:white;border-bottom-color:#C8380A;font-weight:700}
-.app-nav-sep{color:rgba(255,255,255,.15);padding:0 4px;font-size:10px;display:flex;align-items:center}
-.app-nav-badge{background:#C8380A;color:white;font-size:8px;padding:1px 4px;font-weight:700;letter-spacing:.04em;line-height:1.4}
-@media print{.app-nav{display:none!important}}
 </style>
-<nav class="app-nav">
-  <a href="/" class="app-nav-brand">hanQ</a>
-  <div class="app-nav-links">
-    <a href="/accounts" class="app-nav-link">재무관리(구)</a>
-    <a href="/finance-new" class="app-nav-link">재무관리(신) <span class="app-nav-badge">개발중</span></a>
-    <a href="/plan" class="app-nav-link">자금계획</a>
-    <span class="app-nav-sep">|</span>
-    <a href="/roster" class="app-nav-link">관리명부</a>
-    <a href="/inspect" class="app-nav-link">카드실사</a>
-    <a href="/spend" class="app-nav-link">일회성지출</a>
-    <a href="/report" class="app-nav-link">분석리포트</a>
-    <a href="/quick" class="app-nav-link">빠른입력</a>
-  </div>
-</nav>
 <script>(function(){
   var p=location.pathname;document.querySelectorAll('.app-nav-link[href]').forEach(function(a){if(a.getAttribute('href')===p)a.classList.add('active');});
   if(window.self!==window.top){
