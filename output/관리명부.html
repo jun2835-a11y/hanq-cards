@@ -1083,7 +1083,7 @@ body {
     <a href="/quick" class="app-nav-link">빠른입력</a>
   </div>
 </nav>
-<script>(function(){var p=location.pathname;document.querySelectorAll('.app-nav-link[href]').forEach(function(a){if(a.getAttribute('href')===p)a.classList.add('active');});if(window.self!==window.top){var n=document.querySelector('.app-nav');if(n)n.style.display='none';}})()</script>
+<script>(function(){var p=location.pathname;document.querySelectorAll('.app-nav-link[href]').forEach(function(a){if(a.getAttribute('href')===p)a.classList.add('active');});if(window.self!==window.top){var n=document.querySelector('.app-nav');if(n)n.style.display='none';document.head.insertAdjacentHTML('beforeend','<style>.header{top:0!important}</style>');}})()</script>
 
 <!-- HEADER -->
 <header class="header">

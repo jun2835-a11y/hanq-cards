@@ -582,7 +582,7 @@ tr.row-threshold-warn:hover{background:#FFF7D6!important}
     <a href="/quick" class="app-nav-link">빠른입력</a>
   </div>
 </nav>
-<script>(function(){var p=location.pathname;document.querySelectorAll('.app-nav-link[href]').forEach(function(a){if(a.getAttribute('href')===p)a.classList.add('active');});if(window.self!==window.top){var n=document.querySelector('.app-nav');if(n)n.style.display='none';}})()</script>
+<script>(function(){var p=location.pathname;document.querySelectorAll('.app-nav-link[href]').forEach(function(a){if(a.getAttribute('href')===p)a.classList.add('active');});if(window.self!==window.top){var n=document.querySelector('.app-nav');if(n)n.style.display='none';document.head.insertAdjacentHTML('beforeend','<style>.tab-bar{top:0!important}</style>');}})()</script>
 <div id="hl-splash" style="position:fixed;inset:0;z-index:99999;background:#0B0D14;display:flex;align-items:center;justify-content:center;flex-direction:column;opacity:1;transition:opacity .65s ease">
   <div style="position:relative;width:136px;height:136px;background:#2454C8;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding-bottom:10px;box-shadow:0 0 0 1.5px rgba(255,255,255,0.12) inset">
     <div style="position:absolute;top:22px;left:15px;right:15px;height:1px;background:rgba(255,255,255,0.45)"></div>
