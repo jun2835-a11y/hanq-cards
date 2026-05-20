@@ -207,30 +207,34 @@ var _merchants = {};  // {merchantKey: {name,count,totalOut,cat,biz,sampleDate,a
 var _files = [];      // 업로드된 파일 목록 [{name,bank,rows}]
 var _filter = 'all';
 
-// ── localStorage 저장/복원 ──────────────────────────
-var STORE_KEY = 'hanq-finance-tags-v1';
+// ── 서버 저장/복원 ────────────────────────────────────
+var API = (location.hostname === 'localhost' ? 'http://localhost:3005' : '') + '/api/finance-work-tags';
 
 function saveState() {
-  try {
-    var tags = {};
-    Object.keys(_merchants).forEach(function(k){
-      tags[k] = { cat: _merchants[k].cat, biz: _merchants[k].biz };
-    });
-    localStorage.setItem(STORE_KEY, JSON.stringify(tags));
-    flashSave();
-  } catch(e){}
+  var tags = {};
+  Object.keys(_merchants).forEach(function(k){
+    tags[k] = { cat: _merchants[k].cat, biz: _merchants[k].biz };
+  });
+  fetch(API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(tags)
+  }).then(function(){ flashSave(); }).catch(function(){});
 }
 
 function loadSavedTags() {
-  try {
-    var saved = JSON.parse(localStorage.getItem(STORE_KEY) || '{}');
+  // 서버에서 태그 불러와서 현재 _merchants에 덮어씌우기
+  fetch(API).then(function(r){ return r.json(); }).then(function(saved){
+    if (!saved || typeof saved !== 'object') return;
     Object.keys(saved).forEach(function(k){
       if (_merchants[k]) {
-        _merchants[k].cat = saved[k].cat || _merchants[k].cat;
-        _merchants[k].biz = saved[k].biz || _merchants[k].biz;
+        if (saved[k].cat) _merchants[k].cat = saved[k].cat;
+        if (saved[k].biz) _merchants[k].biz = saved[k].biz;
       }
     });
-  } catch(e){}
+    updateProgress();
+    renderMerchants();
+  }).catch(function(){});
 }
 
 function flashSave() {
