@@ -399,8 +399,7 @@ body {
 .cell-input.amount-input {
   font-variant-numeric: tabular-nums;
   font-weight: 500;
-  text-align: right;
-  padding-right: 16px;
+  text-align: left;
 }
 .row-del-btn {
   width: 24px; height: 24px;
@@ -859,8 +858,8 @@ body {
   font-variant-numeric: tabular-nums;
   font-weight: 500;
   font-size: 12px;
-  padding: 12px 16px 12px 12px;
-  text-align: right;
+  padding: 12px 12px;
+  text-align: left;
   color: var(--ink);
 }
 .emp-item-count {
@@ -954,7 +953,7 @@ body {
 }
 .sidebar-biz-item:last-child { border-bottom: none; }
 .sidebar-biz-item:hover { background: var(--bg); }
-.sidebar-biz-color { width: 3px; flex-shrink: 0; }
+.sidebar-biz-color { width: 3px; flex-shrink: 0; animation: breatheBar 3.5s ease-in-out infinite; }
 .sidebar-biz-info {
   padding: 10px 12px;
   flex: 1;
@@ -1389,7 +1388,7 @@ function buildBizCard(biz, idx) {
             <tr>
               <th>#</th>
               <th>직원명</th>
-              <th style="text-align:right; padding-right:16px">결제액</th>
+              <th>결제액</th>
               <th>사용처</th>
               <th>사용계정</th>
               <th></th>
