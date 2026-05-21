@@ -215,7 +215,7 @@ input[type=file]{display:none}
 <script>
 // ── 상수 ──────────────────────────────────────────────
 const CATS = ['인건비','4대보험','3.3소득세','식비/경비','임대료','공과금','통신비',
-  '마케팅/광고비','특허','변호사비','인증비','IT인프라비','사무용품/사무집기','복리후생비','금융비용(이자)','기타'];
+  '마케팅/광고비','특허','변호사비','인증비','IT인프라비','사무용품/사무집기','복리후생비','금융비용(이자)','일괄송금(사유확인불가)','기타'];
 
 // 카테고리 드롭다운 초기화 (태깅 필터 + 집계 필터)
 (function(){
@@ -248,6 +248,8 @@ const STAFF_NAMES = [
 ];
 
 const AUTO_RULES = [
+  { cat:'인건비',             biz:'', kw:['급여'] },
+  { cat:'일괄송금(사유확인불가)', biz:'', kw:['일괄'] },
   { cat:'4대보험',    biz:'',     kw:['건강보험','국민연금','고용보험','산재','4대보험','건강공단','연금공단'] },
   { cat:'3.3소득세',  biz:'',     kw:['소득세','원천세','세무서'] },
   { cat:'통신비',     biz:'',     kw:['KT','SKT','LGU','SK텔레콤','LG유플러스','통신','스카이라이프','텔레캅','인터넷'] },
@@ -496,6 +498,9 @@ function normalizeDate(s) {
 }
 
 // ── 자동 태깅 ─────────────────────────────────────────
+// 한국 주요 성씨 (이름 감지용)
+const KR_SURNAMES = '김이박최정강조윤장임한오서신권황안송류전홍고문양손배백허유남심노하곽성차주우구나진지엄채원천방공현함변염여추도소석선설마길연위표명기반왕금옥육인맹제모탁국음라';
+
 function matchStaffName(merchantName) {
   for (var i = 0; i < STAFF_NAMES.length; i++) {
     if (merchantName.includes(STAFF_NAMES[i])) return STAFF_NAMES[i];
@@ -503,11 +508,18 @@ function matchStaffName(merchantName) {
   return null;
 }
 
+function looksLikePersonName(merchantName) {
+  // 전체가 2~3글자 순수 한글이고, 첫 글자가 성씨이면 사람 이름으로 판단
+  var t = merchantName.trim();
+  return /^[가-힣]{2,3}$/.test(t) && KR_SURNAMES.includes(t[0]);
+}
+
 function autoTag(merchantName) {
-  // 직원 이름 포함 시 인건비 우선
+  // 1. 직원 이름 → 인건비
   if (matchStaffName(merchantName)) {
     return { cat: '인건비', biz: '', autoTagged: true };
   }
+  // 2. 키워드 룰 (급여·일괄 포함)
   var upper = merchantName.toUpperCase();
   for (var i = 0; i < AUTO_RULES.length; i++) {
     var rule = AUTO_RULES[i];
@@ -516,6 +528,10 @@ function autoTag(merchantName) {
         return { cat: rule.cat, biz: rule.biz, autoTagged: true };
       }
     }
+  }
+  // 3. 직원 외 사람 이름 패턴 → 기타
+  if (looksLikePersonName(merchantName)) {
+    return { cat: '기타', biz: '', autoTagged: true };
   }
   return { cat: '', biz: '', autoTagged: false };
 }
