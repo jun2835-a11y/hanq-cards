@@ -61,8 +61,20 @@ async function sbWrite(key, data) {
     if (!res.ok) {
       const body = await res.text().catch(() => '');
       console.error(`[Supabase write error] ${res.status} for key "${key}":`, body);
+      return false;
     }
-  } catch (e) { console.error('[Supabase write error]', e.message); }
+    return true;
+  } catch (e) { console.error('[Supabase write error]', e.message); return false; }
+}
+
+// Supabase 연결 테스트 (테이블 접근 가능 여부)
+async function sbPing() {
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/kv_store?limit=1`, {
+      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` }
+    });
+    return { ok: res.ok, status: res.status };
+  } catch (e) { return { ok: false, error: e.message }; }
 }
 
 // 로컬 파일 폴백 (Supabase 미설정 or 개발 환경)
@@ -78,14 +90,15 @@ function localWrite(file, data) {
 // 동기 읽기 — 항상 캐시에서 반환
 function readJSON(file) { return _cache[file] ?? {}; }
 
-// 쓰기 — 캐시 + 영구저장소에 동시 반영 (await 가능)
+// 쓰기 — 캐시 + 영구저장소에 동시 반영 (await 가능), Supabase 저장 성공 여부 반환
 async function writeJSON(file, data) {
   _cache[file] = data;
   const key = FILE_TO_KEY[file];
   if (SB_URL && SB_KEY && key) {
-    await sbWrite(key, data);   // 완료 확인 후 반환 (배포 재시작 시 유실 방지)
+    return await sbWrite(key, data);
   } else {
     localWrite(file, data);
+    return false;
   }
 }
 
@@ -240,9 +253,9 @@ const server = http.createServer((req, res) => {
     req.on('end', async () => {
       try {
         const data = JSON.parse(body);
-        await writeJSON(postRoutes[url], data);   // Supabase 쓰기 완료 후 응답
+        const sbOk = await writeJSON(postRoutes[url], data);
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end('{"ok":true}');
+        res.end(JSON.stringify({ ok: true, supabase: !!(SB_URL && SB_KEY && sbOk) }));
       } catch { res.writeHead(400); res.end('Bad JSON'); }
     });
     return;
@@ -287,6 +300,31 @@ const server = http.createServer((req, res) => {
     alerts.sort((a, b) => a.daysLeft - b.daysLeft);
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ totalDeposit, totalLoan, netFunds: totalDeposit - totalLoan, urgentCount, alerts }));
+    return;
+  }
+
+  // 진단 API — Supabase 연결 상태 + 캐시 현황
+  if (url === '/api/debug' && req.method === 'GET') {
+    const info = {
+      supabaseConfigured: !!(SB_URL && SB_KEY),
+      supabaseProject: SB_URL ? SB_URL.split('//')[1]?.split('.')[0] : null,
+      cache: {},
+    };
+    Object.entries(FILE_TO_KEY).forEach(([file, key]) => {
+      const d = _cache[file];
+      info.cache[key] = d ? Object.keys(d).length : 0;
+    });
+    if (SB_URL && SB_KEY) {
+      sbPing().then(ping => {
+        info.supabasePing = ping;
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(info, null, 2));
+      });
+    } else {
+      info.supabasePing = { ok: false, reason: 'not configured' };
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(info, null, 2));
+    }
     return;
   }
 

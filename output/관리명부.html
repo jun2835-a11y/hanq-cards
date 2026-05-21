@@ -1312,7 +1312,9 @@ async function doSave() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(roster)
     });
-    setSaveStatus(r.ok ? 'saved' : 'error');
+    if (!r.ok) { setSaveStatus('error'); return; }
+    const res = await r.json().catch(() => ({}));
+    setSaveStatus(res.supabase === false ? 'nosb' : 'saved');
   } catch(e) {
     setSaveStatus('error');
   }
@@ -1321,10 +1323,11 @@ async function doSave() {
 function setSaveStatus(state) {
   const el = document.getElementById('saveIndicator');
   const txt = el.querySelector('.save-indicator-text');
-  el.className = 'save-indicator ' + state;
+  el.className = 'save-indicator ' + (state === 'nosb' ? 'error' : state);
   if (state === 'saved')  txt.textContent = '저장됨 ✓';
   if (state === 'saving') txt.textContent = '저장 중...';
-  if (state === 'error')  txt.textContent = '저장 실패';
+  if (state === 'error')  txt.textContent = '저장 실패 ✗';
+  if (state === 'nosb')   txt.textContent = '⚠ Supabase 저장 실패 (새로고침 시 소실)';
 }
 
 // ── KPI ──
