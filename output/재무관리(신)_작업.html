@@ -782,8 +782,8 @@ function handleFiles(files) {
           }
           // 2) HTML 테이블
           var p = parseHtmlXlsTable(text, f2.name);
-          // SheetJS diag가 더 유용하면 그것을 우선
-          var diag = (sbDiag && (sbDiag.headers||[]).length > 0) ? sbDiag : (p._diag || sbDiag);
+          // SheetJS diag 우선 (headers 없어도 error/sampleMerchant 정보 있으면 더 유용)
+          var diag = sbDiag || p._diag;
           console.log('[XLS] '+label+' DOMParser → bank:', p.bank, '행수:', p.rows.length);
           if (p.rows.length === 0) {
             var db = detectBankFromText(text);
