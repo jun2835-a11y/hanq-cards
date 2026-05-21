@@ -949,14 +949,17 @@ function setTag(key, field, val) {
   renderMerchants();
 }
 
-function resetTags() {
-  if (!confirm('모든 태그를 초기화하시겠습니까?\n(서버에 저장된 태그도 삭제됩니다)')) return;
+async function resetTags() {
+  if (!confirm('모든 태그를 초기화하시겠습니까?\n(서버에 저장된 태그도 모두 삭제됩니다)')) return;
+
+  // 1. 메모리에서 태그 전부 삭제
   Object.keys(_merchants).forEach(function(k){
     _merchants[k].cat = '';
     _merchants[k].biz = '';
     _merchants[k].autoTagged = false;
   });
-  // UI 먼저 업데이트 (saveState 에러와 무관하게 동작)
+
+  // 2. UI 즉시 갱신
   var catSel = document.getElementById('filterCat');
   if (catSel) catSel.value = '';
   _filter = 'all';
@@ -966,7 +969,22 @@ function resetTags() {
   updateProgress();
   showParseResult();
   renderMerchants();
-  saveState(); // 서버 저장은 마지막 (비동기)
+
+  // 3. 서버에 빈 상태 저장 (await — 재로드 시 잔류 방지)
+  showLoad('초기화 중...');
+  try {
+    var r = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ merchants: {} })
+    });
+    hideLoad();
+    var res = await r.json().catch(function(){ return {}; });
+    flashSave(res.supabase);
+  } catch(e) {
+    hideLoad();
+    flashSave(false);
+  }
 }
 
 // ── 집계 ──────────────────────────────────────────────
