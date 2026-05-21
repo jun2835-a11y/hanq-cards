@@ -332,11 +332,19 @@ function saveState() {
 }
 
 function doSave(attempt) {
+  // 태그된 거래처: 전체 데이터 / 미분류: 이름만 저장 (페이로드 최소화)
+  var tagged = {};
+  var allKeys = [];
+  Object.keys(_merchants).forEach(function(k) {
+    var m = _merchants[k];
+    allKeys.push(k);
+    if (m.cat || m.biz) tagged[k] = m;
+  });
   if (attempt === 0) showLoad('저장 중...');
   fetch(API, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ merchants: _merchants })
+    body: JSON.stringify({ merchants: tagged, allKeys: allKeys })
   }).then(function(r) {
     if (!r.ok) throw new Error('HTTP ' + r.status);
     return r.json();
@@ -375,8 +383,18 @@ function loadStateOnInit() {
   showLoad('데이터 불러오는 중...');
   fetch(API).then(function(r){ return r.json(); }).then(function(saved){
     hideLoad();
-    if (!saved || !saved.merchants || Object.keys(saved.merchants).length === 0) return;
-    _merchants = saved.merchants;
+    if (!saved) return;
+    var taggedData = saved.merchants || {};
+    var allKeys = saved.allKeys || Object.keys(taggedData);
+    if (allKeys.length === 0) return;
+    // 모든 거래처 복원: 태그된 것은 전체 데이터, 미분류는 이름만
+    _merchants = {};
+    allKeys.forEach(function(k) {
+      _merchants[k] = taggedData[k] || {
+        name: k, count: 0, totalOut: 0, totalIn: 0,
+        cat: '', biz: '', sampleDate: '', autoTagged: false
+      };
+    });
     document.getElementById('progressWrap').style.display = 'flex';
     updateProgress();
     renderMerchants();
