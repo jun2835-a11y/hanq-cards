@@ -114,9 +114,23 @@ input[type=file]{display:none}
 /* 저장 상태 */
 .save-indicator{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:white;font-size:11px;padding:8px 18px;letter-spacing:.04em;opacity:0;transition:opacity .3s;pointer-events:none}
 .save-indicator.show{opacity:1}
+
+/* ── 로딩 인디케이터 ── */
+#ld-bar{position:fixed;top:0;left:0;width:100%;height:3px;z-index:9999;overflow:hidden;pointer-events:none;opacity:0;transition:opacity .12s}
+#ld-bar.active{opacity:1}
+#ld-bar-inner{position:absolute;top:0;left:-50%;width:45%;height:100%;background:var(--accent)}
+#ld-bar.active #ld-bar-inner{animation:ldSlide 1.05s cubic-bezier(.4,0,.6,1) infinite}
+@keyframes ldSlide{0%{left:-45%}100%{left:105%}}
+#ld-toast{position:fixed;bottom:56px;right:20px;z-index:9998;background:var(--ink);color:white;padding:9px 15px;font-size:11px;letter-spacing:.04em;display:flex;align-items:center;gap:9px;box-shadow:0 3px 14px rgba(0,0,0,.2);pointer-events:none;opacity:0;transition:opacity .18s,transform .18s;transform:translateY(6px)}
+#ld-toast.show{opacity:1;transform:translateY(0)}
+#ld-spin{width:11px;height:11px;border:1.5px solid rgba(255,255,255,.2);border-top-color:white;border-radius:50%;animation:ldSpin .65s linear infinite;flex-shrink:0}
+@keyframes ldSpin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
+
+<div id="ld-bar"><div id="ld-bar-inner"></div></div>
+<div id="ld-toast"><div id="ld-spin"></div><span id="ld-msg">처리 중...</span></div>
 
 <div class="progress-bar-wrap" id="progressWrap" style="display:none">
   <span class="progress-label">태깅 진행률</span>
@@ -228,6 +242,24 @@ const AUTO_RULES = [
   { cat:'인건비',     biz:'',     kw:[] }, // 이름 있는 이체는 사람이 판단
 ];
 
+// ── 로딩 인디케이터 ──────────────────────────────────
+var _ldCount = 0;
+var _ldBar   = document.getElementById('ld-bar');
+var _ldToast = document.getElementById('ld-toast');
+var _ldMsg   = document.getElementById('ld-msg');
+function showLoad(msg) {
+  _ldCount++;
+  if (msg) _ldMsg.textContent = msg;
+  _ldBar.classList.add('active');
+  _ldToast.classList.add('show');
+}
+function hideLoad() {
+  if (--_ldCount > 0) return;
+  _ldCount = 0;
+  _ldBar.classList.remove('active');
+  _ldToast.classList.remove('show');
+}
+
 // ── 상태 ──────────────────────────────────────────────
 var _txns = [];       // 전체 파싱된 거래 [{date,merchant,out,in,bank}]
 var _merchants = {};  // {merchantKey: {name,count,totalOut,cat,biz,sampleDate,autoTagged}}
@@ -238,17 +270,21 @@ var _filter = 'all';
 var API = (location.hostname === 'localhost' ? 'http://localhost:3005' : '') + '/api/finance-work-tags';
 
 function saveState() {
+  showLoad('저장 중...');
   fetch(API, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ merchants: _merchants })
   }).then(function(r){ return r.json(); }).then(function(res){
+    hideLoad();
     flashSave(res && res.supabase);
-  }).catch(function(){ flashSave(false); });
+  }).catch(function(){ hideLoad(); flashSave(false); });
 }
 
 function loadSavedTags() {
+  showLoad('태그 복원 중...');
   fetch(API).then(function(r){ return r.json(); }).then(function(saved){
+    hideLoad();
     if (!saved || typeof saved !== 'object') return;
     var data = saved.merchants || saved;
     Object.keys(data).forEach(function(k){
@@ -259,17 +295,19 @@ function loadSavedTags() {
     });
     updateProgress();
     renderMerchants();
-  }).catch(function(){});
+  }).catch(function(){ hideLoad(); });
 }
 
 function loadStateOnInit() {
+  showLoad('데이터 불러오는 중...');
   fetch(API).then(function(r){ return r.json(); }).then(function(saved){
+    hideLoad();
     if (!saved || !saved.merchants || Object.keys(saved.merchants).length === 0) return;
     _merchants = saved.merchants;
     document.getElementById('progressWrap').style.display = 'flex';
     updateProgress();
     renderMerchants();
-  }).catch(function(){});
+  }).catch(function(){ hideLoad(); });
 }
 loadStateOnInit();
 
@@ -458,6 +496,7 @@ function handleFiles(files) {
   Array.from(files).forEach(function(file) {
     var ext = file.name.split('.').pop().toLowerCase();
     if (ext === 'csv') {
+      showLoad('파일 읽는 중...');
       var reader = new FileReader();
       reader.onload = function(e) {
         var text = e.target.result;
@@ -470,9 +509,12 @@ function handleFiles(files) {
         if (existing >= 0) _files[existing] = entry;
         else _files.push(entry);
         renderFileList();
+        hideLoad();
       };
+      reader.onerror = function(){ hideLoad(); };
       reader.readAsText(file, 'euc-kr');
     } else if (ext === 'xlsx') {
+      showLoad('파일 읽는 중...');
       (function(f2){
         var reader2 = new FileReader();
         reader2.onload = function(e) {
@@ -482,21 +524,25 @@ function handleFiles(files) {
           var entry = { name: f2.name, bank: bank, parsed: rows, type: 'excel', rows: 0 };
           if (existing >= 0) _files[existing] = entry; else _files.push(entry);
           renderFileList();
+          hideLoad();
         };
+        reader2.onerror = function(){ hideLoad(); };
         reader2.readAsArrayBuffer(f2);
       })(file);
     } else if (ext === 'xls') {
       // 1차: ArrayBuffer (이진 XLS)
       // 2차: EUC-KR 텍스트 → DOMParser (KB·광주 HTML-format XLS)
       // 3차: CSV 파서 폴백
+      showLoad('파일 읽는 중...');
       (function(f2){
+        function xlsDone(){ hideLoad(); }
         var reader2 = new FileReader();
         reader2.onload = function(e) {
           console.log('[XLS] 파싱 시작:', f2.name);
           var parsed = parseExcelData(e.target.result, 'array', f2.name);
           console.log('[XLS] ArrayBuffer 결과 → bank:', parsed.bank, '행수:', parsed.rows.length);
           if (parsed.rows.length > 0 && parsed.bank !== '?') {
-            registerEntry(f2, parsed); return;
+            registerEntry(f2, parsed, xlsDone); return;
           }
           // HTML-format XLS: EUC-KR로 읽어 charset 감지 → UTF-8이면 재시도
           var textReader = new FileReader();
@@ -515,8 +561,9 @@ function handleFiles(files) {
                   var cr = parseCSVText(utfText, db);
                   p = { bank: cr.length ? db : '?', rows: cr };
                 }
-                registerEntry(f2, p);
+                registerEntry(f2, p, xlsDone);
               };
+              utfReader.onerror = xlsDone;
               utfReader.readAsText(f2, 'utf-8');
               return;
             }
@@ -529,10 +576,12 @@ function handleFiles(files) {
               console.log('[XLS] CSV 폴백 → bank:', detectedBank, '행수:', csvRows.length);
               parsed2 = { bank: csvRows.length ? detectedBank : '?', rows: csvRows };
             }
-            registerEntry(f2, parsed2);
+            registerEntry(f2, parsed2, xlsDone);
           };
+          textReader.onerror = xlsDone;
           textReader.readAsText(f2, 'euc-kr');
         };
+        reader2.onerror = xlsDone;
         reader2.readAsArrayBuffer(f2);
       })(file);
     }
@@ -652,11 +701,12 @@ function parseHtmlXlsTable(text) {
 }
 
 // 파일 등록 공통 헬퍼
-function registerEntry(f2, parsed) {
+function registerEntry(f2, parsed, done) {
   var existing = _files.findIndex(function(f){ return f.name === f2.name; });
   var entry = { name: f2.name, bank: parsed.bank, parsed: parsed.rows, type: 'excel', rows: 0 };
   if (existing >= 0) _files[existing] = entry; else _files.push(entry);
   renderFileList();
+  if (done) done();
 }
 
 // SheetJS 공용 파서 — type: 'array'(xlsx)
@@ -733,6 +783,16 @@ function removeFile(i) {
 
 // ── 파싱 실행 ─────────────────────────────────────────
 function parseAll() {
+  document.getElementById('parseBtn').disabled = true;
+  showLoad('파싱 중...');
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() {
+      _parseAllCore();
+    });
+  });
+}
+
+function _parseAllCore() {
   _txns = [];
   _files.forEach(function(f){
     var rows = f.parsed ? f.parsed : parseCSVText(f.text, f.bank);
@@ -757,17 +817,15 @@ function parseAll() {
     _merchants[k].totalIn += t.in;
   });
 
-  // 저장된 태그 복원
-  loadSavedTags();
-
   renderFileList();
   showParseResult();
   updateProgress();
   renderMerchants();
   populateYears();
-
-  // 탭 전환
   switchTab('tag');
+
+  // 저장된 태그 복원 (async — hideLoad는 loadSavedTags 내부에서 호출됨)
+  loadSavedTags();
 }
 
 function showParseResult() {
