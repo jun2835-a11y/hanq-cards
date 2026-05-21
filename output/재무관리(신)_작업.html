@@ -127,13 +127,20 @@ input[type=file]{display:none}
 .cat-filter-sel:focus{border-color:var(--ink)}
 
 /* 저장 상태 */
-.save-indicator{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;letter-spacing:.03em;margin-left:auto;padding:0 12px;color:var(--muted);transition:color .2s;align-self:center}
-.save-indicator::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+.save-indicator{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:500;letter-spacing:.03em;margin-left:auto;padding:0 12px;color:var(--muted);transition:color .3s;align-self:center}
+.save-dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0;display:block;transition:background .3s}
 .save-indicator.saved{color:#2E7D32}
-.save-indicator.saving{color:#E65100;animation:siPulse .8s ease-in-out infinite}
+.save-indicator.saving{color:#E65100}
+.save-indicator.saving .save-dot{animation:siDotPulse 1.1s ease-in-out infinite}
 .save-indicator.error{color:#C62828}
 .save-indicator.nosb{color:#C62828}
-@keyframes siPulse{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes siDotPulse{
+  0%,100%{transform:scale(1);opacity:1}
+  50%{transform:scale(2.2);opacity:.15}
+}
+/* 프로젝트 셀렉트 */
+.proj-select{border:1px solid var(--border);background:var(--bg);padding:5px 8px;font-size:11px;font-family:inherit;color:var(--ink);cursor:pointer;outline:none;max-width:140px}
+.proj-select:focus{border-color:var(--ink)}
 
 /* ── 로딩 인디케이터 ── */
 #ld-bar{position:fixed;top:0;left:0;width:100%;height:3px;z-index:9999;overflow:hidden;pointer-events:none;display:none}
@@ -162,7 +169,7 @@ input[type=file]{display:none}
   <button class="tab-btn active" onclick="switchTab('upload')">CSV 업로드</button>
   <button class="tab-btn" id="tabTag" onclick="switchTab('tag')">태깅 작업 <span class="tab-badge" id="pendingBadge" style="display:none">0</span></button>
   <button class="tab-btn" id="tabAgg" onclick="switchTab('agg')">집계</button>
-  <div class="save-indicator" id="saveInd">대기 중</div>
+  <div class="save-indicator" id="saveInd"><span class="save-dot"></span><span id="saveText">대기 중</span></div>
 </div>
 
 <!-- ── 탭 1: 업로드 ── -->
@@ -259,6 +266,12 @@ const CATS = ['인건비','4대보험','3.3소득세','식비/경비','임대료
 
 const BIZS = ['한솔','수복지','한큐','교육원','미배분'];
 
+// 사업자별 프로젝트 선택지
+const PROJ_BY_BIZ = {
+  '한솔': ['아고라 개발','아고라 디자인','아고라 영업'],
+  '한큐': ['한큐 개발','한큐 영업','한큐재무 개발','한큐재무','한큐의료기'],
+};
+
 // 키워드 자동 태깅 룰 (거래처명에서 매칭)
 // 직원 이름 목록 (인건비 자동 태깅)
 const STAFF_NAMES = [
@@ -271,25 +284,25 @@ const STAFF_NAMES = [
 ];
 
 const AUTO_RULES = [
-  { cat:'인건비',             biz:'', kw:['급여'] },
+  { cat:'기타',                biz:'', kw:['급여'] },
   { cat:'일괄송금(사유확인불가)', biz:'', kw:['일괄'] },
-  { cat:'4대보험',    biz:'',     kw:['건강보험','국민연금','고용보험','산재','4대보험','건강공단','연금공단'] },
-  { cat:'3.3소득세',  biz:'',     kw:['소득세','원천세','세무서'] },
-  { cat:'통신비',     biz:'',     kw:['KT','SKT','LGU','SK텔레콤','LG유플러스','통신','스카이라이프','텔레캅','인터넷'] },
-  { cat:'IT인프라비', biz:'한솔', kw:['ANTHROPIC','OPENAI','CURSOR','NOTION','AWS','AMAZON','AZURE','GOOGLE','구글','CLAUDE','CHATGPT','FIGMA','GITHUB','VERCEL','CLOUDFLARE','PADDLE','ADOBE'] },
-  { cat:'IT인프라비', biz:'',     kw:['서버','호스팅','클라우드','도메인','SSL'] },
-  { cat:'임대료',     biz:'',     kw:['월세','임대','부동산','임대료'] },
-  { cat:'제세공과금', biz:'',     kw:['전기','한전','가스','수도','공과금','도시가스','전력','재산세','취득세','등록세','면허세','환경부담금'] },
-  { cat:'차량유지비', biz:'',     kw:['주유','기름','GS칼텍스','SK에너지','현대오일','에쓰오일','S-OIL','하이오일','오일뱅크','하이패스','통행료','고속도로','자동차보험','차량','리스','렌트카','렌터카','EV충전','전기차충전','주차'] },
-  { cat:'지급수수료', biz:'',     kw:['수수료','중개료','플랫폼수수료','카드수수료','결제수수료','대행료','위탁수수료'] },
-  { cat:'식비/경비',  biz:'',     kw:['식당','카페','커피','배달','배민','쿠팡이츠','스타벅스','맥도날드','편의점','GS25','CU','세븐일레븐','이마트','코스트코','마트'] },
-  { cat:'복리후생비', biz:'',     kw:['회식','간식','복지','경조','헬스','피트니스'] },
-  { cat:'마케팅/광고비',biz:'',   kw:['광고','마케팅','홍보','카카오','네이버광고','메타','페이스북'] },
-  { cat:'특허',       biz:'',     kw:['특허','특허청','변리사','지식재산'] },
-  { cat:'변호사비',   biz:'',     kw:['법무','변호사','법률','법원'] },
-  { cat:'인증비',     biz:'',     kw:['인증','CE','ISO','KC','의료기기','시험인증'] },
-  { cat:'사무용품/사무집기', biz:'', kw:['사무','문구','소모품','복합기','프린터','잉크','토너'] },
-  { cat:'인건비',     biz:'',     kw:[] }, // 이름 있는 이체는 사람이 판단
+  { cat:'4대보험',    biz:'',     kw:['건강보험','국민연금','고용보험','산재보험','4대보험','건강공단','연금공단','근로복지','국민건강보험','건강보험료'] },
+  { cat:'3.3소득세',  biz:'',     kw:['소득세','원천세','세무서','세무사','원천징수'] },
+  { cat:'제세공과금', biz:'',     kw:['국세','지방세','법인세','부가세','재산세','취득세','등록세','면허세','자동차세','종합소득세','지방소득세','전기','한전','가스','수도','공과금','도시가스','전력','환경부담금','하수도'] },
+  { cat:'통신비',     biz:'',     kw:['KT','SKT','LGU','SK텔레콤','LG유플러스','LG U+','통신','스카이라이프','텔레캅','인터넷','핸드폰','휴대폰','이동통신'] },
+  { cat:'IT인프라비', biz:'한솔', kw:['ANTHROPIC','OPENAI','CURSOR','NOTION','AWS','AMAZON','AZURE','GOOGLE','구글','CLAUDE','CHATGPT','FIGMA','GITHUB','VERCEL','CLOUDFLARE','PADDLE','ADOBE','SLACK','ZOOM','DROPBOX','NETLIFY'] },
+  { cat:'IT인프라비', biz:'',     kw:['서버','호스팅','클라우드','도메인','SSL','SaaS','소프트웨어'] },
+  { cat:'임대료',     biz:'',     kw:['월세','임대','임대료','관리비'] },
+  { cat:'차량유지비', biz:'',     kw:['주유','기름','GS칼텍스','SK에너지','현대오일','에쓰오일','S-OIL','하이오일','오일뱅크','E1주유','하이패스','통행료','고속도로','자동차보험','차량','렌트카','렌터카','EV충전','전기차충전','주차','주차비','쏘카','그린카'] },
+  { cat:'지급수수료', biz:'',     kw:['수수료','중개료','플랫폼수수료','카드수수료','결제수수료','대행료','위탁수수료','대행비'] },
+  { cat:'식비/경비',  biz:'',     kw:['배달의민족','배민','요기요','쿠팡이츠','땡겨','스타벅스','이디야','투썸','메가커피','빽다방','더벤티','커피빈','할리스','엔제리너스','카페','커피','맥도날드','롯데리아','버거킹','KFC','맘스터치','서브웨이','편의점','GS25','CU','세븐일레븐','이마트','코스트코','마트','홈플러스','롯데마트','롯데슈퍼','식당','음식','점심','저녁','식사','치킨','피자','삼겹살','갈비','횟집','초밥','냉면','국밥','탕','찌개','구이','뷔페','베이커리','빵','케이크','제과','도넛','김밥','분식','떡볶이','순대','카카오T이츠'] },
+  { cat:'복리후생비', biz:'',     kw:['간식','복지','경조','헬스','피트니스','병원','의원','약국','진료','의료','건강검진','의료비'] },
+  { cat:'마케팅/광고비',biz:'',   kw:['광고','마케팅','홍보','카카오광고','네이버광고','메타','페이스북','인스타그램','유튜브광고','키워드광고','배너광고'] },
+  { cat:'특허',       biz:'',     kw:['특허','특허청','변리사','지식재산','상표등록'] },
+  { cat:'변호사비',   biz:'',     kw:['법무','변호사','법률','법원','공증','법무사'] },
+  { cat:'인증비',     biz:'',     kw:['인증','CE인증','ISO인증','KC','의료기기','시험인증','인증비'] },
+  { cat:'사무용품/사무집기', biz:'', kw:['사무','문구','소모품','복합기','프린터','잉크','토너','알파문구','오피스'] },
+  { cat:'금융비용(이자)', biz:'', kw:['이자','금융비용','대출이자','이자비용'] },
 ];
 
 // ── 로딩 인디케이터 ──────────────────────────────────
@@ -327,24 +340,25 @@ var API = (location.hostname === 'localhost' ? 'http://localhost:3005' : '') + '
 
 var _saveTimer = null;
 function saveState() {
+  setSaveStatus('saving');
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(function() { doSave(0); }, 800);
 }
 
 function doSave(attempt) {
-  // 태그된 거래처: 전체 데이터 / 미분류: 이름만 저장 (페이로드 최소화)
+  // tagged: 태그된 거래처 전체 데이터 / allMeta: 모든 거래처 [키,건수,출금합,입금합,날짜]
   var tagged = {};
-  var allKeys = [];
+  var allMeta = [];
   Object.keys(_merchants).forEach(function(k) {
     var m = _merchants[k];
-    allKeys.push(k);
+    allMeta.push([k, m.count || 0, m.totalOut || 0, m.totalIn || 0, m.sampleDate || '']);
     if (m.cat || m.biz) tagged[k] = m;
   });
   if (attempt === 0) showLoad('저장 중...');
   fetch(API, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ merchants: tagged, allKeys: allKeys })
+    body: JSON.stringify({ merchants: tagged, allMeta: allMeta })
   }).then(function(r) {
     if (!r.ok) throw new Error('HTTP ' + r.status);
     return r.json();
@@ -386,16 +400,38 @@ function loadStateOnInit() {
     hideLoad();
     if (!saved) return;
     var taggedData = saved.merchants || {};
-    var allKeys = saved.allKeys || Object.keys(taggedData);
-    if (allKeys.length === 0) return;
-    // 모든 거래처 복원: 태그된 것은 전체 데이터, 미분류는 이름만
+    var allMeta   = saved.allMeta  || [];   // 신규: [[key, count, totalOut, totalIn, sampleDate], ...]
+    var allKeys   = saved.allKeys  || [];   // 구버전 호환
+
+    var hasData = allMeta.length > 0 || allKeys.length > 0 || Object.keys(taggedData).length > 0;
+    if (!hasData) return;
+
     _merchants = {};
-    allKeys.forEach(function(k) {
-      _merchants[k] = taggedData[k] || {
-        name: k, count: 0, totalOut: 0, totalIn: 0,
-        cat: '', biz: '', sampleDate: '', autoTagged: false
-      };
-    });
+    if (allMeta.length > 0) {
+      // 신규 포맷: allMeta에 건수·금액 포함
+      allMeta.forEach(function(meta) {
+        var k = meta[0];
+        if (taggedData[k]) {
+          _merchants[k] = taggedData[k];
+        } else {
+          _merchants[k] = {
+            name: k, count: meta[1] || 0, totalOut: meta[2] || 0,
+            totalIn: meta[3] || 0, sampleDate: meta[4] || '',
+            cat: '', biz: '', autoTagged: false
+          };
+        }
+      });
+    } else {
+      // 구버전 호환: allKeys는 키 이름만 있음
+      var keys = allKeys.length > 0 ? allKeys : Object.keys(taggedData);
+      keys.forEach(function(k) {
+        _merchants[k] = taggedData[k] || {
+          name: k, count: 0, totalOut: 0, totalIn: 0,
+          cat: '', biz: '', sampleDate: '', autoTagged: false
+        };
+      });
+    }
+
     document.getElementById('progressWrap').style.display = 'flex';
     updateProgress();
     renderMerchants();
@@ -408,7 +444,7 @@ function setSaveStatus(st) {
   var el = document.getElementById('saveInd');
   el.className = 'save-indicator ' + st;
   var labels = { saved:'저장됨', saving:'저장 중...', error:'저장 실패', nosb:'저장 실패 (DB)' };
-  el.textContent = labels[st] || st;
+  document.getElementById('saveText').textContent = labels[st] || st;
 }
 function flashSave(sbOk) {
   setSaveStatus(sbOk === false ? 'error' : 'saved');
@@ -427,11 +463,23 @@ function switchTab(t) {
 
 // ── 은행 감지 ─────────────────────────────────────────
 function detectBank(headers) {
-  var h = headers.join(',');
+  // 공백 제거 후 비교 (SheetJS가 셀 내용에 공백 포함할 수 있음)
+  var h = headers.map(function(x){ return x.replace(/\s+/g,''); }).join(',');
   if (h.includes('보낸분') || h.includes('받는분')) return 'KB';
-  if (h.includes('거래기록사항') || h.includes('출금금액')) return '농협';
+  if (h.includes('거래기록사항') || h.includes('기록사항') || h.includes('출금금액') ||
+      (h.includes('출금액') && h.includes('입금액'))) return '농협';
   if (h.includes('출금(원)') || h.includes('입금(원)')) return '신한';
   if (h.includes('입/출금') || h.includes('통장잔액') || h.includes('적요')) return '광주';
+  return '?';
+}
+
+// 파일명에서 은행 추정 (detectBank 실패 시 보조)
+function bankFromFilename(filename) {
+  var fn = filename || '';
+  if (fn.includes('농협') || fn.includes('NH_') || fn.includes('_NH')) return '농협';
+  if (/^KB/.test(fn) || fn.includes('국민') || fn.includes('_KB')) return 'KB';
+  if (fn.includes('신한') || fn.includes('SH_')) return '신한';
+  if (fn.includes('광주') || fn.includes('GJ_')) return '광주';
   return '?';
 }
 
@@ -439,22 +487,22 @@ function detectBank(headers) {
 function normH(h) { return h.replace(/\s/g,'').replace(/[／＼]/g,'/'); }
 
 // 은행별 거래내용 컬럼 인덱스 반환
-// KB→보낸분/받는분, 농협→거래기록사항, 신한→내용, 광주→적요
+// KB→보낸분/받는분, 농협→거래기록사항/적요/거래내용, 신한→내용, 광주→적요
 function findMerchantCol(headers, bank) {
   var BANK_EXACT = {
     'KB':   ['보낸분/받는분'],
-    '농협': ['거래기록사항'],
+    '농협': ['거래기록사항', '기록사항', '거래내용', '적요', '내용'],
     '신한': ['내용'],
     '광주': ['적요'],
   };
   var BANK_CONTAINS = {
     'KB':   ['보낸분','받는분'],
-    '농협': ['거래기록사항'],
+    '농협': ['거래기록사항', '기록사항', '거래내용', '적요', '내용'],
     '신한': ['내용'],
     '광주': ['적요'],
   };
-  var exactList    = BANK_EXACT[bank]    || ['보낸분/받는분','거래기록사항','적요','내용'];
-  var containsList = BANK_CONTAINS[bank] || ['보낸분','받는분','거래기록사항','적요','내용'];
+  var exactList    = BANK_EXACT[bank]    || ['보낸분/받는분','거래기록사항','기록사항','적요','내용'];
+  var containsList = BANK_CONTAINS[bank] || ['보낸분','받는분','거래기록사항','기록사항','적요','내용'];
 
   // 1단계: 정규화 후 정확 일치
   for (var ci = 0; ci < exactList.length; ci++) {
@@ -595,8 +643,8 @@ var NAME_EXCL = [
   '공과','충전','인증','인터','수수','공사','공단','보험',
 ];
 
-// 은행 이체 접두/접미어
-var TRANSFER_AFFIXES = ['자동이체','타행이체','당행이체','계좌이체','인터넷이체','실시간이체','전자이체','이체','입금','출금'];
+// 은행 이체 접두/접미어 (이름 추출 시 제거 대상)
+var TRANSFER_AFFIXES = ['자동이체','타행이체','당행이체','계좌이체','인터넷이체','실시간이체','전자이체','이체','입금','출금','님','귀중','앞'];
 
 function isPersonName(s) {
   return s.length >= 2 && s.length <= 3 && KR_SURNAMES.includes(s[0]) && NAME_EXCL.indexOf(s) === -1;
@@ -621,7 +669,7 @@ function looksLikePersonName(merchantName) {
     }
 
     // 3단계: "농협오픈윤여륜" — 긴 토큰 끝부분이 이름인 경우 (은행·서비스명+이름 패턴)
-    if (t.length >= 5) {
+    if (t.length >= 4) {
       if (isPersonName(t.slice(-3))) return true;
       if (isPersonName(t.slice(-2))) return true;
     }
@@ -712,6 +760,15 @@ function handleFiles(files) {
           console.log('[XLS] 파싱 시작:', f2.name);
           var parsed = parseExcelData(e.target.result, 'array', f2.name);
           console.log('[XLS] ArrayBuffer 결과 → bank:', parsed.bank, '행수:', parsed.rows.length);
+          // bank=? 이지만 행이 있으면 파일명으로 보정
+          if (parsed.rows.length > 0 && parsed.bank === '?') {
+            var fb = bankFromFilename(f2.name);
+            if (fb !== '?') {
+              parsed.bank = fb;
+              parsed.rows.forEach(function(r){ r.bank = fb; });
+              console.log('[XLS] 파일명 bank 보정:', fb);
+            }
+          }
           if (parsed.rows.length > 0 && parsed.bank !== '?') {
             registerEntry(f2, parsed, xlsDone); return;
           }
@@ -725,7 +782,7 @@ function handleFiles(files) {
               var utfReader = new FileReader();
               utfReader.onload = function(ue) {
                 var utfText = ue.target.result;
-                var p = parseHtmlXlsTable(utfText);
+                var p = parseHtmlXlsTable(utfText, f2.name);
                 console.log('[XLS] UTF-8 DOMParser → bank:', p.bank, '행수:', p.rows.length);
                 if (p.rows.length === 0) {
                   var db = detectBankFromText(utfText);
@@ -739,13 +796,19 @@ function handleFiles(files) {
               return;
             }
             console.log('[XLS] EUC-KR 텍스트 앞 200자:', text.substring(0, 200));
-            var parsed2 = parseHtmlXlsTable(text);
+            var parsed2 = parseHtmlXlsTable(text, f2.name);
             console.log('[XLS] DOMParser 결과 → bank:', parsed2.bank, '행수:', parsed2.rows.length);
             if (parsed2.rows.length === 0) {
               var detectedBank = detectBankFromText(text);
+              if (detectedBank === '?') detectedBank = bankFromFilename(f2.name);
               var csvRows = parseCSVText(text, detectedBank);
               console.log('[XLS] CSV 폴백 → bank:', detectedBank, '행수:', csvRows.length);
               parsed2 = { bank: csvRows.length ? detectedBank : '?', rows: csvRows };
+            }
+            // 최종 bank=? 잔존 시 파일명 보정
+            if (parsed2.bank === '?') {
+              var fb3 = bankFromFilename(f2.name);
+              if (fb3 !== '?') parsed2.bank = fb3;
             }
             registerEntry(f2, parsed2, xlsDone);
           };
@@ -772,7 +835,7 @@ function detectBankFromText(text) {
 }
 
 // EUC-KR 텍스트로 읽은 HTML-format XLS를 DOMParser로 파싱
-function parseHtmlXlsTable(text) {
+function parseHtmlXlsTable(text, filename) {
   try {
     var parser = new DOMParser();
     var doc = parser.parseFromString(text, 'text/html');
@@ -839,6 +902,10 @@ function parseHtmlXlsTable(text) {
 
     var headers = bestRows[bestHeaderIdx];
     var bank = detectBank(headers);
+    if (bank === '?') {
+      var fb2 = bankFromFilename(filename);
+      if (fb2 !== '?') { bank = fb2; console.log('[parseHtmlXlsTable] 파일명 bank 보정:', bank); }
+    }
     var iDate=-1, iMerchant=-1, iOut=-1, iIn=-1;
     iMerchant = findMerchantCol(headers, bank);
     headers.forEach(function(h, i){
@@ -904,6 +971,12 @@ function parseExcelData(data, type, filename) {
 
     var headers = rows[headerIdx].map(function(c){ return String(c).trim(); });
     var bank = detectBank(headers);
+    // detectBank 실패 시 파일명으로 보정
+    if (bank === '?') {
+      var fb = bankFromFilename(filename);
+      if (fb !== '?') { bank = fb; console.log('[parseExcelData] 파일명 bank 보정:', bank); }
+    }
+    if (bank === '?') console.warn('[parseExcelData] bank 미감지 — headers:', headers.join('|'));
     var iDate=-1, iMerchant=-1, iOut=-1, iIn=-1;
     iMerchant = findMerchantCol(headers, bank);
     headers.forEach(function(h, i){
@@ -1092,6 +1165,7 @@ function renderMerchants() {
             '<th style="width:110px;text-align:right">총 출금액</th>' +
             '<th style="width:140px">카테고리</th>' +
             '<th style="width:120px">사업자</th>' +
+            '<th style="width:150px">프로젝트</th>' +
           '</tr></thead>' +
           '<tbody id="vsTbody"></tbody>' +
         '</table>' +
@@ -1117,7 +1191,7 @@ function vsRender(scrollTop) {
   var topH = startIdx * VS_ROW_H;
   var bottomH = Math.max(0, (total - endIdx) * VS_ROW_H);
 
-  var html = '<tr class="vs-spacer"><td colspan="6" style="height:' + topH + 'px"></td></tr>';
+  var html = '<tr class="vs-spacer"><td colspan="7" style="height:' + topH + 'px"></td></tr>';
   for (var i = startIdx; i < endIdx; i++) {
     var k = _vsFiltered[i];
     var m = _merchants[k];
@@ -1134,9 +1208,10 @@ function vsRender(scrollTop) {
       '<td class="td-amount">' + (m.totalOut > 0 ? (m.totalOut/10000).toFixed(0) + '만' : '-') + '</td>' +
       '<td>' + catSelect(k, m.cat) + '</td>' +
       '<td>' + bizSelect(k, m.biz) + '</td>' +
+      '<td>' + projSelect(k, m.biz, m.proj || '') + '</td>' +
       '</tr>';
   }
-  html += '<tr class="vs-spacer"><td colspan="6" style="height:' + bottomH + 'px"></td></tr>';
+  html += '<tr class="vs-spacer"><td colspan="7" style="height:' + bottomH + 'px"></td></tr>';
   tbodyEl.innerHTML = html;
 }
 
@@ -1153,11 +1228,24 @@ function bizSelect(key, val) {
   return '<select class="biz-select" onchange="setTag(\'' + escKey(key) + '\',\'biz\',this.value)">' + opts + '</select>';
 }
 
+function projSelect(key, biz, projVal) {
+  var projs = PROJ_BY_BIZ[biz] || [];
+  if (projs.length === 0) return '<span style="color:var(--muted);font-size:11px;padding:5px 8px;display:inline-block">-</span>';
+  var opts = '<option value="">-- 미선택 --</option>';
+  projs.forEach(function(p){ opts += '<option' + (p === projVal ? ' selected' : '') + '>' + p + '</option>'; });
+  return '<select class="proj-select" onchange="setTag(\'' + escKey(key) + '\',\'proj\',this.value)">' + opts + '</select>';
+}
+
 function escKey(k) { return k.replace(/'/g, "\\'").replace(/\\/g, '\\\\'); }
 
 function setTag(key, field, val) {
   if (!_merchants[key]) return;
   _merchants[key][field] = val;
+  // 사업자 변경 시 해당 사업자의 프로젝트 목록에 없는 proj는 초기화
+  if (field === 'biz') {
+    var projs = PROJ_BY_BIZ[val] || [];
+    if (projs.indexOf(_merchants[key].proj || '') < 0) _merchants[key].proj = '';
+  }
   updateProgress();
   saveState();
   var sw = document.getElementById('vsScrollWrap');
@@ -1445,16 +1533,31 @@ function fmt(n) { return n.toLocaleString() + '원'; }
 
 // ── CSV 내보내기 ──────────────────────────────────────
 function exportCSV() {
-  if (_txns.length === 0) { alert('데이터가 없습니다'); return; }
-  var rows = [['날짜','거래내용','출금','입금','은행','카테고리','사업자']];
-  _txns.forEach(function(t){
+  var usedTxns = _txns.length > 0 ? _txns : makePseudoTxns();
+  if (usedTxns.length === 0) { alert('데이터가 없습니다'); return; }
+
+  // 현재 집계 화면과 동일한 필터 적용
+  var year = (document.getElementById('aggYear') || {}).value || '';
+  var biz  = (document.getElementById('aggBiz')  || {}).value || '';
+  var cat  = (document.getElementById('aggCat')  || {}).value || '';
+
+  var filtered = usedTxns.filter(function(t) {
+    if (year && t.date.substring(0,4) !== year) return false;
     var m = _merchants[t.merchant] || {};
-    rows.push([t.date, t.merchant, t.out, t.in, t.bank, m.cat||'', m.biz||'']);
+    if (biz && (m.biz || '미배분') !== biz) return false;
+    if (cat && (m.cat || '미분류') !== cat) return false;
+    return true;
+  });
+
+  var rows = [['날짜','거래내용','출금','입금','은행','카테고리','사업자','프로젝트']];
+  filtered.forEach(function(t){
+    var m = _merchants[t.merchant] || {};
+    rows.push([t.date, t.merchant, t.out, t.in, t.bank, m.cat||'', m.biz||'', m.proj||'']);
   });
   var csv = rows.map(function(r){ return r.map(function(c){ return '"'+String(c).replace(/"/g,'""')+'"'; }).join(','); }).join('\n');
   var blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8'});
   var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = 'hanq_finance_tagged_' + new Date().toISOString().substring(0,10) + '.csv';
+  a.download = 'hanq_finance_' + new Date().toISOString().substring(0,10) + '.csv';
   a.click();
 }
 </script>
