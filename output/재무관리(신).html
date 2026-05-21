@@ -13,7 +13,14 @@
 }
 body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;min-height:100vh;display:flex;flex-direction:column}
 .page-main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 32px;text-align:center}
-.wip-icon{font-size:48px;margin-bottom:24px;opacity:.35}
+.wip-icon{font-size:48px;margin-bottom:24px;opacity:.35;display:inline-block;position:relative;line-height:1}
+.crane-rope-anim{position:absolute;top:34%;left:63%;display:flex;flex-direction:column;align-items:center;animation:craneHoist 1.8s ease-in-out infinite}
+.crane-rope-line{width:2px;height:13px;background:var(--ink);border-radius:1px}
+.crane-rope-hook{width:8px;height:5px;border:2px solid var(--ink);border-top:none;border-radius:0 0 4px 4px}
+@keyframes craneHoist{
+  0%,100%{transform:translateY(0)}
+  50%    {transform:translateY(-9px)}
+}
 .wip-badge{display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:white;font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;padding:4px 12px;margin-bottom:20px}
 .wip-title{font-size:28px;font-weight:700;letter-spacing:-.02em;color:var(--ink);margin-bottom:12px}
 .wip-sub{font-size:14px;color:var(--muted);line-height:1.7;max-width:480px;margin-bottom:40px}
@@ -49,7 +56,7 @@ body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;background:var(--bg);
 <body>
 
 <div class="page-main">
-  <div class="wip-icon">🏗</div>
+  <div class="wip-icon">🏗<div class="crane-rope-anim"><div class="crane-rope-line"></div><div class="crane-rope-hook"></div></div></div>
   <div class="wip-badge">개발중</div>
   <div class="wip-title">재무관리(신)</div>
   <div class="wip-sub">5개년 계좌 거래내역 분류 및 사업자별 현금흐름 대시보드.<br>현재 설계 및 개발 중입니다.</div>
