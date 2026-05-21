@@ -14,12 +14,12 @@
 body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;min-height:100vh;display:flex;flex-direction:column}
 .page-main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 32px;text-align:center}
 .wip-icon{font-size:48px;margin-bottom:24px;opacity:.35;display:inline-block;position:relative;line-height:1}
-.crane-rope-anim{position:absolute;top:34%;left:63%;display:flex;flex-direction:column;align-items:center;animation:craneHoist 1.8s ease-in-out infinite}
-.crane-rope-line{width:2px;height:13px;background:var(--ink);border-radius:1px}
+.crane-rope-anim{position:absolute;top:34%;left:63%;display:flex;flex-direction:column;align-items:center}
+.crane-rope-line{width:2px;background:var(--ink);border-radius:1px;animation:ropeStretch 1.8s ease-in-out infinite}
 .crane-rope-hook{width:8px;height:5px;border:2px solid var(--ink);border-top:none;border-radius:0 0 4px 4px}
-@keyframes craneHoist{
-  0%,100%{transform:translateY(0)}
-  50%    {transform:translateY(-9px)}
+@keyframes ropeStretch{
+  0%,100%{height:13px}
+  50%    {height:4px}
 }
 .wip-badge{display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:white;font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;padding:4px 12px;margin-bottom:20px}
 .wip-title{font-size:28px;font-weight:700;letter-spacing:-.02em;color:var(--ink);margin-bottom:12px}
