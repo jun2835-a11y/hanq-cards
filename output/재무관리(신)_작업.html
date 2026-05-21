@@ -40,8 +40,8 @@ body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;background:var(--bg);
 .file-anim-svg{display:block;margin:0 auto}
 .file-curl{animation:pageCurl 2.6s ease-in-out infinite}
 @keyframes pageCurl{
-  0%,18%,78%,100%{transform:translate(0,0);opacity:1}
-  44%,62%        {transform:translate(5px,-5px);opacity:.3}
+  0%,18%,78%,100%{transform:translate(0,0)}
+  44%,62%        {transform:translate(5px,-5px)}
 }
 .upload-title{font-size:15px;font-weight:700;color:var(--ink);margin-bottom:6px}
 .upload-sub{font-size:12px;color:var(--muted);line-height:1.7}
@@ -127,8 +127,12 @@ input[type=file]{display:none}
 .cat-filter-sel:focus{border-color:var(--ink)}
 
 /* 저장 상태 */
-.save-indicator{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:white;font-size:11px;padding:8px 18px;letter-spacing:.04em;opacity:0;transition:opacity .3s;pointer-events:none}
-.save-indicator.show{opacity:1}
+.save-indicator{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;letter-spacing:.03em;margin-left:auto;padding:0 6px;color:rgba(255,255,255,.5);transition:color .2s}
+.save-indicator::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+.save-indicator.saved{color:#4CAF80}
+.save-indicator.saving{color:#F9A825;animation:siPulse .8s ease-in-out infinite}
+.save-indicator.error{color:#EF5350}
+@keyframes siPulse{0%,100%{opacity:1}50%{opacity:.4}}
 
 /* ── 로딩 인디케이터 ── */
 #ld-bar{position:fixed;top:0;left:0;width:100%;height:3px;z-index:9999;overflow:hidden;pointer-events:none;display:none}
@@ -157,6 +161,7 @@ input[type=file]{display:none}
   <button class="tab-btn active" onclick="switchTab('upload')">CSV 업로드</button>
   <button class="tab-btn" id="tabTag" onclick="switchTab('tag')">태깅 작업 <span class="tab-badge" id="pendingBadge" style="display:none">0</span></button>
   <button class="tab-btn" id="tabAgg" onclick="switchTab('agg')">집계</button>
+  <div class="save-indicator" id="saveInd">대기 중</div>
 </div>
 
 <!-- ── 탭 1: 업로드 ── -->
@@ -169,7 +174,7 @@ input[type=file]{display:none}
         <!-- 접힌 선 (정적) -->
         <path d="M30 4 L30 20 L44 20" fill="none" stroke="var(--ink)" stroke-width="1.8" stroke-linejoin="round" opacity=".4"/>
         <!-- 모서리 플랩 (애니메이션) -->
-        <path class="file-curl" d="M30 4 L44 4 L44 20 Z" fill="var(--surface)" stroke="var(--ink)" stroke-width="1.8" stroke-linejoin="round" opacity=".8"/>
+        <path class="file-curl" d="M30 4 L44 4 L44 20 Z" fill="var(--surface)" stroke="var(--ink)" stroke-width="1.8" stroke-linejoin="round"/>
         <!-- 내용 줄 -->
         <line x1="12" y1="30" x2="36" y2="30" stroke="var(--ink)" stroke-width="1.5" stroke-linecap="round" opacity=".2"/>
         <line x1="12" y1="38" x2="36" y2="38" stroke="var(--ink)" stroke-width="1.5" stroke-linecap="round" opacity=".2"/>
@@ -332,7 +337,7 @@ function saveState() {
       var m = _merchants[k];
       if (m.cat || m.biz) tagged[k] = m;
     });
-    showLoad('저장 중...');
+    setSaveStatus('saving');
     fetch(API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -341,11 +346,9 @@ function saveState() {
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.json();
     }).then(function(res){
-      hideLoad();
-      flashSave(res && res.supabase);
+      setSaveStatus(res && res.supabase === false ? 'nosb' : 'saved');
     }).catch(function(e){
-      hideLoad();
-      flashSave(false);
+      setSaveStatus('error');
       console.error('[saveState error]', e);
     });
   }, 800);
@@ -381,12 +384,14 @@ function loadStateOnInit() {
 }
 loadStateOnInit();
 
-function flashSave(sbOk) {
+function setSaveStatus(st) {
   var el = document.getElementById('saveInd');
-  el.textContent = sbOk === false ? '⚠ 저장 실패 (Supabase)' : '저장됨';
-  el.style.background = sbOk === false ? '#C8380A' : '';
-  el.classList.add('show');
-  setTimeout(function(){ el.classList.remove('show'); el.textContent = '저장됨'; el.style.background = ''; }, sbOk === false ? 3000 : 1200);
+  el.className = 'save-indicator ' + st;
+  var labels = { saved:'저장됨', saving:'저장 중...', error:'저장 실패', nosb:'저장 실패 (DB)' };
+  el.textContent = labels[st] || st;
+}
+function flashSave(sbOk) {
+  setSaveStatus(sbOk === false ? 'error' : 'saved');
 }
 
 // ── 탭 전환 ──────────────────────────────────────────
