@@ -970,6 +970,8 @@ async function resetTags() {
   document.getElementById('fileList').innerHTML = '';
   document.getElementById('parseBtn').disabled = true;
   document.getElementById('tagCount').textContent = '';
+  document.getElementById('pendingBadge').style.display = 'none';
+  document.getElementById('pendingBadge').textContent = '0';
   document.getElementById('aggTableWrap').innerHTML = '<div class="no-data">태깅 완료 후 집계를 확인하세요</div>';
 
   // 3. 서버에 빈 상태 저장 (await)
