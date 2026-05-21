@@ -332,16 +332,11 @@ function saveState() {
 }
 
 function doSave(attempt) {
-  var tagged = {};
-  Object.keys(_merchants).forEach(function(k) {
-    var m = _merchants[k];
-    if (m.cat || m.biz) tagged[k] = m;
-  });
   if (attempt === 0) showLoad('저장 중...');
   fetch(API, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ merchants: tagged })
+    body: JSON.stringify({ merchants: _merchants })
   }).then(function(r) {
     if (!r.ok) throw new Error('HTTP ' + r.status);
     return r.json();
