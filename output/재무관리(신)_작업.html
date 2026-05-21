@@ -116,8 +116,8 @@ input[type=file]{display:none}
 .save-indicator.show{opacity:1}
 
 /* ── 로딩 인디케이터 ── */
-#ld-bar{position:fixed;top:0;left:0;width:100%;height:3px;z-index:9999;overflow:hidden;pointer-events:none;opacity:0;transition:opacity .12s}
-#ld-bar.active{opacity:1}
+#ld-bar{position:fixed;top:0;left:0;width:100%;height:3px;z-index:9999;overflow:hidden;pointer-events:none;display:none}
+#ld-bar.active{display:block}
 #ld-bar-inner{position:absolute;top:0;left:-50%;width:45%;height:100%;background:var(--accent)}
 #ld-bar.active #ld-bar-inner{animation:ldSlide 1.05s cubic-bezier(.4,0,.6,1) infinite}
 @keyframes ldSlide{0%{left:-45%}100%{left:105%}}
@@ -251,12 +251,14 @@ function showLoad(msg) {
   _ldCount++;
   if (msg) _ldMsg.textContent = msg;
   _ldBar.classList.add('active');
+  _ldBar.style.display = 'block';
   _ldToast.classList.add('show');
 }
 function hideLoad() {
   if (--_ldCount > 0) return;
   _ldCount = 0;
   _ldBar.classList.remove('active');
+  _ldBar.style.display = 'none';
   _ldToast.classList.remove('show');
 }
 
@@ -823,9 +825,8 @@ function _parseAllCore() {
   renderMerchants();
   populateYears();
   switchTab('tag');
-
-  // 저장된 태그 복원 (async — hideLoad는 loadSavedTags 내부에서 호출됨)
-  loadSavedTags();
+  hideLoad(); // 'parseAll' showLoad와 균형 맞춤
+  loadSavedTags(); // 자체 showLoad/hideLoad 쌍을 가짐
 }
 
 function showParseResult() {
@@ -955,8 +956,7 @@ function resetTags() {
     _merchants[k].biz = '';
     _merchants[k].autoTagged = false;
   });
-  saveState();
-  // 필터 전체 초기화 — 필터가 걸려 있으면 초기화 후 빈 테이블로 보임
+  // UI 먼저 업데이트 (saveState 에러와 무관하게 동작)
   var catSel = document.getElementById('filterCat');
   if (catSel) catSel.value = '';
   _filter = 'all';
@@ -966,6 +966,7 @@ function resetTags() {
   updateProgress();
   showParseResult();
   renderMerchants();
+  saveState(); // 서버 저장은 마지막 (비동기)
 }
 
 // ── 집계 ──────────────────────────────────────────────
