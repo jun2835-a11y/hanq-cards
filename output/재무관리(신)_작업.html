@@ -544,7 +544,7 @@ function parseCSVText(text, bank) {
   iMerchant = findMerchantCol(headers.map(function(h){ return h.trim(); }), bank);
   headers.forEach(function(h, i) {
     var t = h.trim();
-    if (iDate < 0 && (t === '거래일시' || t === '거래일자')) iDate = i;
+    if (iDate < 0 && (t.includes('거래일') || t === '날짜' || t === '일시')) iDate = i;
     if (iOut < 0 && (t === '출금액' || t === '출금금액' || t === '출금' || t === '출금(원)')) iOut = i;
     if (iIn < 0 && (t === '입금액' || t === '입금금액' || t === '입금' || t === '입금(원)')) iIn = i;
   });
@@ -981,7 +981,7 @@ function parseExcelData(data, type, filename) {
     iMerchant = findMerchantCol(headers, bank);
     headers.forEach(function(h, i){
       var t = h.replace(/\s/g,'');
-      if (iDate < 0 && (t==='거래일시'||t==='거래일자'||t==='날짜')) iDate=i;
+      if (iDate < 0 && (t.includes('거래일') || t==='날짜' || t==='일시')) iDate=i;
       if (iOut < 0 && (t==='출금액'||t==='출금금액'||t==='출금'||t==='출금(원)')) iOut=i;
       if (iIn < 0 && (t==='입금액'||t==='입금금액'||t==='입금'||t==='입금(원)')) iIn=i;
     });
@@ -1069,7 +1069,7 @@ function _parseAllCore() {
   // 미분류 중 총 출금 1만 이하 → 기타 자동태그
   Object.keys(_merchants).forEach(function(k) {
     var m = _merchants[k];
-    if (!m.cat && m.totalOut > 0 && m.totalOut <= 10000) {
+    if (!m.cat && m.count > 0 && m.totalOut > 0 && Math.round(m.totalOut / m.count) <= 10000) {
       m.cat = '기타';
       m.autoTagged = true;
     }
