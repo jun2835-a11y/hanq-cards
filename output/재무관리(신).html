@@ -14,21 +14,14 @@
 body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;min-height:100vh;display:flex;flex-direction:column}
 .page-main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 32px;text-align:center}
 .wip-icon{margin-bottom:24px;line-height:0}
-.rope-anim{
-  transform-box:view-box;
-  transform-origin:23.5px 28px;
-  animation:ropeShorten 1.8s ease-in-out infinite;
+.crane-rope{
+  animation:craneHoist 2.2s ease-in-out infinite;
+  transform-box:fill-box;
+  transform-origin:top center;
 }
-@keyframes ropeShorten{
-  0%,100%{transform:scaleY(1)}
-  50%    {transform:scaleY(0.46)}
-}
-.load-anim{
-  animation:loadHoist 1.8s ease-in-out infinite;
-}
-@keyframes loadHoist{
-  0%,100%{transform:translateY(0px)}
-  50%    {transform:translateY(-14px)}
+@keyframes craneHoist{
+  0%,100%{transform:translateY(0)}
+  45%,55%{transform:translateY(-10px)}
 }
 .wip-badge{display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:white;font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;padding:4px 12px;margin-bottom:20px}
 .wip-title{font-size:28px;font-weight:700;letter-spacing:-.02em;color:var(--ink);margin-bottom:12px}
@@ -66,26 +59,26 @@ body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;background:var(--bg);
 
 <div class="page-main">
   <div class="wip-icon">
-    <svg id="crane-svg" viewBox="0 0 80 96" width="72" height="86" fill="none" stroke="var(--ink)" stroke-linecap="round" stroke-linejoin="round" opacity=".55">
-      <!-- 마스트 -->
-      <line x1="54" y1="6" x2="54" y2="86" stroke-width="3"/>
+    <svg viewBox="0 0 64 72" width="64" height="72" fill="none" stroke="var(--ink)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" opacity=".45">
+      <!-- 타워 (수직 기둥) -->
+      <line x1="44" y1="8" x2="44" y2="64"/>
       <!-- 베이스 -->
-      <line x1="40" y1="86" x2="68" y2="86" stroke-width="2.5"/>
-      <!-- 지브 (수평) -->
-      <line x1="6" y1="26" x2="72" y2="26" stroke-width="3"/>
-      <!-- 지지 케이블 △ -->
-      <line x1="54" y1="6" x2="6" y2="26" stroke-width="1.8"/>
-      <line x1="54" y1="6" x2="72" y2="26" stroke-width="1.8"/>
+      <line x1="34" y1="64" x2="54" y2="64"/>
+      <!-- 지브 (수평 팔, 좌측 뻗음) -->
+      <line x1="8" y1="16" x2="44" y2="8"/>
+      <!-- 마스트 꼭대기 → 지브 끝 지지 케이블 -->
+      <line x1="44" y1="4" x2="8" y2="16"/>
+      <!-- 트롤리 (지브 위 이동체) -->
+      <rect x="18" y="13" width="7" height="5" rx="1"/>
+      <!-- 카운터 지브 (반대쪽 짧은 팔) -->
+      <line x1="44" y1="8" x2="56" y2="12"/>
       <!-- 카운터웨이트 -->
-      <rect x="66" y="26" width="8" height="6" rx="1" fill="var(--ink)" stroke="none" opacity=".35"/>
-      <!-- 트롤리 -->
-      <rect x="18" y="21" width="11" height="7" rx="1" stroke-width="2"/>
-      <!-- 로프 -->
-      <line class="rope-anim" x1="23.5" y1="28" x2="23.5" y2="54" stroke-width="1.8"/>
-      <!-- 화물 + 훅 -->
-      <g class="load-anim">
-        <path d="M20.5 54 L20.5 59 Q20.5 64 23.5 64 Q26.5 64 26.5 59" stroke-width="2" fill="none"/>
-        <rect x="17" y="52" width="13" height="9" rx="1.5" stroke-width="2"/>
+      <rect x="54" y="10" width="5" height="5" rx="1" fill="var(--ink)" opacity=".3" stroke="none"/>
+      <!-- 로프 + 훅 (애니메이션) -->
+      <g class="crane-rope">
+        <line x1="21.5" y1="18" x2="21.5" y2="42"/>
+        <path d="M18 42 L18 46 Q18 50 21.5 50 Q25 50 25 46"/>
+        <rect x="16" y="40" width="11" height="6" rx="1"/>
       </g>
     </svg>
   </div>
