@@ -376,6 +376,7 @@ function loadSavedTags() {
     });
     updateProgress();
     renderMerchants();
+    saveState(); // CSV 파싱 후 전체 거래처 목록 즉시 저장
   }).catch(function(){ hideLoad(); });
 }
 
