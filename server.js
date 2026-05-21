@@ -178,7 +178,10 @@ const ROUTES = {
 function serveHTML(res, file) {
   fs.readFile(path.join(OUT, file), 'utf8', (err, data) => {
     if (err) { res.writeHead(404); res.end('파일 없음'); return; }
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.writeHead(200, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-store',
+    });
     res.end(data);
   });
 }

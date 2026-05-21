@@ -14,14 +14,21 @@
 body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;min-height:100vh;display:flex;flex-direction:column}
 .page-main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 32px;text-align:center}
 .wip-icon{margin-bottom:24px;line-height:0}
-.crane-rope{
-  animation:craneHoist 2s ease-in-out infinite;
-  transform-box:fill-box;
-  transform-origin:top center;
+.rope-anim{
+  transform-box:view-box;
+  transform-origin:23.5px 28px;
+  animation:ropeShorten 1.8s ease-in-out infinite;
 }
-@keyframes craneHoist{
-  0%,100%{transform:translateY(0)}
-  40%,60% {transform:translateY(-12px)}
+@keyframes ropeShorten{
+  0%,100%{transform:scaleY(1)}
+  50%    {transform:scaleY(0.46)}
+}
+.load-anim{
+  animation:loadHoist 1.8s ease-in-out infinite;
+}
+@keyframes loadHoist{
+  0%,100%{transform:translateY(0px)}
+  50%    {transform:translateY(-14px)}
 }
 .wip-badge{display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:white;font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;padding:4px 12px;margin-bottom:20px}
 .wip-title{font-size:28px;font-weight:700;letter-spacing:-.02em;color:var(--ink);margin-bottom:12px}
@@ -74,12 +81,9 @@ body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;background:var(--bg);
       <!-- 트롤리 -->
       <rect x="18" y="21" width="11" height="7" rx="1" stroke-width="2"/>
       <!-- 로프 -->
-      <line x1="23.5" y1="28" x2="23.5" y2="54" stroke-width="1.8">
-        <animate attributeName="y2" values="54;40;54" dur="1.8s" repeatCount="indefinite"/>
-      </line>
+      <line class="rope-anim" x1="23.5" y1="28" x2="23.5" y2="54" stroke-width="1.8"/>
       <!-- 화물 + 훅 -->
-      <g>
-        <animateTransform attributeName="transform" type="translate" values="0,0;0,-14;0,0" dur="1.8s" repeatCount="indefinite"/>
+      <g class="load-anim">
         <path d="M20.5 54 L20.5 59 Q20.5 64 23.5 64 Q26.5 64 26.5 59" stroke-width="2" fill="none"/>
         <rect x="17" y="52" width="13" height="9" rx="1.5" stroke-width="2"/>
       </g>
