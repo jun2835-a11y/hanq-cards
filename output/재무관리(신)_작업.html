@@ -329,6 +329,7 @@ function hideLoad() {
 var _txns = [];       // 전체 파싱된 거래 [{date,merchant,out,in,bank}]
 var _merchants = {};  // {merchantKey: {name,count,totalOut,cat,biz,sampleDate,autoTagged}}
 var _files = [];      // 업로드된 파일 목록 [{name,bank,rows}]
+var _parseDiag = {};  // 파일명 → {bank,iDate,iMerchant,iOut,iIn,headers,sampleDate,sampleMerchant,rows}
 var _filter = 'all';
 var _vsFiltered = []; // 현재 필터링된 merchant 키 목록 (가상 스크롤용)
 var _vsScrollTop = 0; // 마지막 스크롤 위치
@@ -591,12 +592,17 @@ function parseAmount(s) {
 
 function normalizeDate(s) {
   s = String(s).trim().replace(/"/g, '');
-  // YYYY-MM-DD or YYYY/MM/DD or YYYY.MM.DD (with optional time)
+  // "2024. 1.15" 형태: 구분자 주변 공백 제거
+  s = s.replace(/\s*([-\/\.])\s*(?=\d)/g, '$1').replace(/(?<=\d)\s*([-\/\.])\s*/g, '$1');
+  // YYYY-MM-DD or YYYY/MM/DD or YYYY.MM.DD (구분자 혼합도 허용)
   var m = s.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/);
   if (m) return m[1] + '-' + pad2(+m[2]) + '-' + pad2(+m[3]);
-  // YYYYMMDD
-  m = s.match(/^(\d{4})(\d{2})(\d{2})/);
+  // YYYYMMDD (8자리 연속 숫자)
+  m = s.match(/^(\d{4})(\d{2})(\d{2})(?!\d)/);
   if (m) return m[1] + '-' + m[2] + '-' + m[3];
+  // YYYY년 M월 D일 (한국어 날짜)
+  m = s.match(/(\d{4})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})/);
+  if (m) return m[1] + '-' + pad2(+m[2]) + '-' + pad2(+m[3]);
   // M/D/YYYY (SheetJS raw:false 출력 포맷)
   m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
   if (m) return m[3] + '-' + pad2(+m[1]) + '-' + pad2(+m[2]);
@@ -917,13 +923,18 @@ function parseHtmlXlsTable(text, filename) {
     console.log('[parseHtmlXlsTable] bank:', bank, '| iDate:', iDate, '| iMerchant:', iMerchant, '| iOut:', iOut, '| iIn:', iIn);
 
     var parsed = [];
+    var firstRow = bestRows[bestHeaderIdx+1] || [];
     for (var j = bestHeaderIdx+1; j < bestRows.length; j++) {
       var row = bestRows[j];
       if (!row || row.filter(function(c){ return c; }).length < 2) continue;
       var merchant = iMerchant >= 0 ? row[iMerchant] : '';
       if (!merchant || merchant === '-') continue;
-      var date = normalizeDate(iDate >= 0 ? row[iDate] : '');
-      if (!date) continue;
+      var dateRaw2 = iDate >= 0 ? row[iDate] : '';
+      var date = normalizeDate(dateRaw2);
+      if (!date) {
+        if (parsed.length === 0 && j === bestHeaderIdx+1) console.warn('[parseHtmlXlsTable] 첫 행 날짜 파싱 실패 raw='+JSON.stringify(dateRaw2)+' merchant='+merchant);
+        continue;
+      }
       parsed.push({
         date: date, merchant: merchant,
         out: parseAmount(iOut >= 0 ? row[iOut] : ''),
@@ -931,7 +942,7 @@ function parseHtmlXlsTable(text, filename) {
         bank: bank
       });
     }
-    return { bank: bank, rows: parsed };
+    return { bank: bank, rows: parsed, _diag: { bank:bank, iDate:iDate, iMerchant:iMerchant, iOut:iOut, iIn:iIn, headers:bestRows[bestHeaderIdx], sampleDate: firstRow[iDate]||'', sampleMerchant: firstRow[iMerchant]||'' } };
   } catch(e) {
     console.error('[parseHtmlXlsTable] 예외:', e.message);
     return { bank: '?', rows: [] };
@@ -943,6 +954,7 @@ function registerEntry(f2, parsed, done) {
   var existing = _files.findIndex(function(f){ return f.name === f2.name; });
   var entry = { name: f2.name, bank: parsed.bank, parsed: parsed.rows, type: 'excel', rows: 0 };
   if (existing >= 0) _files[existing] = entry; else _files.push(entry);
+  if (parsed._diag) _parseDiag[f2.name] = parsed._diag;
   renderFileList();
   if (done) done();
 }
@@ -982,9 +994,10 @@ function parseExcelData(data, type, filename) {
     headers.forEach(function(h, i){
       var t = h.replace(/\s/g,'');
       if (iDate < 0 && (t.includes('거래일') || t==='날짜' || t==='일시')) iDate=i;
-      if (iOut < 0 && (t==='출금액'||t==='출금금액'||t==='출금'||t==='출금(원)')) iOut=i;
-      if (iIn < 0 && (t==='입금액'||t==='입금금액'||t==='입금'||t==='입금(원)')) iIn=i;
+      if (iOut < 0 && (t.includes('출금') || t==='차변')) iOut=i;
+      if (iIn < 0 && (t.includes('입금') || t==='대변')) iIn=i;
     });
+    console.log('[parseExcelData] bank:'+bank+' iDate:'+iDate+'('+headers[iDate]+') iMerchant:'+iMerchant+'('+headers[iMerchant]+') iOut:'+iOut+' iIn:'+iIn);
 
     var parsed = [];
     for (var j = headerIdx+1; j < rows.length; j++) {
@@ -996,10 +1009,13 @@ function parseExcelData(data, type, filename) {
       var inRaw  = iIn  >= 0 ? String(row[iIn]||'')  : '';
       if (!merchant || merchant==='-') continue;
       var date = normalizeDate(dateRaw);
-      if (!date) continue;
+      if (!date) {
+        if (parsed.length === 0 && j === headerIdx+1) console.warn('[parseExcelData] 첫 행 날짜 파싱 실패 raw='+JSON.stringify(dateRaw)+' merchant='+merchant);
+        continue;
+      }
       parsed.push({ date:date, merchant:merchant, out:parseAmount(outRaw), in:parseAmount(inRaw), bank:bank });
     }
-    return { bank: bank, rows: parsed };
+    return { bank: bank, rows: parsed, _diag: { bank:bank, iDate:iDate, iMerchant:iMerchant, iOut:iOut, iIn:iIn, headers:headers.slice(0,10), sampleDate: rows[headerIdx+1] ? String(rows[headerIdx+1][iDate]||'') : '', sampleMerchant: rows[headerIdx+1] ? String(rows[headerIdx+1][iMerchant]||'') : '' } };
   } catch(e) {
     return { bank: '?', rows: [] };
   }
@@ -1009,11 +1025,21 @@ function renderFileList() {
   var wrap = document.getElementById('fileList');
   if (_files.length === 0) { wrap.innerHTML = ''; return; }
   wrap.innerHTML = _files.map(function(f, i){
-    return '<div class="file-item">' +
+    var diagHtml = '';
+    var d = _parseDiag[f.name];
+    if (d && f.parsed && f.parsed.length === 0) {
+      var cols = 'bank:'+d.bank+' | 날짜컬:'+d.iDate+' | 거래처컬:'+d.iMerchant;
+      var hdr = (d.headers||[]).slice(0,8).join(' / ');
+      var sample = d.sampleDate ? ('날짜샘플:'+d.sampleDate+' / 거래처샘플:'+d.sampleMerchant) : '(첫 데이터 행 없음)';
+      diagHtml = '<div style="width:100%;font-size:10px;color:#b34400;background:#fff3cd;padding:4px 6px;margin-top:3px;border:1px solid #ffe082;word-break:break-all">' +
+        '⚠ 0건 파싱 — ' + cols + '<br>헤더: ' + hdr + '<br>' + sample + '</div>';
+    }
+    return '<div class="file-item" style="flex-wrap:wrap">' +
       '<span class="file-bank ' + bankClass(f.bank) + '">' + f.bank + '</span>' +
       '<span class="file-name">' + f.name + '</span>' +
       (f.rows ? '<span class="file-rows">' + f.rows.toLocaleString() + '건</span>' : '') +
       '<span class="file-remove" onclick="removeFile('+i+')">&times;</span>' +
+      diagHtml +
     '</div>';
   }).join('');
   document.getElementById('parseBtn').disabled = false;
