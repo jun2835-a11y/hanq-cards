@@ -1033,71 +1033,167 @@ function registerEntry(f2, parsed, done) {
 
 // SheetJS 공용 파서 — type: 'array'(xlsx)
 function parseExcelData(data, type, filename) {
-  try {
-    var wb = XLSX.read(data, { type: type, cellDates: false, raw: true });
-    console.log('[parseExcelData] type='+type+' SheetNames='+JSON.stringify(wb.SheetNames));
-    var sheetName = wb.SheetNames.find(function(n){ return n.includes('거래'); }) || wb.SheetNames[0];
-    var ws = wb.Sheets[sheetName];
-    if (!ws) {
-      console.error('[parseExcelData] ws 없음 sheetName='+sheetName);
-      return { bank: '?', rows: [], _diag: { bank:'?', error:'시트 없음('+sheetName+')', iDate:-1, iMerchant:-1, iOut:-1, iIn:-1, headers:[], sampleDate:'', sampleMerchant:'' } };
-    }
-    var rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: true });
-    console.log('[parseExcelData] 총 행수='+rows.length+' 첫행='+(rows[0]?rows[0].map(String).slice(0,6).join('|'):'(없음)'));
+  var HDR_KEYS = ['거래일','출금','입금','순번','날짜','적요','내용','잔액','금액','보낸분','받는분','기록사항'];
 
-    var headerIdx = -1;
-    var HDR_KEYS = ['거래일','출금','입금','순번','날짜','적요','내용','잔액','금액','보낸분','받는분','기록사항'];
+  function _readRows(extraOpts) {
+    try {
+      var opts = { type: type, cellDates: false, raw: true };
+      if (extraOpts) { var ks = Object.keys(extraOpts); for (var i=0;i<ks.length;i++) opts[ks[i]] = extraOpts[ks[i]]; }
+      var wb = XLSX.read(data, opts);
+      var label = type + (extraOpts && extraOpts.codepage ? ' cp'+extraOpts.codepage : '');
+      console.log('[parseExcelData] '+label+' SheetNames='+JSON.stringify(wb.SheetNames));
+      var sheetName = wb.SheetNames.find(function(n){ return n.includes('거래'); }) || wb.SheetNames[0];
+      var ws = wb.Sheets[sheetName];
+      if (!ws) return { err: '시트 없음('+sheetName+')', rows: [] };
+      var rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: true });
+      console.log('[parseExcelData] 총 행수='+rows.length+' 첫행='+(rows[0]?rows[0].map(String).slice(0,6).join('|'):'(없음)'));
+      return { rows: rows };
+    } catch(e) {
+      console.error('[parseExcelData] SheetJS 예외 ('+type+(extraOpts&&extraOpts.codepage?' cp'+extraOpts.codepage:'')+'):', e.message);
+      return { err: e.message, rows: [] };
+    }
+  }
+
+  function _findHeaderIdx(rows) {
     for (var hi = 0; hi < Math.min(rows.length, 80); hi++) {
       var joined = rows[hi].map(function(c){ return String(c); }).join(',');
       var nonEmpty = rows[hi].filter(function(c){ return String(c).trim(); }).length;
-      var hitCount = HDR_KEYS.filter(function(k){ return joined.includes(k); }).length;
-      if (hitCount >= 1 && nonEmpty >= 3) { headerIdx = hi; break; }
+      var hits = HDR_KEYS.filter(function(k){ return joined.includes(k); }).length;
+      if (hits >= 1 && nonEmpty >= 3) return hi;
     }
-    if (headerIdx < 0) {
-      var sample3 = rows.slice(0,3).map(function(r){ return r.map(String).slice(0,6).join('|'); });
-      console.warn('[parseExcelData] 헤더 탐색 실패 totalRows='+rows.length+' 앞3행:', JSON.stringify(sample3));
-      return { bank: '?', rows: [], _diag: { bank:'?', error:'헤더 미발견(행수:'+rows.length+')', iDate:-1, iMerchant:-1, iOut:-1, iIn:-1, headers: rows[0]?rows[0].map(String).slice(0,8):[], sampleDate: String(rows[0]&&rows[0][0]||''), sampleMerchant: JSON.stringify(sample3) } };
-    }
-
-    var headers = rows[headerIdx].map(function(c){ return String(c).trim(); });
-    var bank = detectBank(headers);
-    // detectBank 실패 시 파일명으로 보정
-    if (bank === '?') {
-      var fb = bankFromFilename(filename);
-      if (fb !== '?') { bank = fb; console.log('[parseExcelData] 파일명 bank 보정:', bank); }
-    }
-    if (bank === '?') console.warn('[parseExcelData] bank 미감지 — headers:', headers.join('|'));
-    var iDate=-1, iMerchant=-1, iOut=-1, iIn=-1;
-    iMerchant = findMerchantCol(headers, bank);
-    headers.forEach(function(h, i){
-      var t = h.replace(/\s/g,'');
-      if (iDate < 0 && (t.includes('거래일') || t==='날짜' || t==='일시')) iDate=i;
-      if (iOut < 0 && (t.includes('출금') || t==='차변')) iOut=i;
-      if (iIn < 0 && (t.includes('입금') || t==='대변')) iIn=i;
-    });
-    console.log('[parseExcelData] bank:'+bank+' iDate:'+iDate+'('+headers[iDate]+') iMerchant:'+iMerchant+'('+headers[iMerchant]+') iOut:'+iOut+' iIn:'+iIn);
-
-    var parsed = [];
-    for (var j = headerIdx+1; j < rows.length; j++) {
-      var row = rows[j];
-      if (!row || row.length < 3) continue;
-      var dateRaw = iDate >= 0 ? String(row[iDate]||'') : '';
-      var merchant = iMerchant >= 0 ? String(row[iMerchant]||'').trim() : '';
-      var outRaw = iOut >= 0 ? String(row[iOut]||'') : '';
-      var inRaw  = iIn  >= 0 ? String(row[iIn]||'')  : '';
-      if (!merchant || merchant==='-') continue;
-      var date = normalizeDate(dateRaw);
-      if (!date) {
-        if (parsed.length === 0 && j === headerIdx+1) console.warn('[parseExcelData] 첫 행 날짜 파싱 실패 raw='+JSON.stringify(dateRaw)+' merchant='+merchant);
-        continue;
-      }
-      parsed.push({ date:date, merchant:merchant, out:parseAmount(outRaw), in:parseAmount(inRaw), bank:bank });
-    }
-    return { bank: bank, rows: parsed, _diag: { bank:bank, iDate:iDate, iMerchant:iMerchant, iOut:iOut, iIn:iIn, headers:headers.slice(0,10), sampleDate: rows[headerIdx+1] ? String(rows[headerIdx+1][iDate]||'') : '', sampleMerchant: rows[headerIdx+1] ? String(rows[headerIdx+1][iMerchant]||'') : '' } };
-  } catch(e) {
-    console.error('[parseExcelData] SheetJS 예외 (type='+type+'):', e.message);
-    return { bank: '?', rows: [], _diag: { bank:'?', error: e.message, iDate:-1, iMerchant:-1, iOut:-1, iIn:-1, headers:[], sampleDate:'', sampleMerchant:'' } };
+    return -1;
   }
+
+  // 날짜값(Excel 시리얼 or 문자열)이 있는 첫 데이터 행을 찾아 직전 행을 헤더로 간주
+  function _findHeaderByDate(rows) {
+    for (var hi = 1; hi < Math.min(rows.length, 80); hi++) {
+      var r = rows[hi];
+      if (!r || r.length < 3) continue;
+      for (var ci = 0; ci < Math.min(r.length, 6); ci++) {
+        var v = String(r[ci]||'').trim();
+        if (!v) continue;
+        var n = parseFloat(v);
+        if (!isNaN(n) && n > 40000 && n < 56000) {
+          console.log('[parseExcelData] 날짜 시리얼 헤더 탐색: 데이터행='+hi+' col='+ci+' val='+n);
+          return { hdrIdx: Math.max(0, hi-1), dateCol: ci };
+        }
+        var d = normalizeDate(v);
+        if (d && /^20[12]\d-/.test(d)) {
+          console.log('[parseExcelData] 날짜 문자열 헤더 탐색: 데이터행='+hi+' col='+ci+' val='+v);
+          return { hdrIdx: Math.max(0, hi-1), dateCol: ci };
+        }
+      }
+    }
+    return null;
+  }
+
+  // 1차: 기본 읽기
+  var r1 = _readRows();
+  if (r1.err) {
+    return { bank:'?', rows:[], _diag:{ bank:'?', error:r1.err, iDate:-1, iMerchant:-1, iOut:-1, iIn:-1, headers:[], sampleDate:'', sampleMerchant:'' } };
+  }
+  var rows = r1.rows;
+  var headerIdx = _findHeaderIdx(rows);
+  var dateColHint = -1;
+
+  // 2차: codepage 949 (Korean BIFF8 인코딩 보정)
+  if (headerIdx < 0) {
+    console.log('[parseExcelData] CP949로 재시도...');
+    var r2 = _readRows({ codepage: 949 });
+    if (!r2.err && r2.rows.length > 0) {
+      var h2 = _findHeaderIdx(r2.rows);
+      if (h2 >= 0) {
+        console.log('[parseExcelData] CP949 헤더 발견! row='+h2);
+        rows = r2.rows;
+        headerIdx = h2;
+      }
+    }
+  }
+
+  // 3차: 날짜 값 기반 헤더 위치 탐색 (한글 깨짐 대비)
+  if (headerIdx < 0) {
+    var dateFnd = _findHeaderByDate(rows);
+    if (dateFnd) {
+      headerIdx = dateFnd.hdrIdx;
+      dateColHint = dateFnd.dateCol;
+      console.log('[parseExcelData] 날짜 기반 headerIdx='+headerIdx+' dateColHint='+dateColHint);
+    }
+  }
+
+  if (headerIdx < 0) {
+    var sample3 = rows.slice(0,3).map(function(r){ return r.map(String).slice(0,6).join('|'); });
+    console.warn('[parseExcelData] 헤더 탐색 실패 totalRows='+rows.length+' 앞3행:', JSON.stringify(sample3));
+    return { bank:'?', rows:[], _diag:{ bank:'?', error:'헤더 미발견(행수:'+rows.length+')', iDate:-1, iMerchant:-1, iOut:-1, iIn:-1, headers: rows[0]?rows[0].map(String).slice(0,8):[], sampleDate: String(rows[0]&&rows[0][0]||''), sampleMerchant: JSON.stringify(sample3) } };
+  }
+
+  var headers = rows[headerIdx].map(function(c){ return String(c).trim(); });
+  var bank = detectBank(headers);
+  if (bank === '?') {
+    var fb = bankFromFilename(filename);
+    if (fb !== '?') { bank = fb; console.log('[parseExcelData] 파일명 bank 보정:', bank); }
+  }
+  if (bank === '?') console.warn('[parseExcelData] bank 미감지 — headers:', headers.join('|'));
+
+  var iDate=-1, iMerchant=-1, iOut=-1, iIn=-1;
+  iMerchant = findMerchantCol(headers, bank);
+  headers.forEach(function(h, i){
+    var t = h.replace(/\s/g,'');
+    if (iDate < 0 && (t.includes('거래일') || t==='날짜' || t==='일시')) iDate=i;
+    if (iOut < 0 && (t.includes('출금') || t==='차변')) iOut=i;
+    if (iIn < 0 && (t.includes('입금') || t==='대변')) iIn=i;
+  });
+
+  // 날짜 컬럼 위치 보정 (한글 깨짐으로 키워드 탐색 실패 시)
+  if (iDate < 0 && dateColHint >= 0) {
+    iDate = dateColHint;
+    console.log('[parseExcelData] 날짜 컬럼 위치 보정: col='+iDate);
+  }
+
+  // 출금/입금 컬럼 위치 보정 (키워드 탐색 실패 시 숫자 컬럼 순서로)
+  if (iDate >= 0 && (iOut < 0 || iIn < 0)) {
+    var sData = rows.slice(headerIdx+1, Math.min(rows.length, headerIdx+10));
+    var numCols = {};
+    sData.forEach(function(r){ if (!r) return; r.forEach(function(v, ci){
+      if (ci===iDate || ci===iMerchant) return;
+      var n = parseFloat(String(v).replace(/,/g,'').replace(/[원₩]/g,''));
+      if (!isNaN(n) && n >= 0 && n < 1e12) numCols[ci] = (numCols[ci]||0)+1;
+    });});
+    var sortedCols = Object.keys(numCols).map(Number).sort(function(a,b){ return a-b; });
+    console.log('[parseExcelData] 숫자 컬럼 (위치순):', sortedCols);
+    if (iOut < 0 && sortedCols.length >= 1) iOut = sortedCols[0];
+    if (iIn < 0 && sortedCols.length >= 2) iIn = sortedCols[1];
+  }
+
+  // 거래처 컬럼 위치 보정 (키워드 탐색 실패 시 날짜 다음 텍스트 컬럼)
+  if (iMerchant < 0 && iDate >= 0) {
+    var sData2 = rows.slice(headerIdx+1, Math.min(rows.length, headerIdx+6));
+    for (var ci=0; ci<Math.min(rows[headerIdx]?rows[headerIdx].length:0, 10); ci++) {
+      if (ci===iDate || ci===iOut || ci===iIn) continue;
+      var txtCnt = 0;
+      sData2.forEach(function(r){ if (!r) return; var v=String(r[ci]||'').trim(); if (v && isNaN(parseFloat(v.replace(/,/g,'')))) txtCnt++; });
+      if (txtCnt >= Math.ceil(sData2.length*0.5)) { iMerchant=ci; console.log('[parseExcelData] 거래처 컬럼 위치 보정: col='+ci); break; }
+    }
+  }
+
+  console.log('[parseExcelData] bank:'+bank+' iDate:'+iDate+'('+headers[iDate]+') iMerchant:'+iMerchant+'('+headers[iMerchant]+') iOut:'+iOut+' iIn:'+iIn);
+
+  var parsed = [];
+  for (var j = headerIdx+1; j < rows.length; j++) {
+    var row = rows[j];
+    if (!row || row.length < 3) continue;
+    var dateRaw = iDate >= 0 ? String(row[iDate]||'') : '';
+    var merchant = iMerchant >= 0 ? String(row[iMerchant]||'').trim() : '';
+    var outRaw = iOut >= 0 ? String(row[iOut]||'') : '';
+    var inRaw  = iIn  >= 0 ? String(row[iIn]||'')  : '';
+    if (!merchant || merchant==='-') continue;
+    var date = normalizeDate(dateRaw);
+    if (!date) {
+      if (parsed.length === 0 && j === headerIdx+1) console.warn('[parseExcelData] 첫 행 날짜 파싱 실패 raw='+JSON.stringify(dateRaw)+' merchant='+merchant);
+      continue;
+    }
+    parsed.push({ date:date, merchant:merchant, out:parseAmount(outRaw), in:parseAmount(inRaw), bank:bank });
+  }
+  return { bank: bank, rows: parsed, _diag: { bank:bank, iDate:iDate, iMerchant:iMerchant, iOut:iOut, iIn:iIn, headers:headers.slice(0,10), sampleDate: rows[headerIdx+1] ? String(rows[headerIdx+1][iDate]||'') : '', sampleMerchant: rows[headerIdx+1] ? String(rows[headerIdx+1][iMerchant]||'') : '' } };
 }
 
 function renderFileList() {
