@@ -115,6 +115,17 @@ body{font-family:'Apple SD Gothic Neo','Noto Sans KR',-apple-system,sans-serif;
   background:var(--ink);color:white;padding:10px 22px;font-size:12px;font-weight:600;
   z-index:400;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}
 .qk-toast.show{opacity:1}
+
+/* ── Save indicator ── */
+.save-indicator{font-size:10px;display:flex;align-items:center;gap:4px;padding:4px 8px;transition:all .3s;white-space:nowrap}
+.save-indicator.saved{color:#4CAF80}
+.save-indicator.saving{color:#E8A230}
+.save-indicator.error{color:#E8380A}
+.save-indicator-dot{width:5px;height:5px;border-radius:50%;background:currentColor;transition:background .3s;flex-shrink:0}
+@keyframes siPulse{0%,100%{opacity:1}50%{opacity:.3}}
+.save-indicator.saving .save-indicator-dot{animation:siPulse .8s ease-in-out infinite}
+@keyframes siGreen{0%,100%{box-shadow:0 0 0 0 rgba(76,175,128,.55)}70%{box-shadow:0 0 0 6px rgba(76,175,128,0)}}
+.save-indicator.saved .save-indicator-dot{animation:siGreen 2s ease-in-out infinite}
 </style>
 </head>
 <body>
@@ -147,6 +158,10 @@ body{font-family:'Apple SD Gothic Neo','Noto Sans KR',-apple-system,sans-serif;
 <div class="qk-header">
   <div class="qk-logo">hanQ <span>빠른 입력</span></div>
   <div class="qk-hbtns">
+    <div class="save-indicator saved" id="saveIndicator">
+      <span class="save-indicator-dot"></span>
+      <span class="save-indicator-text">저장됨 ✓</span>
+    </div>
     <button class="qk-save-btn" onclick="saveAll()">
       저장 <span class="qk-save-badge" id="save-badge">0</span>
     </button>
@@ -264,12 +279,28 @@ async function loadState() {
   renderList();
   renderSummary();
 }
+function setSaveStatus(st) {
+  const el = document.getElementById('saveIndicator');
+  if (!el) return;
+  const txt = el.querySelector('.save-indicator-text');
+  el.className = 'save-indicator ' + (st === 'nosb' ? 'error' : st);
+  if (st === 'saved')  txt.textContent = '저장됨 ✓';
+  if (st === 'saving') txt.textContent = '저장 중...';
+  if (st === 'error')  txt.textContent = '저장 실패 ✗';
+  if (st === 'nosb')   txt.textContent = '⚠ Supabase 저장 실패 (새로고침 시 소실)';
+}
+
 async function persistState() {
+  setSaveStatus('saving');
   try {
-    await fetch('/api/finance-state', {
+    const r = await fetch('/api/finance-state', {
       method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(state)
     });
-  } catch(e) {}
+    if (!r.ok) { setSaveStatus('error'); return false; }
+    const res = await r.json().catch(() => ({}));
+    setSaveStatus(res.supabase === false ? 'nosb' : 'saved');
+    return true;
+  } catch(e) { setSaveStatus('error'); return false; }
 }
 
 // ── HELPERS ──
@@ -390,10 +421,10 @@ async function saveAll() {
     state.updatedDates[acct] = ts;
   });
   changes = {};
-  await persistState();
+  const ok = await persistState();
   renderList();
   renderSummary();
-  toast('✓ 저장 완료');
+  toast(ok ? '✓ 저장 완료' : '저장 실패');
 }
 
 // ── TOAST ──

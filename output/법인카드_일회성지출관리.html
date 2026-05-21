@@ -37,6 +37,15 @@ body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;background:var(--bg);
 .hdr-right{display:flex;align-items:center;gap:8px}
 .hdr-btn{font-size:11px;padding:5px 12px;border:1px solid rgba(255,255,255,.15);background:none;cursor:pointer;color:#9A958F;font-family:inherit;transition:all .15s}
 .hdr-btn:hover{color:#F7F5F0;border-color:rgba(255,255,255,.4)}
+.save-indicator{font-size:11px;display:flex;align-items:center;gap:5px;padding:5px 10px;transition:all .3s;white-space:nowrap}
+.save-indicator.saved{color:#4CAF80}
+.save-indicator.saving{color:#E8A230}
+.save-indicator.error{color:var(--accent)}
+.save-indicator-dot{width:6px;height:6px;border-radius:50%;background:currentColor;transition:background .3s}
+@keyframes siPulse{0%,100%{opacity:1}50%{opacity:.3}}
+.save-indicator.saving .save-indicator-dot{animation:siPulse .8s ease-in-out infinite}
+@keyframes siGreen{0%,100%{box-shadow:0 0 0 0 rgba(76,175,128,.55)}70%{box-shadow:0 0 0 6px rgba(76,175,128,0)}}
+.save-indicator.saved .save-indicator-dot{animation:siGreen 2s ease-in-out infinite}
 
 /* TAB */
 .tab-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 60px;display:flex;gap:0;position:sticky;top:0;z-index:50;overflow-x:auto}
@@ -212,6 +221,10 @@ input[type=range]{width:100%;accent-color:var(--accent)}
     </div>
   </div>
   <div class="hdr-right">
+    <div class="save-indicator saved" id="saveIndicator">
+      <span class="save-indicator-dot"></span>
+      <span class="save-indicator-text">저장됨 ✓</span>
+    </div>
     <span id="hdr-date" style="font-size:11px;color:#5A5650;letter-spacing:.05em"></span>
     <button class="hdr-btn" onclick="window.print()">🖨 인쇄</button>
     <button class="hdr-btn" onclick="exportExcel()">↓ Excel</button>
@@ -2445,13 +2458,32 @@ function rpLoad() {
     .catch(() => {});
 }
 let _rpRenderTimer = null;
-function rpSave() {
+function setSaveStatus(st) {
+  const el = document.getElementById('saveIndicator');
+  if (!el) return;
+  const txt = el.querySelector('.save-indicator-text');
+  el.className = 'save-indicator ' + (st === 'nosb' ? 'error' : st);
+  if (st === 'saved')  txt.textContent = '저장됨 ✓';
+  if (st === 'saving') txt.textContent = '저장 중...';
+  if (st === 'error')  txt.textContent = '저장 실패 ✗';
+  if (st === 'nosb')   txt.textContent = '⚠ Supabase 저장 실패 (새로고침 시 소실)';
+}
+
+async function rpSave() {
+  setSaveStatus('saving');
   localStorage.setItem(RP_KEY, JSON.stringify(rpCards));
-  fetch('/api/card-replan-state', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ cards: rpCards }),
-  }).catch(() => {});
+  try {
+    const r = await fetch('/api/card-replan-state', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cards: rpCards }),
+    });
+    if (!r.ok) { setSaveStatus('error'); }
+    else {
+      const res = await r.json().catch(() => ({}));
+      setSaveStatus(res.supabase === false ? 'nosb' : 'saved');
+    }
+  } catch(e) { setSaveStatus('error'); }
   clearTimeout(_rpRenderTimer);
   _rpRenderTimer = setTimeout(() => {
     renderDashboard();
