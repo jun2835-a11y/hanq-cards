@@ -993,6 +993,15 @@ function _parseAllCore() {
     _merchants[k].monthly[ym].in += t.in;
   });
 
+  // 미분류 중 총 출금 1만 이하 → 기타 자동태그
+  Object.keys(_merchants).forEach(function(k) {
+    var m = _merchants[k];
+    if (!m.cat && m.totalOut > 0 && m.totalOut <= 10000) {
+      m.cat = '기타';
+      m.autoTagged = true;
+    }
+  });
+
   renderFileList();
   showParseResult();
   updateProgress();
