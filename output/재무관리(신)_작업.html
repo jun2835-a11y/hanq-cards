@@ -1205,9 +1205,15 @@ function renderFileList() {
     if (d && f.parsed && f.parsed.length === 0) {
       var cols = 'bank:'+d.bank+' | 날짜컬:'+d.iDate+' | 거래처컬:'+d.iMerchant;
       var hdr = (d.headers||[]).slice(0,8).join(' / ');
-      var sample = d.sampleDate ? ('날짜샘플:'+d.sampleDate+' / 거래처샘플:'+d.sampleMerchant) : '(첫 데이터 행 없음)';
+      var errLine = d.error ? ('<br>오류: '+d.error) : '';
+      var sampleLine = d.sampleDate
+        ? ('<br>날짜샘플:'+d.sampleDate+' / 거래처샘플:'+d.sampleMerchant)
+        : '';
+      var rawLine = (d.sampleMerchant && d.sampleMerchant.charAt(0)==='[')
+        ? ('<br>앞3행: '+d.sampleMerchant)
+        : (!d.sampleDate ? '<br>(첫 데이터 행 없음)' : '');
       diagHtml = '<div style="width:100%;font-size:10px;color:#b34400;background:#fff3cd;padding:4px 6px;margin-top:3px;border:1px solid #ffe082;word-break:break-all">' +
-        '⚠ 0건 파싱 — ' + cols + '<br>헤더: ' + hdr + '<br>' + sample + '</div>';
+        '⚠ 0건 파싱 — ' + cols + errLine + '<br>헤더: ' + hdr + sampleLine + rawLine + '</div>';
     }
     return '<div class="file-item" style="flex-wrap:wrap">' +
       '<span class="file-bank ' + bankClass(f.bank) + '">' + f.bank + '</span>' +
