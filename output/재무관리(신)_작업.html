@@ -127,12 +127,13 @@ input[type=file]{display:none}
 .cat-filter-sel:focus{border-color:var(--ink)}
 
 /* 저장 상태 */
-.save-indicator{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;letter-spacing:.03em;margin-left:auto;padding:0 6px;color:rgba(255,255,255,.5);transition:color .2s}
+.save-indicator{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;letter-spacing:.03em;margin-left:auto;padding:0 12px;color:var(--muted);transition:color .2s;align-self:center}
 .save-indicator::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
-.save-indicator.saved{color:#4CAF80}
-.save-indicator.saving{color:#F9A825;animation:siPulse .8s ease-in-out infinite}
-.save-indicator.error{color:#EF5350}
-@keyframes siPulse{0%,100%{opacity:1}50%{opacity:.4}}
+.save-indicator.saved{color:#2E7D32}
+.save-indicator.saving{color:#E65100;animation:siPulse .8s ease-in-out infinite}
+.save-indicator.error{color:#C62828}
+.save-indicator.nosb{color:#C62828}
+@keyframes siPulse{0%,100%{opacity:1}50%{opacity:.35}}
 
 /* ── 로딩 인디케이터 ── */
 #ld-bar{position:fixed;top:0;left:0;width:100%;height:3px;z-index:9999;overflow:hidden;pointer-events:none;display:none}
@@ -266,7 +267,7 @@ const STAFF_NAMES = [
   '정재승','정종각',
   '곽은진','국희현','김가람','김광수','김도연','김선후','김정애',
   '노신애','반유환','박연식','박신주','박종환','박태성','박태욱',
-  '손용진','오승빈','윤설하','이경근','이세은','이승미','이승학','이지성',
+  '손용진','오승빈','윤설하','윤여륜','이경근','이세은','이승미','이승학','이지성',
   '임준호','장예진','전인서','조승현','조용원','조유진',
   '최동훈','최지원','최충호','허정영','황지애'
 ];
@@ -328,30 +329,36 @@ var API = (location.hostname === 'localhost' ? 'http://localhost:3005' : '') + '
 
 var _saveTimer = null;
 function saveState() {
-  // 디바운스: 연속 태깅 시 마지막 변경 후 800ms에 한 번만 저장
   clearTimeout(_saveTimer);
-  _saveTimer = setTimeout(function() {
-    // 태그된 거래처만 저장 (전체 저장 시 수만 건 → 페이로드 과다)
-    var tagged = {};
-    Object.keys(_merchants).forEach(function(k) {
-      var m = _merchants[k];
-      if (m.cat || m.biz) tagged[k] = m;
-    });
-    setSaveStatus('saving');
-    fetch(API, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ merchants: tagged })
-    }).then(function(r){
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.json();
-    }).then(function(res){
-      setSaveStatus(res && res.supabase === false ? 'nosb' : 'saved');
-    }).catch(function(e){
+  _saveTimer = setTimeout(function() { doSave(0); }, 800);
+}
+
+function doSave(attempt) {
+  var tagged = {};
+  Object.keys(_merchants).forEach(function(k) {
+    var m = _merchants[k];
+    if (m.cat || m.biz) tagged[k] = m;
+  });
+  setSaveStatus('saving');
+  fetch(API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ merchants: tagged })
+  }).then(function(r) {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  }).then(function(res) {
+    setSaveStatus(res && res.supabase === false ? 'nosb' : 'saved');
+  }).catch(function(e) {
+    console.error('[saveState error] attempt=' + attempt, e.message);
+    if (attempt < 2) {
+      // 서버 cold-start 대비: 실패 시 5초 후 최대 2회 재시도
+      setSaveStatus('saving');
+      setTimeout(function() { doSave(attempt + 1); }, 5000);
+    } else {
       setSaveStatus('error');
-      console.error('[saveState error]', e);
-    });
-  }, 800);
+    }
+  });
 }
 
 function loadSavedTags() {
@@ -552,17 +559,59 @@ function matchStaffName(merchantName) {
   return null;
 }
 
-// 오탐 방지용 제외 단어 (성씨로 시작하지만 이름이 아닌 흔한 단어)
-var NAME_EXCL = ['이체','입금','출금','이자','이용','이전','이익','이하','이상','이후','이내','이외','이전','수수','공과','충전','인증','인터','임대','임시','임금','정산','정기','정액','전기','전화','전자','전용','전월','전일','박스','박람','최대','최소','최근','최신','강좌','강의','조회','조정','조건','국내','국외','국제'];
+// 성씨로 시작하지만 이름이 아닌 단어 목록 (오탐 방지)
+var NAME_EXCL = [
+  // 이(이체·이자 등)
+  '이체','입금','출금','이자','이용','이전','이익','이하','이상','이후','이내','이외','이월','이행','이마',
+  // 전(전기·전화 등)
+  '전기','전화','전자','전용','전월','전일','전력','전체','전국','전액','전산','전도',
+  // 정(정산·정기 등)
+  '정산','정기','정액','정도','정부','정보','정상','정형',
+  // 최·박
+  '최대','최소','최근','최신','최고','최저','박스','박람',
+  // 강·조
+  '강좌','강의','강남','강북','강원','조회','조정','조건','조세',
+  // 국·한
+  '국내','국외','국제','국민','국가','한국','한솔','한큐','한전','한화',
+  // 서·신·현
+  '서울','서비','서비스','신한','신용','신규','현금','현대',
+  // 마·연·오·주·임·장·원·손
+  '마트','연금','연말','연체','오픈','오일','주식','주소','주차','주유',
+  '임대','임시','임금','임차','장기','장비','장터','원금','원천','손해',
+  // 기타
+  '공과','충전','인증','인터','수수','공사','공단','보험',
+];
+
+// 은행 이체 접두/접미어
+var TRANSFER_AFFIXES = ['자동이체','타행이체','당행이체','계좌이체','인터넷이체','실시간이체','전자이체','이체','입금','출금'];
+
+function isPersonName(s) {
+  return s.length >= 2 && s.length <= 3 && KR_SURNAMES.includes(s[0]) && NAME_EXCL.indexOf(s) === -1;
+}
 
 function looksLikePersonName(merchantName) {
-  // 비한글 구분자로 토큰 분리 → 2~3글자이고 첫 글자가 성씨인 토큰 = 이름
-  // Unicode 이스케이프 사용으로 인코딩 문제 방지
   var tokens = merchantName.split(/[^가-힣]+/);
   for (var i = 0; i < tokens.length; i++) {
     var t = tokens[i];
-    if (t.length < 2 || t.length > 3) continue;
-    if (KR_SURNAMES.includes(t[0]) && NAME_EXCL.indexOf(t) === -1) return true;
+    if (!t) continue;
+
+    // 1단계: 토큰 자체가 이름인지
+    if (isPersonName(t)) return true;
+
+    // 2단계: "홍길동이체" — 이체 접미어/접두어 제거 후 이름 확인
+    for (var j = 0; j < TRANSFER_AFFIXES.length; j++) {
+      var aff = TRANSFER_AFFIXES[j];
+      if (t.length > aff.length) {
+        if (t.slice(-aff.length) === aff && isPersonName(t.slice(0, t.length - aff.length))) return true;
+        if (t.slice(0, aff.length) === aff && isPersonName(t.slice(aff.length))) return true;
+      }
+    }
+
+    // 3단계: "농협오픈윤여륜" — 긴 토큰 끝부분이 이름인 경우 (은행·서비스명+이름 패턴)
+    if (t.length >= 5) {
+      if (isPersonName(t.slice(-3))) return true;
+      if (isPersonName(t.slice(-2))) return true;
+    }
   }
   return false;
 }
