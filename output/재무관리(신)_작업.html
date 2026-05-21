@@ -770,7 +770,7 @@ function handleFiles(files) {
           return p;
         }
         // 공통: HTML/CSV 폴백 (EUC-KR or UTF-8 이미 읽은 텍스트)
-        function htmlCsvFallback(text, label, done2) {
+        function htmlCsvFallback(text, label, done2, sbDiag) {
           // 1) Excel XML 2003 (SpreadsheetML) 시도 — 농협 등 XML 형식 XLS
           if (/<[Ww]orkbook\b|<[Ww]orksheet\b|schemas-microsoft-com.*spreadsheet/.test(text.substring(0, 2000))) {
             var xmlResult = parseXmlXls(text, f2.name);
@@ -782,7 +782,8 @@ function handleFiles(files) {
           }
           // 2) HTML 테이블
           var p = parseHtmlXlsTable(text, f2.name);
-          var diag = p._diag;
+          // SheetJS diag가 더 유용하면 그것을 우선
+          var diag = (sbDiag && (sbDiag.headers||[]).length > 0) ? sbDiag : (p._diag || sbDiag);
           console.log('[XLS] '+label+' DOMParser → bank:', p.bank, '행수:', p.rows.length);
           if (p.rows.length === 0) {
             var db = detectBankFromText(text);
@@ -791,22 +792,30 @@ function handleFiles(files) {
             console.log('[XLS] '+label+' CSV 폴백 → bank:', db, '행수:', cr.length);
             p = { bank: cr.length ? db : '?', rows: cr, _diag: diag };
           }
+          if (!p._diag) p._diag = diag;
           if (p.bank === '?') { var fb = bankFromFilename(f2.name); if (fb !== '?') p.bank = fb; }
           registerEntry(f2, p, done2);
         }
         var reader2 = new FileReader();
         reader2.onload = function(e) {
           console.log('[XLS] 파싱 시작:', f2.name);
-          // 1차: ArrayBuffer → SheetJS
-          var p1 = fixBank(parseExcelData(e.target.result, 'array', f2.name));
-          console.log('[XLS] ArrayBuffer 결과 → bank:', p1.bank, '행수:', p1.rows.length);
+          // 매직 바이트 확인 (형식 진단)
+          var arr0 = new Uint8Array(e.target.result);
+          var magic = Array.from(arr0.slice(0,16)).map(function(b){ return b.toString(16).padStart(2,'0'); }).join(' ');
+          console.log('[XLS] 매직 바이트:', magic, '| 파일:', f2.name);
+          // 1차: Uint8Array → SheetJS (ArrayBuffer보다 안정적)
+          var p1 = fixBank(parseExcelData(arr0, 'array', f2.name));
+          console.log('[XLS] Uint8Array 결과 → bank:', p1.bank, '행수:', p1.rows.length);
           if (p1.rows.length > 0 && p1.bank !== '?') { registerEntry(f2, p1, xlsDone); return; }
+          var sbDiag1 = p1._diag; // SheetJS 1차 진단 보존
           // 2차: BinaryString → SheetJS (BIFF8 바이너리 XLS 대응)
           var binReader = new FileReader();
           binReader.onload = function(be) {
             var p2 = fixBank(parseExcelData(be.target.result, 'binary', f2.name));
             console.log('[XLS] BinaryString 결과 → bank:', p2.bank, '행수:', p2.rows.length);
             if (p2.rows.length > 0 && p2.bank !== '?') { registerEntry(f2, p2, xlsDone); return; }
+            // 두 SheetJS 결과 중 더 유용한 diag 선택
+            var bestSbDiag = (p2._diag && (p2._diag.headers||[]).length > 0) ? p2._diag : (sbDiag1 || p2._diag);
             // 3차: HTML-format XLS (EUC-KR 텍스트 읽기)
             var textReader = new FileReader();
             textReader.onload = function(te) {
@@ -814,13 +823,13 @@ function handleFiles(files) {
               if (/(?:charset|encoding)\s*=\s*["']?utf-?8/i.test(text.substring(0, 2000))) {
                 console.log('[XLS] UTF-8 파일 감지 → 재읽기');
                 var utfReader = new FileReader();
-                utfReader.onload = function(ue) { htmlCsvFallback(ue.target.result, 'UTF-8', xlsDone); };
+                utfReader.onload = function(ue) { htmlCsvFallback(ue.target.result, 'UTF-8', xlsDone, bestSbDiag); };
                 utfReader.onerror = xlsDone;
                 utfReader.readAsText(f2, 'utf-8');
                 return;
               }
               console.log('[XLS] EUC-KR 텍스트 앞 200자:', text.substring(0, 200));
-              htmlCsvFallback(text, 'EUC-KR', xlsDone);
+              htmlCsvFallback(text, 'EUC-KR', xlsDone, bestSbDiag);
             };
             textReader.onerror = xlsDone;
             textReader.readAsText(f2, 'euc-kr');
@@ -1026,9 +1035,15 @@ function registerEntry(f2, parsed, done) {
 function parseExcelData(data, type, filename) {
   try {
     var wb = XLSX.read(data, { type: type, cellDates: false, raw: true });
+    console.log('[parseExcelData] type='+type+' SheetNames='+JSON.stringify(wb.SheetNames));
     var sheetName = wb.SheetNames.find(function(n){ return n.includes('거래'); }) || wb.SheetNames[0];
     var ws = wb.Sheets[sheetName];
+    if (!ws) {
+      console.error('[parseExcelData] ws 없음 sheetName='+sheetName);
+      return { bank: '?', rows: [], _diag: { bank:'?', error:'시트 없음('+sheetName+')', iDate:-1, iMerchant:-1, iOut:-1, iIn:-1, headers:[], sampleDate:'', sampleMerchant:'' } };
+    }
     var rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: true });
+    console.log('[parseExcelData] 총 행수='+rows.length+' 첫행='+(rows[0]?rows[0].map(String).slice(0,6).join('|'):'(없음)'));
 
     var headerIdx = -1;
     var HDR_KEYS = ['거래일','출금','입금','순번','날짜','적요','내용','잔액','금액','보낸분','받는분','기록사항'];
@@ -1039,9 +1054,9 @@ function parseExcelData(data, type, filename) {
       if (hitCount >= 1 && nonEmpty >= 3) { headerIdx = hi; break; }
     }
     if (headerIdx < 0) {
-      console.warn('[parseExcelData] 헤더 탐색 실패 — 전체 행:');
-      rows.slice(0, 20).forEach(function(r, i){ console.log('  행'+i+':', r.join(' | ')); });
-      return { bank: '?', rows: [] };
+      var sample3 = rows.slice(0,3).map(function(r){ return r.map(String).slice(0,6).join('|'); });
+      console.warn('[parseExcelData] 헤더 탐색 실패 totalRows='+rows.length+' 앞3행:', JSON.stringify(sample3));
+      return { bank: '?', rows: [], _diag: { bank:'?', error:'헤더 미발견(행수:'+rows.length+')', iDate:-1, iMerchant:-1, iOut:-1, iIn:-1, headers: rows[0]?rows[0].map(String).slice(0,8):[], sampleDate: String(rows[0]&&rows[0][0]||''), sampleMerchant: JSON.stringify(sample3) } };
     }
 
     var headers = rows[headerIdx].map(function(c){ return String(c).trim(); });
