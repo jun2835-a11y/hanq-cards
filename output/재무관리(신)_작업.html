@@ -302,22 +302,34 @@ var VS_BUFFER = 20;   // 뷰포트 위아래 추가 렌더 행 수
 // ── 서버 저장/복원 ────────────────────────────────────
 var API = (location.hostname === 'localhost' ? 'http://localhost:3005' : '') + '/api/finance-work-tags';
 
+var _saveTimer = null;
 function saveState() {
-  // 태그된 거래처만 저장 (미태그 포함 시 수만 건 → 페이로드 과다)
-  var tagged = {};
-  Object.keys(_merchants).forEach(function(k) {
-    var m = _merchants[k];
-    if (m.cat || m.biz) tagged[k] = { cat: m.cat || '', biz: m.biz || '' };
-  });
-  showLoad('저장 중...');
-  fetch(API, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ merchants: tagged })
-  }).then(function(r){ return r.json(); }).then(function(res){
-    hideLoad();
-    flashSave(res && res.supabase);
-  }).catch(function(){ hideLoad(); flashSave(false); });
+  // 디바운스: 연속 태깅 시 마지막 변경 후 800ms에 한 번만 저장
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(function() {
+    // 태그된 거래처만 저장 (전체 저장 시 수만 건 → 페이로드 과다)
+    var tagged = {};
+    Object.keys(_merchants).forEach(function(k) {
+      var m = _merchants[k];
+      if (m.cat || m.biz) tagged[k] = m;
+    });
+    showLoad('저장 중...');
+    fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ merchants: tagged })
+    }).then(function(r){
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(function(res){
+      hideLoad();
+      flashSave(res && res.supabase);
+    }).catch(function(e){
+      hideLoad();
+      flashSave(false);
+      console.error('[saveState error]', e);
+    });
+  }, 800);
 }
 
 function loadSavedTags() {
@@ -338,8 +350,15 @@ function loadSavedTags() {
 }
 
 function loadStateOnInit() {
-  // 서버에서 태그 데이터 선조회 — CSV 업로드 후 loadSavedTags()에서 실제 병합
-  fetch(API).then(function(r){ return r.json(); }).catch(function(){ return {}; });
+  showLoad('데이터 불러오는 중...');
+  fetch(API).then(function(r){ return r.json(); }).then(function(saved){
+    hideLoad();
+    if (!saved || !saved.merchants || Object.keys(saved.merchants).length === 0) return;
+    _merchants = saved.merchants;
+    document.getElementById('progressWrap').style.display = 'flex';
+    updateProgress();
+    renderMerchants();
+  }).catch(function(){ hideLoad(); });
 }
 loadStateOnInit();
 
@@ -510,16 +529,16 @@ function matchStaffName(merchantName) {
 }
 
 // 오탐 방지용 제외 단어 (성씨로 시작하지만 이름이 아닌 흔한 단어)
-var NAME_EXCL = ['이체','입금','출금','이자','이용','이전','이익','수수','공과','충전','인증','인터','임대','임시'];
+var NAME_EXCL = ['이체','입금','출금','이자','이용','이전','이익','이하','이상','이후','이내','이외','이전','수수','공과','충전','인증','인터','임대','임시','임금','정산','정기','정액','전기','전화','전자','전용','전월','전일','박스','박람','최대','최소','최근','최신','강좌','강의','조회','조정','조건','국내','국외','국제'];
 
 function looksLikePersonName(merchantName) {
-  // 한글이 아닌 문자(또는 시작/끝)로 구분된 2~3글자 한글 덩어리 중
-  // 첫 글자가 성씨이고 제외 단어가 아니면 이름으로 판단
-  var re = /(^|[^가-힣])([가-힣]{2,3})(?=[^가-힣]|$)/g;
-  var m;
-  while ((m = re.exec(merchantName)) !== null) {
-    var cand = m[2];
-    if (KR_SURNAMES.includes(cand[0]) && NAME_EXCL.indexOf(cand) === -1) return true;
+  // 비한글 구분자로 토큰 분리 → 2~3글자이고 첫 글자가 성씨인 토큰 = 이름
+  // Unicode 이스케이프 사용으로 인코딩 문제 방지
+  var tokens = merchantName.split(/[^가-힣]+/);
+  for (var i = 0; i < tokens.length; i++) {
+    var t = tokens[i];
+    if (t.length < 2 || t.length > 3) continue;
+    if (KR_SURNAMES.includes(t[0]) && NAME_EXCL.indexOf(t) === -1) return true;
   }
   return false;
 }
