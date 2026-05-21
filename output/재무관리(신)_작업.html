@@ -303,11 +303,17 @@ var VS_BUFFER = 20;   // 뷰포트 위아래 추가 렌더 행 수
 var API = (location.hostname === 'localhost' ? 'http://localhost:3005' : '') + '/api/finance-work-tags';
 
 function saveState() {
+  // 태그된 거래처만 저장 (미태그 포함 시 수만 건 → 페이로드 과다)
+  var tagged = {};
+  Object.keys(_merchants).forEach(function(k) {
+    var m = _merchants[k];
+    if (m.cat || m.biz) tagged[k] = { cat: m.cat || '', biz: m.biz || '' };
+  });
   showLoad('저장 중...');
   fetch(API, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ merchants: _merchants })
+    body: JSON.stringify({ merchants: tagged })
   }).then(function(r){ return r.json(); }).then(function(res){
     hideLoad();
     flashSave(res && res.supabase);
@@ -332,15 +338,8 @@ function loadSavedTags() {
 }
 
 function loadStateOnInit() {
-  showLoad('데이터 불러오는 중...');
-  fetch(API).then(function(r){ return r.json(); }).then(function(saved){
-    hideLoad();
-    if (!saved || !saved.merchants || Object.keys(saved.merchants).length === 0) return;
-    _merchants = saved.merchants;
-    document.getElementById('progressWrap').style.display = 'flex';
-    updateProgress();
-    renderMerchants();
-  }).catch(function(){ hideLoad(); });
+  // 서버에서 태그 데이터 선조회 — CSV 업로드 후 loadSavedTags()에서 실제 병합
+  fetch(API).then(function(r){ return r.json(); }).catch(function(){ return {}; });
 }
 loadStateOnInit();
 
