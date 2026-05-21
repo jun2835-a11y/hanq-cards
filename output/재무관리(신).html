@@ -55,26 +55,26 @@ body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;background:var(--bg);
 
 <div class="page-main">
   <div class="wip-icon">
-    <svg viewBox="0 0 64 72" width="64" height="72" fill="none" stroke="var(--ink)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" opacity=".45">
-      <!-- 타워 (수직 기둥) -->
-      <line x1="44" y1="8" x2="44" y2="64"/>
+    <svg viewBox="0 0 64 80" width="60" height="72" fill="none" stroke="var(--ink)" stroke-linecap="round" stroke-linejoin="round" opacity=".5">
+      <!-- 마스트 (수직 기둥, 굵게) -->
+      <line x1="44" y1="4" x2="44" y2="72" stroke-width="2.2"/>
       <!-- 베이스 -->
-      <line x1="34" y1="64" x2="54" y2="64"/>
-      <!-- 지브 (수평 팔, 좌측 뻗음) -->
-      <line x1="8" y1="16" x2="44" y2="8"/>
-      <!-- 마스트 꼭대기 → 지브 끝 지지 케이블 -->
-      <line x1="44" y1="4" x2="8" y2="16"/>
+      <line x1="32" y1="72" x2="56" y2="72" stroke-width="2"/>
+      <!-- 지브 (완전 수평, T자형 팔) -->
+      <line x1="4" y1="20" x2="60" y2="20" stroke-width="2.2"/>
+      <!-- 상단 삼각 케이블: 피크 → 지브 좌측 끝 -->
+      <line x1="44" y1="4" x2="4" y2="20" stroke-width="1.4"/>
+      <!-- 상단 삼각 케이블: 피크 → 카운터 지브 우측 끝 -->
+      <line x1="44" y1="4" x2="60" y2="20" stroke-width="1.4"/>
+      <!-- 카운터웨이트 (우측 소블록) -->
+      <rect x="55" y="20" width="7" height="5" rx=".5" fill="var(--ink)" stroke="none" opacity=".3"/>
       <!-- 트롤리 (지브 위 이동체) -->
-      <rect x="18" y="13" width="7" height="5" rx="1"/>
-      <!-- 카운터 지브 (반대쪽 짧은 팔) -->
-      <line x1="44" y1="8" x2="56" y2="12"/>
-      <!-- 카운터웨이트 -->
-      <rect x="54" y="10" width="5" height="5" rx="1" fill="var(--ink)" opacity=".3" stroke="none"/>
-      <!-- 로프 + 훅 (애니메이션) -->
+      <rect x="14" y="16.5" width="9" height="6" rx=".7" stroke-width="1.6"/>
+      <!-- 로프 + 훅 + 화물 (상하 애니메이션) -->
       <g class="crane-rope">
-        <line x1="21.5" y1="18" x2="21.5" y2="42"/>
-        <path d="M18 42 L18 46 Q18 50 21.5 50 Q25 50 25 46"/>
-        <rect x="16" y="40" width="11" height="6" rx="1"/>
+        <line x1="18.5" y1="22.5" x2="18.5" y2="52" stroke-width="1.4"/>
+        <path d="M15.5 52 L15.5 56 Q15.5 60 18.5 60 Q21.5 60 21.5 56" stroke-width="1.6" fill="none"/>
+        <rect x="13" y="50" width="11" height="7" rx="1" stroke-width="1.6"/>
       </g>
     </svg>
   </div>
