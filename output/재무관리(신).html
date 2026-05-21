@@ -13,8 +13,8 @@
 }
 body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;min-height:100vh;display:flex;flex-direction:column}
 .page-main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 32px;text-align:center}
-.wip-icon{margin-bottom:24px;line-height:0}
-.crane-rope{animation:craneHoist 1.6s ease-in-out infinite}
+.wip-icon{margin-bottom:24px;position:relative;display:inline-block;line-height:0}
+.crane-rope-layer{position:absolute;top:0;left:0;pointer-events:none;animation:craneHoist 1.6s ease-in-out infinite}
 @keyframes craneHoist{
   0%,100%{transform:translateY(0)}
   50%    {transform:translateY(-18px)}
@@ -55,30 +55,25 @@ body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;background:var(--bg);
 
 <div class="page-main">
   <div class="wip-icon">
+    <!-- 크레인 본체 (고정) -->
     <svg viewBox="0 0 80 88" width="80" height="88" fill="none" stroke="var(--ink)" stroke-linecap="round" stroke-linejoin="round" opacity=".6">
-      <!-- 마스트 (세로 기둥) -->
       <line x1="54" y1="2" x2="54" y2="80" stroke-width="3"/>
-      <!-- 베이스 -->
       <line x1="42" y1="80" x2="66" y2="80" stroke-width="2"/>
-      <!-- 지브 (완전 수평, 좌측) -->
       <line x1="6" y1="22" x2="54" y2="22" stroke-width="2.5"/>
-      <!-- 카운터 지브 (우측 짧은 팔) -->
       <line x1="54" y1="22" x2="72" y2="22" stroke-width="2"/>
-      <!-- 지지 케이블: 마스트 꼭대기 → 지브 끝 -->
       <line x1="54" y1="4" x2="6" y2="22" stroke-width="1.4"/>
-      <!-- 지지 케이블: 마스트 꼭대기 → 카운터 지브 끝 -->
       <line x1="54" y1="4" x2="72" y2="22" stroke-width="1.4"/>
-      <!-- 카운터웨이트 -->
       <rect x="68" y="19" width="8" height="6" rx="1" fill="var(--ink)" stroke="none" opacity=".4"/>
-      <!-- 트롤리 -->
       <rect x="20" y="17" width="12" height="7" rx="1" stroke-width="1.8"/>
-      <!-- 로프 + 훅 + 화물 (위아래 애니메이션) -->
-      <g class="crane-rope">
+    </svg>
+    <!-- 로프+화물 레이어 — div에 애니메이션 (SVG 내부 아님) -->
+    <div class="crane-rope-layer">
+      <svg viewBox="0 0 80 88" width="80" height="88" fill="none" stroke="var(--ink)" stroke-linecap="round" stroke-linejoin="round" opacity=".6">
         <line x1="26" y1="24" x2="26" y2="52" stroke-width="1.6"/>
         <path d="M22 52 L22 57 Q22 62 26 62 Q30 62 30 57" stroke-width="1.8" fill="none"/>
         <rect x="18" y="50" width="16" height="10" rx="1.5" stroke-width="1.8"/>
-      </g>
-    </svg>
+      </svg>
+    </div>
   </div>
   <div class="wip-badge">개발중</div>
   <div class="wip-title">재무관리(신)</div>
