@@ -510,10 +510,19 @@ function matchStaffName(merchantName) {
   return null;
 }
 
+// 오탐 방지용 제외 단어 (성씨로 시작하지만 이름이 아닌 흔한 단어)
+var NAME_EXCL = ['이체','입금','출금','이자','이용','이전','이익','수수','공과','충전','인증','인터','임대','임시'];
+
 function looksLikePersonName(merchantName) {
-  // 전체가 2~3글자 순수 한글이고, 첫 글자가 성씨이면 사람 이름으로 판단
-  var t = merchantName.trim();
-  return /^[가-힣]{2,3}$/.test(t) && KR_SURNAMES.includes(t[0]);
+  // 한글이 아닌 문자(또는 시작/끝)로 구분된 2~3글자 한글 덩어리 중
+  // 첫 글자가 성씨이고 제외 단어가 아니면 이름으로 판단
+  var re = /(^|[^가-힣])([가-힣]{2,3})(?=[^가-힣]|$)/g;
+  var m;
+  while ((m = re.exec(merchantName)) !== null) {
+    var cand = m[2];
+    if (KR_SURNAMES.includes(cand[0]) && NAME_EXCL.indexOf(cand) === -1) return true;
+  }
+  return false;
 }
 
 function autoTag(merchantName) {
