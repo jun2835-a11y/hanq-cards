@@ -928,11 +928,11 @@ tr.row-threshold-warn:hover{background:#FFF7D6!important}
 <!-- ============ TABS ============ -->
 <div class="tab-bar">
   <button class="tab-btn active" onclick="switchTab('deposit',this)">예금 계좌</button>
-  <button class="tab-btn" onclick="switchTab('company',this)">🏢 사업자별</button>
+  <button class="tab-btn" onclick="switchTab('company',this)"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><rect x="2" y="2" width="9" height="10.5" rx=".5"/><line x1="5" y1="12.5" x2="5" y2="9.5"/><line x1="8" y1="12.5" x2="8" y2="9.5"/><line x1="5" y1="9.5" x2="8" y2="9.5"/><rect x="4" y="4" width="2" height="2" fill="currentColor" stroke="none" opacity=".45"/><rect x="7" y="4" width="2" height="2" fill="currentColor" stroke="none" opacity=".45"/><rect x="4" y="7" width="2" height="2" fill="currentColor" stroke="none" opacity=".45"/><rect x="7" y="7" width="2" height="2" fill="currentColor" stroke="none" opacity=".45"/></svg>사업자별</button>
   <button class="tab-btn" onclick="switchTab('loan',this)">대출</button>
   <button class="tab-btn" onclick="switchTab('calendar',this)">만기 캘린더</button>
   <button class="tab-btn" onclick="switchTab('trend',this)">잔액 추이</button>
-  <button class="tab-btn" onclick="switchTab('bulk',this)">⚡ 일괄 입력</button>
+  <button class="tab-btn" onclick="switchTab('bulk',this)"><svg width="13" height="13" viewBox="0 0 13 13" fill="currentColor" style="vertical-align:-2px;margin-right:4px"><path d="M8 1.5 L4.5 6.5H7.5L5 11.5 10.5 6H7.5Z" opacity=".85"/></svg>일괄 입력</button>
   <button class="tab-btn" onclick="switchTab('txn',this)">입출금 기록 <span id="txn-count-badge" style="font-size:10px;background:var(--accent);color:white;padding:1px 5px;margin-left:4px;display:none"></span></button>
 </div>
 
@@ -1694,7 +1694,7 @@ tr.row-threshold-warn:hover{background:#FFF7D6!important}
     </div>
     <div id="txn-list">
       <div class="txn-empty">
-        <div class="txn-empty-icon">📋</div>
+        <div class="txn-empty-icon"><svg width="36" height="42" viewBox="0 0 40 46" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity=".35"><path d="M4 4 L26 4 L36 14 L36 42 L4 42 Z"/><path d="M26 4 L26 14 L36 14" fill="none"/><line x1="11" y1="22" x2="29" y2="22"/><line x1="11" y1="28" x2="29" y2="28"/><line x1="11" y1="34" x2="22" y2="34"/></svg></div>
         기록된 입출금이 없습니다.<br>
         <button class="tool-btn primary" onclick="openTxnModal(null)" style="margin-top:14px">+ 첫 번째 기록 추가</button>
       </div>
@@ -2154,7 +2154,7 @@ function renderCfResult(totalIn) {
   const diff  = totalIn - totalOut;
   const ratio = totalIn > 0 ? totalIn / totalOut : 0;
   const level = ratio >= 2 ? 'safe' : ratio >= 1.1 ? 'warn' : 'danger';
-  const icon  = {safe:'🟢', warn:'🟡', danger:'🔴'}[level];
+  const icon  = {safe:'<svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="#2E7D32"/></svg>', warn:'<svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="#F9A825"/></svg>', danger:'<svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="#C62828"/></svg>'}[level];
   const lbl   = {safe:'안전', warn:'주의', danger:'위험'}[level];
   const msg   = level === 'danger'
     ? (diff < 0 ? Math.abs(diff).toLocaleString('ko-KR') + '원 부족 — 자금 확보 필요' : '예정 지출 대비 여유가 매우 부족합니다')
@@ -2233,7 +2233,7 @@ function initLoanTab() {
     if (loan.isDraw) {
       const mi = loan.monthlyInterest || Math.round(loan.balance * loan.rate / 12);
       inner += `<div class="ls-renewal">
-        <div class="ls-renewal-icon">🔴</div>
+        <div class="ls-renewal-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#C62828" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 2L13 12H1L7 2Z"/><line x1="7" y1="6" x2="7" y2="9"/><circle cx="7" cy="10.8" r=".6" fill="#C62828" stroke="none"/></svg></div>
         <div>
           <div class="ls-renewal-main">만기 갱신 필요 — ${daysLeft}일 후</div>
           <div class="ls-renewal-sub">만기일 전 은행 방문 또는 전화 연장 신청 필요</div>
