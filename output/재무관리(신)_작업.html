@@ -121,7 +121,7 @@ input[type=file]{display:none}
 <div class="progress-bar-wrap" id="progressWrap" style="display:none">
   <span class="progress-label">태깅 진행률</span>
   <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
-  <span class="progress-stats"><b id="progressDone">0</b> / <b id="progressTotal">0</b> 거래처 · <span id="progressPct">0%</span></span>
+  <span class="progress-stats"><b id="progressDone">0</b> / <b id="progressTotal">0</b> 거래내용 · <span id="progressPct">0%</span></span>
 </div>
 
 <div class="tab-bar">
@@ -148,7 +148,7 @@ input[type=file]{display:none}
 <!-- ── 탭 2: 태깅 ── -->
 <div class="panel" id="panelTag">
   <div class="tag-toolbar">
-    <input class="search-box" id="tagSearch" placeholder="거래처명 검색..." oninput="renderMerchants()">
+    <input class="search-box" id="tagSearch" placeholder="거래내용 검색..." oninput="renderMerchants()">
     <button class="filter-btn active" id="filterAll" onclick="setFilter('all')">전체</button>
     <button class="filter-btn" id="filterPending" onclick="setFilter('pending')">미분류만</button>
     <button class="filter-btn" id="filterDone" onclick="setFilter('done')">완료만</button>
@@ -780,7 +780,7 @@ function showParseResult() {
   el.style.display = 'block';
   el.innerHTML =
     '<b>파싱 완료</b> — 총 <b>' + total.toLocaleString() + '건</b>, ' +
-    '거래처 <b>' + mCount.toLocaleString() + '개</b><br>' +
+    '거래내용 <b>' + mCount.toLocaleString() + '개</b><br>' +
     '자동 분류: <b>' + autoCount + '개</b> · ' +
     '검수 필요: <b style="color:var(--accent)">' + pendingCount + '개</b>';
 }
@@ -838,7 +838,7 @@ function renderMerchants() {
     return mb.totalOut - ma.totalOut;
   });
 
-  document.getElementById('tagCount').textContent = filtered.length + '개 거래처';
+  document.getElementById('tagCount').textContent = filtered.length + '개 거래내용';
 
   var html = '<table class="merchant-table">' +
     '<thead><tr>' +
@@ -898,7 +898,15 @@ function resetTags() {
     _merchants[k].autoTagged = false;
   });
   saveState();
+  // 필터 전체 초기화 — 필터가 걸려 있으면 초기화 후 빈 테이블로 보임
+  var catSel = document.getElementById('filterCat');
+  if (catSel) catSel.value = '';
+  _filter = 'all';
+  ['All','Pending','Done'].forEach(function(x){
+    document.getElementById('filter'+x).classList.toggle('active', x === 'All');
+  });
   updateProgress();
+  showParseResult();
   renderMerchants();
 }
 
@@ -1010,7 +1018,7 @@ function fmt(n) { return n.toLocaleString() + '원'; }
 // ── CSV 내보내기 ──────────────────────────────────────
 function exportCSV() {
   if (_txns.length === 0) { alert('데이터가 없습니다'); return; }
-  var rows = [['날짜','거래처','출금','입금','은행','카테고리','사업자']];
+  var rows = [['날짜','거래내용','출금','입금','은행','카테고리','사업자']];
   _txns.forEach(function(t){
     var m = _merchants[t.merchant] || {};
     rows.push([t.date, t.merchant, t.out, t.in, t.bank, m.cat||'', m.biz||'']);
