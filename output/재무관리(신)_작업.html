@@ -77,8 +77,12 @@ input[type=file]{display:none}
 .merchant-table tr.untagged td{background:#FFFBF0}
 .merchant-table tr:hover td{background:#F2F0EB}
 .merchant-table tr.untagged:hover td{background:#FFF5DC}
+.merchant-table thead th{position:sticky;top:0;z-index:1}
+.vs-scroll-wrap{height:calc(100vh - 340px);min-height:300px;overflow-y:auto}
+.vs-spacer td{padding:0!important;border:none!important;background:transparent!important}
 
 .td-merchant{font-weight:500;color:var(--ink);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.td-merchant .staff-name{color:#1A56B0;font-weight:700}
 .td-count{color:var(--muted);text-align:right;white-space:nowrap}
 .td-amount{text-align:right;font-weight:500;white-space:nowrap}
 .td-sample{color:var(--muted);font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -96,6 +100,9 @@ input[type=file]{display:none}
 .agg-controls{display:flex;gap:10px;align-items:center;margin-bottom:20px;flex-wrap:wrap}
 .agg-select{border:1px solid var(--border);background:var(--surface);padding:7px 12px;font-size:12px;font-family:inherit;color:var(--ink);outline:none;cursor:pointer}
 .export-btn{margin-left:auto;background:var(--ink);color:white;font-size:11px;font-weight:700;letter-spacing:.05em;padding:8px 16px;cursor:pointer;border:none;font-family:inherit}
+.agg-mode-btns{display:flex;border:1px solid var(--border);overflow:hidden;flex-shrink:0}
+.agg-mode-btn{padding:7px 16px;font-size:12px;font-weight:700;background:var(--surface);color:var(--muted);border:none;cursor:pointer;font-family:inherit;letter-spacing:.04em}
+.agg-mode-btn.active{background:var(--ink);color:#fff}
 
 .agg-table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);font-size:12px}
 .agg-table th{background:#2A2622;color:rgba(255,255,255,.7);font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:9px 12px;text-align:right;white-space:nowrap}
@@ -103,6 +110,8 @@ input[type=file]{display:none}
 .agg-table td{padding:8px 12px;border-bottom:1px solid var(--border);text-align:right;color:var(--ink2);white-space:nowrap}
 .agg-table td:first-child{text-align:left;font-weight:500;color:var(--ink)}
 .agg-table tr.total td{font-weight:700;color:var(--ink);background:#F2F0EB;border-top:2px solid var(--border)}
+.agg-table tr.year-sep td{background:#2A2622;color:rgba(255,255,255,.8);font-size:11px;font-weight:700;letter-spacing:.12em;padding:7px 12px;border-bottom:none}
+.agg-table tr.year-sub td{font-weight:700;color:var(--ink);background:#EDE9E3;border-top:2px solid #BBAFA0;border-bottom:2px solid #BBAFA0}
 .agg-table tr:last-child td{border-bottom:none}
 .agg-table .zero{color:var(--muted)}
 
@@ -180,17 +189,21 @@ input[type=file]{display:none}
 <!-- ── 탭 3: 집계 ── -->
 <div class="panel" id="panelAgg">
   <div class="agg-controls">
+    <div class="agg-mode-btns">
+      <button class="agg-mode-btn active" id="aggModeOut" onclick="switchAggMode('out')">출금</button>
+      <button class="agg-mode-btn" id="aggModeIn" onclick="switchAggMode('in')">입금</button>
+    </div>
     <select class="agg-select" id="aggYear" onchange="renderAgg()"><option value="">연도 선택</option></select>
     <select class="agg-select" id="aggBiz" onchange="renderAgg()">
       <option value="">전체 사업자</option>
       <option>한솔</option><option>수복지</option><option>한큐</option><option>교육원</option><option>미배분</option>
     </select>
-    <select class="agg-select" id="aggCat" onchange="renderAgg()">
+    <span id="aggCatWrap"><select class="agg-select" id="aggCat" onchange="renderAgg()">
       <option value="">전체 카테고리</option>
-    </select>
+    </select></span>
     <select class="agg-select" id="aggView" onchange="renderAgg()">
       <option value="month">월별</option>
-      <option value="cat">카테고리별</option>
+      <option value="cat" id="aggViewCatOpt">카테고리별</option>
     </select>
     <button class="export-btn" onclick="exportCSV()">CSV 내보내기</button>
   </div>
@@ -224,6 +237,16 @@ const CATS = ['인건비','4대보험','3.3소득세','식비/경비','임대료
 const BIZS = ['한솔','수복지','한큐','교육원','미배분'];
 
 // 키워드 자동 태깅 룰 (거래처명에서 매칭)
+// 직원 이름 목록 (인건비 자동 태깅)
+const STAFF_NAMES = [
+  '정재승','정종각',
+  '곽은진','국희현','김가람','김광수','김도연','김선후','김정애',
+  '노신애','반유환','박연식','박신주','박종환','박태성','박태욱',
+  '손용진','오승빈','윤설하','이경근','이세은','이승미','이승학','이지성',
+  '임준호','장예진','전인서','조승현','조용원','조유진',
+  '최동훈','최지원','최충호','허정영','황지애'
+];
+
 const AUTO_RULES = [
   { cat:'4대보험',    biz:'',     kw:['건강보험','국민연금','고용보험','산재','4대보험','건강공단','연금공단'] },
   { cat:'3.3소득세',  biz:'',     kw:['소득세','원천세','세무서'] },
@@ -267,6 +290,10 @@ var _txns = [];       // 전체 파싱된 거래 [{date,merchant,out,in,bank}]
 var _merchants = {};  // {merchantKey: {name,count,totalOut,cat,biz,sampleDate,autoTagged}}
 var _files = [];      // 업로드된 파일 목록 [{name,bank,rows}]
 var _filter = 'all';
+var _vsFiltered = []; // 현재 필터링된 merchant 키 목록 (가상 스크롤용)
+var _vsScrollTop = 0; // 마지막 스크롤 위치
+var VS_ROW_H = 44;    // 행 높이(px) — merchant-table td padding 기준
+var VS_BUFFER = 20;   // 뷰포트 위아래 추가 렌더 행 수
 
 // ── 서버 저장/복원 ────────────────────────────────────
 var API = (location.hostname === 'localhost' ? 'http://localhost:3005' : '') + '/api/finance-work-tags';
@@ -469,7 +496,18 @@ function normalizeDate(s) {
 }
 
 // ── 자동 태깅 ─────────────────────────────────────────
+function matchStaffName(merchantName) {
+  for (var i = 0; i < STAFF_NAMES.length; i++) {
+    if (merchantName.includes(STAFF_NAMES[i])) return STAFF_NAMES[i];
+  }
+  return null;
+}
+
 function autoTag(merchantName) {
+  // 직원 이름 포함 시 인건비 우선
+  if (matchStaffName(merchantName)) {
+    return { cat: '인건비', biz: '', autoTagged: true };
+  }
   var upper = merchantName.toUpperCase();
   for (var i = 0; i < AUTO_RULES.length; i++) {
     var rule = AUTO_RULES[i];
@@ -880,7 +918,7 @@ function renderMerchants() {
 
   var q = document.getElementById('tagSearch').value.toLowerCase();
   var catFilter = document.getElementById('filterCat') ? document.getElementById('filterCat').value : '';
-  var filtered = keys.filter(function(k){
+  _vsFiltered = keys.filter(function(k){
     var m = _merchants[k];
     if (q && !m.name.toLowerCase().includes(q)) return false;
     if (_filter === 'pending' && m.cat) return false;
@@ -888,42 +926,73 @@ function renderMerchants() {
     if (catFilter && m.cat !== catFilter) return false;
     return true;
   });
-
-  // 정렬: 미분류 먼저, 그 다음 금액 큰 순
-  filtered.sort(function(a, b){
+  _vsFiltered.sort(function(a, b){
     var ma = _merchants[a], mb = _merchants[b];
     if (!ma.cat && mb.cat) return -1;
     if (ma.cat && !mb.cat) return 1;
     return mb.totalOut - ma.totalOut;
   });
 
-  document.getElementById('tagCount').textContent = filtered.length + '개 거래내용';
+  document.getElementById('tagCount').textContent = _vsFiltered.length + '개 거래내용';
 
-  var html = '<table class="merchant-table">' +
-    '<thead><tr>' +
-    '<th style="width:24px"></th>' +
-    '<th>거래내용</th>' +
-    '<th style="width:80px;text-align:right">건수</th>' +
-    '<th style="width:110px;text-align:right">총 출금액</th>' +
-    '<th style="width:140px">카테고리</th>' +
-    '<th style="width:120px">사업자</th>' +
-    '</tr></thead><tbody>';
+  var wrap = document.getElementById('merchantTableWrap');
+  if (!document.getElementById('vsScrollWrap')) {
+    wrap.innerHTML =
+      '<div id="vsScrollWrap" class="vs-scroll-wrap">' +
+        '<table class="merchant-table">' +
+          '<thead><tr>' +
+            '<th style="width:24px"></th>' +
+            '<th>거래내용</th>' +
+            '<th style="width:80px;text-align:right">건수</th>' +
+            '<th style="width:110px;text-align:right">총 출금액</th>' +
+            '<th style="width:140px">카테고리</th>' +
+            '<th style="width:120px">사업자</th>' +
+          '</tr></thead>' +
+          '<tbody id="vsTbody"></tbody>' +
+        '</table>' +
+      '</div>';
+    document.getElementById('vsScrollWrap').addEventListener('scroll', function(){
+      _vsScrollTop = this.scrollTop;
+      vsRender(_vsScrollTop);
+    });
+  }
 
-  filtered.forEach(function(k){
+  vsRender(_vsScrollTop);
+}
+
+function vsRender(scrollTop) {
+  var tbodyEl = document.getElementById('vsTbody');
+  var wrapEl = document.getElementById('vsScrollWrap');
+  if (!tbodyEl || !wrapEl) return;
+  var viewH = wrapEl.clientHeight || 500;
+  var total = _vsFiltered.length;
+
+  var startIdx = Math.max(0, Math.floor(scrollTop / VS_ROW_H) - VS_BUFFER);
+  var endIdx = Math.min(total, Math.ceil((scrollTop + viewH) / VS_ROW_H) + VS_BUFFER);
+  var topH = startIdx * VS_ROW_H;
+  var bottomH = Math.max(0, (total - endIdx) * VS_ROW_H);
+
+  var html = '<tr class="vs-spacer"><td colspan="6" style="height:' + topH + 'px"></td></tr>';
+  for (var i = startIdx; i < endIdx; i++) {
+    var k = _vsFiltered[i];
     var m = _merchants[k];
     var isTagged = !!m.cat;
-    html += '<tr class="' + (isTagged ? '' : 'untagged') + '">' +
+    var staffMatch = matchStaffName(m.name);
+    var displayName = staffMatch
+      ? m.name.replace(staffMatch, '<span class="staff-name">' + staffMatch + '</span>')
+      : m.name;
+    html +=
+      '<tr class="' + (isTagged ? '' : 'untagged') + '">' +
       '<td><span class="tag-status ' + (isTagged ? 'done' : 'pending') + '"></span></td>' +
-      '<td class="td-merchant" title="' + m.name + '">' + m.name + '</td>' +
+      '<td class="td-merchant" title="' + m.name + '">' + displayName + '</td>' +
       '<td class="td-count">' + m.count + '</td>' +
       '<td class="td-amount">' + (m.totalOut > 0 ? (m.totalOut/10000).toFixed(0) + '만' : '-') + '</td>' +
       '<td>' + catSelect(k, m.cat) + '</td>' +
       '<td>' + bizSelect(k, m.biz) + '</td>' +
-    '</tr>';
-  });
-
-  html += '</tbody></table>';
-  document.getElementById('merchantTableWrap').innerHTML = html;
+      '</tr>';
+  }
+  html += '<tr class="vs-spacer"><td colspan="6" style="height:' + bottomH + 'px"></td></tr>';
+  tbodyEl.innerHTML = html;
 }
 
 function catSelect(key, val) {
@@ -946,6 +1015,8 @@ function setTag(key, field, val) {
   _merchants[key][field] = val;
   updateProgress();
   saveState();
+  var sw = document.getElementById('vsScrollWrap');
+  if (sw) _vsScrollTop = sw.scrollTop;
   renderMerchants();
 }
 
@@ -992,6 +1063,17 @@ async function resetTags() {
 }
 
 // ── 집계 ──────────────────────────────────────────────
+var _aggMode = 'out';
+
+function switchAggMode(mode) {
+  _aggMode = mode;
+  document.getElementById('aggModeOut').classList.toggle('active', mode === 'out');
+  document.getElementById('aggModeIn').classList.toggle('active', mode === 'in');
+  document.getElementById('aggCatWrap').style.display = mode === 'out' ? '' : 'none';
+  document.getElementById('aggViewCatOpt').textContent = mode === 'out' ? '카테고리별' : '거래처별';
+  renderAgg();
+}
+
 function populateYears() {
   var years = {};
   _txns.forEach(function(t){ years[t.date.substring(0,4)] = 1; });
@@ -1013,19 +1095,34 @@ function renderAgg() {
   }
 
   var year = document.getElementById('aggYear').value;
-  var biz = document.getElementById('aggBiz').value;
-  var cat = document.getElementById('aggCat').value;
+  var biz  = document.getElementById('aggBiz').value;
   var view = document.getElementById('aggView').value;
 
+  if (_aggMode === 'in') {
+    var filteredIn = _txns.filter(function(t){
+      if (t.in === 0) return false;
+      if (year && t.date.substring(0,4) !== year) return false;
+      var m = _merchants[t.merchant] || {};
+      if (biz && (m.biz || '미배분') !== biz) return false;
+      return true;
+    });
+    if (filteredIn.length === 0) {
+      document.getElementById('aggTableWrap').innerHTML = '<div class="no-data">해당 조건에 맞는 입금 거래가 없습니다.</div>';
+      return;
+    }
+    if (view === 'month') renderAggMonthIn(filteredIn);
+    else renderAggSourceIn(filteredIn);
+    return;
+  }
+
+  var cat = document.getElementById('aggCat').value;
   var filtered = _txns.filter(function(t){
     if (t.out === 0) return false;
     var m = _merchants[t.merchant];
-    if (!m || (!m.cat && !m.biz)) return false;  // 둘 다 없으면 제외
+    if (!m || (!m.cat && !m.biz)) return false;
     if (year && t.date.substring(0,4) !== year) return false;
-    var mBiz = m.biz || '미배분';
-    if (biz && mBiz !== biz) return false;
-    var mCat = m.cat || '미분류';
-    if (cat && mCat !== cat) return false;
+    if (biz && (m.biz || '미배분') !== biz) return false;
+    if (cat && (m.cat || '미분류') !== cat) return false;
     return true;
   });
 
@@ -1060,7 +1157,25 @@ function renderAggMonth(txns) {
   html += '<th>합계</th></tr></thead><tbody>';
 
   var totals = {};
+  var curYear = null;
+  var yearTotals = {};
+  var colCount = cats.length + 2; // 월 + cats + 합계
+
+  function flushYearSub(yr) {
+    var yrTotal = cats.reduce(function(s,c){ return s + (yearTotals[c]||0); }, 0);
+    html += '<tr class="year-sub"><td>' + yr + '년 소계</td>';
+    cats.forEach(function(c){ html += '<td>' + fmt(yearTotals[c]||0) + '</td>'; });
+    html += '<td><b>' + fmt(yrTotal) + '</b></td></tr>';
+    yearTotals = {};
+  }
+
   months.forEach(function(ym){
+    var yr = ym.substring(0, 4);
+    if (yr !== curYear) {
+      if (curYear !== null) flushYearSub(curYear);
+      html += '<tr class="year-sep"><td colspan="' + colCount + '">' + yr + '년</td></tr>';
+      curYear = yr;
+    }
     var row = data[ym];
     var rowTotal = cats.reduce(function(s, c){ return s + (row[c] || 0); }, 0);
     html += '<tr><td>' + ym + '</td>';
@@ -1068,12 +1183,14 @@ function renderAggMonth(txns) {
       var v = row[c] || 0;
       html += '<td class="' + (v ? '' : 'zero') + '">' + (v ? fmt(v) : '-') + '</td>';
       totals[c] = (totals[c] || 0) + v;
+      yearTotals[c] = (yearTotals[c] || 0) + v;
     });
     html += '<td><b>' + fmt(rowTotal) + '</b></td></tr>';
   });
+  if (curYear !== null) flushYearSub(curYear);
 
   var grandTotal = cats.reduce(function(s,c){ return s + (totals[c]||0); }, 0);
-  html += '<tr class="total"><td>합계</td>';
+  html += '<tr class="total"><td>전체 합계</td>';
   cats.forEach(function(c){ html += '<td>' + fmt(totals[c]||0) + '</td>'; });
   html += '<td>' + fmt(grandTotal) + '</td></tr>';
   html += '</tbody></table>';
@@ -1097,6 +1214,60 @@ function renderAggCat(txns) {
     html += '<tr><td>' + c + '</td><td>' + fmt(data[c]) + '</td><td>' + pct + '%</td></tr>';
   });
   html += '<tr class="total"><td>합계</td><td>' + fmt(total) + '</td><td>100%</td></tr>';
+  html += '</tbody></table>';
+  document.getElementById('aggTableWrap').innerHTML = html;
+}
+
+function renderAggMonthIn(txns) {
+  var data = {};
+  txns.forEach(function(t){
+    var ym = t.date.substring(0, 7);
+    if (!data[ym]) data[ym] = { total: 0, count: 0 };
+    data[ym].total += t.in;
+    data[ym].count++;
+  });
+  var months = Object.keys(data).sort();
+  var html = '<table class="agg-table"><thead><tr><th>월</th><th style="text-align:right">건수</th><th style="text-align:right">입금액</th></tr></thead><tbody>';
+  var curYear = null, yearTotals = { total: 0, count: 0 }, grandTotal = 0, grandCount = 0;
+  var colCount = 3;
+  function flushYearSubIn(yr) {
+    html += '<tr class="year-sub"><td>' + yr + '년 소계</td><td>' + yearTotals.count + '</td><td>' + fmt(yearTotals.total) + '</td></tr>';
+    yearTotals = { total: 0, count: 0 };
+  }
+  months.forEach(function(ym){
+    var yr = ym.substring(0, 4);
+    if (yr !== curYear) {
+      if (curYear !== null) flushYearSubIn(curYear);
+      html += '<tr class="year-sep"><td colspan="' + colCount + '">' + yr + '년</td></tr>';
+      curYear = yr;
+    }
+    html += '<tr><td>' + ym + '</td><td>' + data[ym].count + '</td><td>' + fmt(data[ym].total) + '</td></tr>';
+    yearTotals.total += data[ym].total;
+    yearTotals.count += data[ym].count;
+    grandTotal += data[ym].total;
+    grandCount += data[ym].count;
+  });
+  if (curYear !== null) flushYearSubIn(curYear);
+  html += '<tr class="total"><td>전체 합계</td><td>' + grandCount + '</td><td>' + fmt(grandTotal) + '</td></tr>';
+  html += '</tbody></table>';
+  document.getElementById('aggTableWrap').innerHTML = html;
+}
+
+function renderAggSourceIn(txns) {
+  var data = {};
+  txns.forEach(function(t){
+    if (!data[t.merchant]) data[t.merchant] = { total: 0, count: 0 };
+    data[t.merchant].total += t.in;
+    data[t.merchant].count++;
+  });
+  var grandTotal = txns.reduce(function(s, t){ return s + t.in; }, 0);
+  var sources = Object.keys(data).sort(function(a, b){ return data[b].total - data[a].total; });
+  var html = '<table class="agg-table"><thead><tr><th>거래처</th><th style="text-align:right">건수</th><th style="text-align:right">입금액</th><th style="text-align:right">비중</th></tr></thead><tbody>';
+  sources.forEach(function(s){
+    var pct = grandTotal ? (data[s].total / grandTotal * 100).toFixed(1) : 0;
+    html += '<tr><td>' + s + '</td><td>' + data[s].count + '</td><td>' + fmt(data[s].total) + '</td><td>' + pct + '%</td></tr>';
+  });
+  html += '<tr class="total"><td>합계</td><td>' + txns.length + '</td><td>' + fmt(grandTotal) + '</td><td>100%</td></tr>';
   html += '</tbody></table>';
   document.getElementById('aggTableWrap').innerHTML = html;
 }
