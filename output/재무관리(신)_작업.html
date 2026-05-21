@@ -771,6 +771,16 @@ function handleFiles(files) {
         }
         // 공통: HTML/CSV 폴백 (EUC-KR or UTF-8 이미 읽은 텍스트)
         function htmlCsvFallback(text, label, done2) {
+          // 1) Excel XML 2003 (SpreadsheetML) 시도 — 농협 등 XML 형식 XLS
+          if (/<[Ww]orkbook\b|<[Ww]orksheet\b|schemas-microsoft-com.*spreadsheet/.test(text.substring(0, 2000))) {
+            var xmlResult = parseXmlXls(text, f2.name);
+            if (xmlResult && xmlResult.rows.length > 0) {
+              console.log('[XLS] '+label+' XML → bank:', xmlResult.bank, '행수:', xmlResult.rows.length);
+              if (xmlResult.bank === '?') { var xfb = bankFromFilename(f2.name); if (xfb !== '?') xmlResult.bank = xfb; }
+              registerEntry(f2, xmlResult, done2); return;
+            }
+          }
+          // 2) HTML 테이블
           var p = parseHtmlXlsTable(text, f2.name);
           var diag = p._diag;
           console.log('[XLS] '+label+' DOMParser → bank:', p.bank, '행수:', p.rows.length);
@@ -801,7 +811,7 @@ function handleFiles(files) {
             var textReader = new FileReader();
             textReader.onload = function(te) {
               var text = te.target.result;
-              if (/charset\s*=\s*utf-8/i.test(text.substring(0, 2000))) {
+              if (/(?:charset|encoding)\s*=\s*["']?utf-?8/i.test(text.substring(0, 2000))) {
                 console.log('[XLS] UTF-8 파일 감지 → 재읽기');
                 var utfReader = new FileReader();
                 utfReader.onload = function(ue) { htmlCsvFallback(ue.target.result, 'UTF-8', xlsDone); };
@@ -826,6 +836,62 @@ function handleFiles(files) {
 }
 
 function pad2(n){ return n < 10 ? '0'+n : String(n); }
+
+// Excel XML 2003 (SpreadsheetML) 파서 — 농협 등 XML 형식 XLS 처리
+function parseXmlXls(text, filename) {
+  try {
+    var parser = new DOMParser();
+    var doc = parser.parseFromString(text, 'application/xml');
+    if (doc.querySelector('parsererror')) return null;
+    var NS = 'urn:schemas-microsoft-com:office:spreadsheet';
+    function getEls(parent, tag) {
+      var r = parent.getElementsByTagNameNS(NS, tag);
+      if (!r || r.length === 0) r = parent.getElementsByTagName(tag);
+      return r;
+    }
+    var allRowEls = getEls(doc, 'Row');
+    if (!allRowEls || allRowEls.length === 0) return null;
+    var allRows = [];
+    for (var ri = 0; ri < allRowEls.length; ri++) {
+      var cellEls = getEls(allRowEls[ri], 'Data');
+      var row = [];
+      for (var ci = 0; ci < cellEls.length; ci++) {
+        row.push((cellEls[ci].textContent || '').replace(/\s+/g,' ').trim());
+      }
+      allRows.push(row);
+    }
+    var HDR = ['거래일','출금','입금','순번','날짜','적요','내용','잔액','금액','보낸분','받는분','기록사항'];
+    var headerIdx = -1;
+    for (var hi = 0; hi < Math.min(allRows.length, 80); hi++) {
+      var joined = allRows[hi].join(',');
+      var hits = HDR.filter(function(k){ return joined.includes(k); }).length;
+      if (hits >= 1 && allRows[hi].filter(function(c){ return c; }).length >= 3) { headerIdx = hi; break; }
+    }
+    if (headerIdx < 0) { console.warn('[parseXmlXls] 헤더 미발견 rows='+allRows.length); return null; }
+    var headers = allRows[headerIdx];
+    var bank = detectBank(headers);
+    if (bank === '?') bank = bankFromFilename(filename) || '?';
+    var iDate=-1, iMerchant=-1, iOut=-1, iIn=-1;
+    iMerchant = findMerchantCol(headers, bank);
+    headers.forEach(function(h,i){
+      var t = h.replace(/\s/g,'');
+      if (iDate<0 && (t.includes('거래일')||t==='날짜'||t==='일시')) iDate=i;
+      if (iOut<0 && (t.includes('출금')||t==='차변')) iOut=i;
+      if (iIn<0 && (t.includes('입금')||t==='대변')) iIn=i;
+    });
+    console.log('[parseXmlXls] bank:'+bank+' iDate:'+iDate+' iMerchant:'+iMerchant+' rows:'+(allRows.length-headerIdx-1));
+    var parsed = [];
+    for (var j = headerIdx+1; j < allRows.length; j++) {
+      var row = allRows[j];
+      var merchant = iMerchant>=0 ? row[iMerchant] : '';
+      if (!merchant || merchant==='-') continue;
+      var date = normalizeDate(iDate>=0 ? row[iDate] : '');
+      if (!date) continue;
+      parsed.push({ date:date, merchant:merchant, out:parseAmount(iOut>=0?row[iOut]:''), in:parseAmount(iIn>=0?row[iIn]:''), bank:bank });
+    }
+    return { bank:bank, rows:parsed };
+  } catch(e) { console.error('[parseXmlXls]', e.message); return null; }
+}
 
 // 텍스트에서 은행 감지 (CSV 폴백용)
 function detectBankFromText(text) {
@@ -1093,9 +1159,13 @@ function _parseAllCore() {
   // 미분류 중 총 출금 1만 이하 → 기타 자동태그
   Object.keys(_merchants).forEach(function(k) {
     var m = _merchants[k];
+    // 건당 평균 출금 1만원 이하 → 기타
     if (!m.cat && m.count > 0 && m.totalOut > 0 && Math.round(m.totalOut / m.count) <= 10000) {
-      m.cat = '기타';
-      m.autoTagged = true;
+      m.cat = '기타'; m.autoTagged = true;
+    }
+    // 출금액 0 (입금 전용 또는 -/무 금액) → 기타
+    if (!m.cat && m.count > 0 && m.totalOut <= 0) {
+      m.cat = '기타'; m.autoTagged = true;
     }
   });
 
