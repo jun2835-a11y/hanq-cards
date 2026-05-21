@@ -498,10 +498,28 @@ function handleFiles(files) {
           if (parsed.rows.length > 0 && parsed.bank !== '?') {
             registerEntry(f2, parsed); return;
           }
-          // HTML-format XLS (KB·광주): EUC-KR 텍스트로 재시도
+          // HTML-format XLS: EUC-KR로 읽어 charset 감지 → UTF-8이면 재시도
           var textReader = new FileReader();
           textReader.onload = function(te) {
             var text = te.target.result;
+            // meta charset=UTF-8 감지 (ASCII 부분은 EUC-KR 디코딩에서도 정상)
+            if (/charset\s*=\s*utf-8/i.test(text.substring(0, 2000))) {
+              console.log('[XLS] UTF-8 파일 감지 → 재시도');
+              var utfReader = new FileReader();
+              utfReader.onload = function(ue) {
+                var utfText = ue.target.result;
+                var p = parseHtmlXlsTable(utfText);
+                console.log('[XLS] UTF-8 DOMParser → bank:', p.bank, '행수:', p.rows.length);
+                if (p.rows.length === 0) {
+                  var db = detectBankFromText(utfText);
+                  var cr = parseCSVText(utfText, db);
+                  p = { bank: cr.length ? db : '?', rows: cr };
+                }
+                registerEntry(f2, p);
+              };
+              utfReader.readAsText(f2, 'utf-8');
+              return;
+            }
             console.log('[XLS] EUC-KR 텍스트 앞 200자:', text.substring(0, 200));
             var parsed2 = parseHtmlXlsTable(text);
             console.log('[XLS] DOMParser 결과 → bank:', parsed2.bank, '행수:', parsed2.rows.length);
