@@ -235,8 +235,6 @@ input[type=file]{display:none}
   <div id="aggTableWrap"><div class="no-data">태깅 완료 후 집계를 확인하세요</div></div>
 </div>
 
-<div class="save-indicator" id="saveInd">저장됨</div>
-
 <script>
 // ── 상수 ──────────────────────────────────────────────
 const CATS = ['인건비','4대보험','3.3소득세','식비/경비','임대료','제세공과금','통신비',
@@ -339,7 +337,7 @@ function doSave(attempt) {
     var m = _merchants[k];
     if (m.cat || m.biz) tagged[k] = m;
   });
-  setSaveStatus('saving');
+  if (attempt === 0) showLoad('저장 중...');
   fetch(API, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -348,14 +346,14 @@ function doSave(attempt) {
     if (!r.ok) throw new Error('HTTP ' + r.status);
     return r.json();
   }).then(function(res) {
+    hideLoad();
     setSaveStatus(res && res.supabase === false ? 'nosb' : 'saved');
   }).catch(function(e) {
     console.error('[saveState error] attempt=' + attempt, e.message);
     if (attempt < 2) {
-      // 서버 cold-start 대비: 실패 시 5초 후 최대 2회 재시도
-      setSaveStatus('saving');
       setTimeout(function() { doSave(attempt + 1); }, 5000);
     } else {
+      hideLoad();
       setSaveStatus('error');
     }
   });
