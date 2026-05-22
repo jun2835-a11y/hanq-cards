@@ -869,12 +869,16 @@ function parseXmlXls(text, filename) {
       }
       allRows.push(row);
     }
-    var HDR = ['거래일','출금','입금','순번','날짜','적요','내용','잔액','금액','보낸분','받는분','기록사항'];
+    var DATE_HDR = ['거래일','날짜','일시'];
+    var AMT_HDR  = ['출금','입금','적요','내용','잔액','금액','보낸분','받는분','기록사항','순번'];
     var headerIdx = -1;
     for (var hi = 0; hi < Math.min(allRows.length, 80); hi++) {
       var joined = allRows[hi].join(',');
-      var hits = HDR.filter(function(k){ return joined.includes(k); }).length;
-      if (hits >= 1 && allRows[hi].filter(function(c){ return c; }).length >= 3) { headerIdx = hi; break; }
+      var nonEmp = allRows[hi].filter(function(c){ return c; }).length;
+      if (nonEmp < 3) continue;
+      var hasDate = DATE_HDR.some(function(k){ return joined.includes(k); });
+      var amtHits = AMT_HDR.filter(function(k){ return joined.includes(k); }).length;
+      if (hasDate && amtHits >= 1) { headerIdx = hi; break; }
     }
     if (headerIdx < 0) { console.warn('[parseXmlXls] 헤더 미발견 rows='+allRows.length); return null; }
     var headers = allRows[headerIdx];
@@ -1055,11 +1059,15 @@ function parseExcelData(data, type, filename) {
   }
 
   function _findHeaderIdx(rows) {
+    var DATE_KEYS = ['거래일','날짜','일시'];
+    var AMT_KEYS  = ['출금','입금','적요','내용','잔액','금액','보낸분','받는분','기록사항','순번'];
     for (var hi = 0; hi < Math.min(rows.length, 80); hi++) {
-      var joined = rows[hi].map(function(c){ return String(c); }).join(',');
+      var joined  = rows[hi].map(function(c){ return String(c); }).join(',');
       var nonEmpty = rows[hi].filter(function(c){ return String(c).trim(); }).length;
-      var hits = HDR_KEYS.filter(function(k){ return joined.includes(k); }).length;
-      if (hits >= 1 && nonEmpty >= 3) return hi;
+      if (nonEmpty < 3) continue;
+      var hasDate = DATE_KEYS.some(function(k){ return joined.includes(k); });
+      var amtHits = AMT_KEYS.filter(function(k){ return joined.includes(k); }).length;
+      if (hasDate && amtHits >= 1) return hi;
     }
     return -1;
   }
