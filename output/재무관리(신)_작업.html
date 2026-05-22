@@ -1632,7 +1632,11 @@ function populateYears() {
     _txns.forEach(function(t){ years[t.date.substring(0,4)] = 1; });
   } else {
     Object.values(_merchants).forEach(function(m) {
-      if (m.monthly) Object.keys(m.monthly).forEach(function(ym){ years[ym.substring(0,4)] = 1; });
+      if (m.monthly && Object.keys(m.monthly).length > 0) {
+        Object.keys(m.monthly).forEach(function(ym){ years[ym.substring(0,4)] = 1; });
+      } else if (m.sampleDate && m.sampleDate.length >= 4) {
+        years[m.sampleDate.substring(0,4)] = 1;
+      }
     });
   }
   var sel = document.getElementById('aggYear');
@@ -1644,16 +1648,22 @@ function populateYears() {
 }
 
 
-// CSV 없을 때 merchant.monthly 데이터로 pseudo-txns 생성
+// CSV 없을 때 merchant 데이터로 pseudo-txns 생성
+// monthly 있으면 월별 분해, 없으면 totalOut/totalIn + sampleDate로 단일 항목 fallback
 function makePseudoTxns() {
   var txns = [];
   Object.keys(_merchants).forEach(function(k) {
     var m = _merchants[k];
-    if (!m.monthly) return;
-    Object.keys(m.monthly).forEach(function(ym) {
-      var mo = m.monthly[ym];
-      txns.push({ date: ym + '-01', merchant: k, out: mo.out || 0, in: mo.in || 0, bank: '' });
-    });
+    if (m.monthly && Object.keys(m.monthly).length > 0) {
+      Object.keys(m.monthly).forEach(function(ym) {
+        var mo = m.monthly[ym];
+        txns.push({ date: ym + '-01', merchant: k, out: mo.out || 0, in: mo.in || 0, bank: '' });
+      });
+    } else if ((m.totalOut || 0) > 0 || (m.totalIn || 0) > 0) {
+      var raw = (m.sampleDate || '').substring(0, 10);
+      var date = raw.length >= 7 ? raw.substring(0, 7) + '-01' : '2025-01-01';
+      txns.push({ date: date, merchant: k, out: m.totalOut || 0, in: m.totalIn || 0, bank: '' });
+    }
   });
   return txns;
 }
