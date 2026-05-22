@@ -74,7 +74,11 @@ input[type=file]{display:none}
 .filter-btn{padding:6px 12px;font-size:11px;font-weight:500;letter-spacing:.04em;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--ink2);font-family:inherit;transition:all .15s}
 .filter-btn:hover{border-color:var(--ink);color:var(--ink)}
 .filter-btn.active{background:var(--ink);color:white;border-color:var(--ink)}
-.tag-count{font-size:11px;color:var(--muted);margin-left:auto}
+.tag-count{font-size:11px;color:var(--muted)}
+.tag-stats-wrap{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.tag-stats{font-size:11px;color:var(--muted);line-height:1.5;text-align:right}
+.tag-stats b{color:var(--ink)}
+.tag-stats .stats-urgent{color:var(--accent);font-weight:700}
 
 .merchant-table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border)}
 .merchant-table th{background:var(--ink);color:rgba(255,255,255,.7);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:9px 12px;text-align:left;white-space:nowrap}
@@ -214,7 +218,10 @@ input[type=file]{display:none}
       <option value="">카테고리 전체</option>
     </select>
     <button class="filter-btn" onclick="resetTags()" style="color:var(--accent);border-color:rgba(200,56,10,.4)">태그 초기화</button>
-    <span class="tag-count" id="tagCount"></span>
+    <div class="tag-stats-wrap">
+      <span class="tag-count" id="tagCount"></span>
+      <div class="tag-stats" id="tagStats" style="display:none"></div>
+    </div>
   </div>
   <div id="merchantTableWrap">
     <div class="no-data">CSV를 먼저 업로드하고 파싱해주세요</div>
@@ -398,6 +405,7 @@ function loadSavedTags() {
     });
     updateProgress();
     renderMerchants();
+    refreshTagStats();
     saveState(); // CSV 파싱 후 전체 거래처 목록 즉시 저장
   }).catch(function(){ hideLoad(); });
 }
@@ -444,6 +452,7 @@ function loadStateOnInit() {
     updateProgress();
     renderMerchants();
     populateYears();
+    refreshTagStats();
   }).catch(function(){ hideLoad(); });
 }
 loadStateOnInit();
@@ -1319,6 +1328,23 @@ function _parseAllCore() {
   loadSavedTags(); // 자체 showLoad/hideLoad 쌍을 가짐
 }
 
+function refreshTagStats() {
+  var vals = Object.values(_merchants);
+  var mCount = vals.length;
+  if (mCount === 0) return;
+  var total = vals.reduce(function(s, m){ return s + (m.count || 0); }, 0);
+  var autoCount = vals.filter(function(m){ return m.autoTagged; }).length;
+  var pendingCount = vals.filter(function(m){ return !m.cat; }).length;
+  var ts = document.getElementById('tagStats');
+  if (!ts) return;
+  ts.style.display = '';
+  ts.innerHTML =
+    '총 <b>' + total.toLocaleString() + '건</b> · ' +
+    '거래내용 <b>' + mCount.toLocaleString() + '개</b><br>' +
+    '자동 분류: <b>' + autoCount + '개</b> · ' +
+    '검수 필요: <b class="stats-urgent">' + pendingCount + '개</b>';
+}
+
 function showParseResult() {
   var total = _txns.length;
   var mCount = Object.keys(_merchants).length;
@@ -1332,6 +1358,8 @@ function showParseResult() {
     '거래내용 <b>' + mCount.toLocaleString() + '개</b><br>' +
     '자동 분류: <b>' + autoCount + '개</b> · ' +
     '검수 필요: <b style="color:var(--accent)">' + pendingCount + '개</b>';
+
+  refreshTagStats();
 }
 
 // ── 진행률 ────────────────────────────────────────────
@@ -1352,6 +1380,8 @@ function updateProgress() {
   var badge = document.getElementById('pendingBadge');
   badge.style.display = pending > 0 ? '' : 'none';
   badge.textContent = pending;
+
+  refreshTagStats();
 }
 
 // ── 거래처 테이블 ─────────────────────────────────────
@@ -1385,7 +1415,7 @@ function renderMerchants() {
     return mb.totalOut - ma.totalOut;
   });
 
-  document.getElementById('tagCount').textContent = _vsFiltered.length + '개 거래내용';
+  document.getElementById('tagCount').textContent = _vsFiltered.length.toLocaleString() + '개 표시';
 
   var wrap = document.getElementById('merchantTableWrap');
   if (!document.getElementById('vsScrollWrap')) {
@@ -1523,6 +1553,7 @@ async function resetTags() {
   document.getElementById('progressWrap').style.display = 'none';
   document.getElementById('merchantTableWrap').innerHTML = '';
   document.getElementById('parseResult').style.display = 'none';
+  document.getElementById('tagStats').style.display = 'none';
   document.getElementById('fileList').innerHTML = '';
   document.getElementById('parseBtn').disabled = true;
   document.getElementById('tagCount').textContent = '';
