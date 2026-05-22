@@ -226,9 +226,12 @@ input[type=file]{display:none}
       <button class="agg-mode-btn" id="aggModeIn" onclick="switchAggMode('in')">입금</button>
     </div>
     <select class="agg-select" id="aggYear" onchange="renderAgg()"><option value="">연도 선택</option></select>
-    <select class="agg-select" id="aggBiz" onchange="renderAgg()">
+    <select class="agg-select" id="aggBiz" onchange="onAggBizChange()">
       <option value="">전체 사업자</option>
       <option>한솔</option><option>수복지</option><option>한큐</option><option>교육원</option><option>미배분</option>
+    </select>
+    <select class="agg-select" id="aggProj" onchange="renderAgg()" style="display:none">
+      <option value="">전체 프로젝트</option>
     </select>
     <span id="aggCatWrap"><select class="agg-select" id="aggCat" onchange="renderAgg()">
       <option value="">전체 카테고리</option>
@@ -1527,6 +1530,21 @@ function switchAggMode(mode) {
   renderAgg();
 }
 
+function onAggBizChange() {
+  var biz = document.getElementById('aggBiz').value;
+  var projSel = document.getElementById('aggProj');
+  var projs = PROJ_BY_BIZ[biz] || [];
+  if (projs.length === 0) {
+    projSel.style.display = 'none';
+    projSel.value = '';
+  } else {
+    projSel.innerHTML = '<option value="">전체 프로젝트</option>';
+    projs.forEach(function(p){ projSel.innerHTML += '<option>' + p + '</option>'; });
+    projSel.style.display = '';
+  }
+  renderAgg();
+}
+
 function populateYears() {
   var years = {};
   if (_txns.length > 0) {
@@ -1573,6 +1591,7 @@ function renderAgg() {
 
   var year = document.getElementById('aggYear').value;
   var biz  = document.getElementById('aggBiz').value;
+  var proj = document.getElementById('aggProj').value;
   var view = document.getElementById('aggView').value;
 
   if (_aggMode === 'in') {
@@ -1581,6 +1600,7 @@ function renderAgg() {
       if (year && t.date.substring(0,4) !== year) return false;
       var m = _merchants[t.merchant] || {};
       if (biz && (m.biz || '미배분') !== biz) return false;
+      if (proj && (m.proj || '') !== proj) return false;
       return true;
     });
     if (filteredIn.length === 0) {
@@ -1600,6 +1620,7 @@ function renderAgg() {
     if (!m || (!m.cat && !m.biz)) return false;
     if (year && t.date.substring(0,4) !== year) return false;
     if (biz && (m.biz || '미배분') !== biz) return false;
+    if (proj && (m.proj || '') !== proj) return false;
     if (cat && (m.cat || '미분류') !== cat) return false;
     return true;
   });
@@ -1845,12 +1866,14 @@ function exportCSV() {
   // 현재 집계 화면과 동일한 필터 적용
   var year = (document.getElementById('aggYear') || {}).value || '';
   var biz  = (document.getElementById('aggBiz')  || {}).value || '';
+  var proj = (document.getElementById('aggProj') || {}).value || '';
   var cat  = (document.getElementById('aggCat')  || {}).value || '';
 
   var filtered = usedTxns.filter(function(t) {
     if (year && t.date.substring(0,4) !== year) return false;
     var m = _merchants[t.merchant] || {};
     if (biz && (m.biz || '미배분') !== biz) return false;
+    if (proj && (m.proj || '') !== proj) return false;
     if (cat && (m.cat || '미분류') !== cat) return false;
     return true;
   });
