@@ -406,8 +406,43 @@ function loadSavedTags() {
     updateProgress();
     renderMerchants();
     refreshTagStats();
-    saveState(); // CSV 파싱 후 전체 거래처 목록 즉시 저장
+    saveState();
+    callAiTagging();
   }).catch(function(){ hideLoad(); });
+}
+
+// ── AI 자동 태깅 ──────────────────────────────────────
+function callAiTagging() {
+  var untagged = Object.values(_merchants).filter(function(m){ return !m.cat; });
+  if (untagged.length === 0) return;
+  showLoad('AI 자동 태깅 중... (' + untagged.length + '개)');
+  fetch('/api/ai-tag', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      merchants: untagged.map(function(m){
+        return { name: m.name, totalOut: m.totalOut || 0, count: m.count || 0 };
+      })
+    })
+  }).then(function(r){ return r.json(); }).then(function(resp){
+    hideLoad();
+    if (!resp.ok || !resp.results) return;
+    var changed = 0;
+    Object.keys(resp.results).forEach(function(name){
+      var r = resp.results[name];
+      if (_merchants[name] && !_merchants[name].cat) {
+        if (r.cat) { _merchants[name].cat = r.cat; changed++; }
+        if (r.biz) _merchants[name].biz = r.biz;
+        _merchants[name].autoTagged = true;
+      }
+    });
+    if (changed > 0) {
+      updateProgress();
+      renderMerchants();
+      refreshTagStats();
+      saveState();
+    }
+  }).catch(function(e){ console.error('[AI tag]', e); hideLoad(); });
 }
 
 function loadStateOnInit() {
@@ -453,6 +488,7 @@ function loadStateOnInit() {
     renderMerchants();
     populateYears();
     refreshTagStats();
+    callAiTagging();
   }).catch(function(){ hideLoad(); });
 }
 loadStateOnInit();

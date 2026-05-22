@@ -7,8 +7,9 @@ const OUT    = path.join(__dirname, 'output');
 
 // ── Supabase 영구 저장소 ─────────────────────────────────────────────────
 // 환경변수 SUPABASE_URL, SUPABASE_KEY 가 없으면 로컬 파일로 폴백 (개발용)
-const SB_URL = process.env.SUPABASE_URL;        // https://xxxx.supabase.co
-const SB_KEY = process.env.SUPABASE_ANON_KEY;  // anon/public 키 (Settings→API에서 바로 보임)
+const SB_URL      = process.env.SUPABASE_URL;        // https://xxxx.supabase.co
+const SB_KEY      = process.env.SUPABASE_ANON_KEY;  // anon/public 키 (Settings→API에서 바로 보임)
+const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY; // Claude API 키
 
 // 파일명 → Supabase key 매핑
 const FILE_TO_KEY = {
@@ -75,6 +76,68 @@ async function sbPing() {
     });
     return { ok: res.ok, status: res.status };
   } catch (e) { return { ok: false, error: e.message }; }
+}
+
+// ── Claude AI 태깅 ───────────────────────────────────────────────────────
+const AI_CATEGORIES = [
+  '인건비','4대보험','3.3소득세','제세공과금','통신비','IT인프라비',
+  '임대료','차량유지비','지급수수료','식비/경비','복리후생비',
+  '마케팅/광고비','특허','변호사비','인증비','사무용품/사무집기',
+  '금융비용(이자)','일괄송금(사유확인불가)','기타',
+];
+
+async function callClaudeTagging(merchants) {
+  const lines = merchants.map(m =>
+    `"${m.name}" (출금 ${(m.totalOut || 0).toLocaleString('ko-KR')}원, ${m.count}건)`
+  ).join('\n');
+
+  const prompt = `당신은 한국 법인 회계 분류 전문가입니다.
+아래 거래처/거래내역 이름을 카테고리와 사업자로 분류하세요.
+
+카테고리 목록: ${AI_CATEGORIES.join(', ')}
+사업자 목록: 한솔, 한큐, 수복지, 교육원 (모르면 빈 문자열 "")
+
+hanQ 그룹 사업자 정보:
+- 한솔: IT 개발/디자인/영업 (아고라 프로젝트)
+- 한큐: IT 개발/영업/재무/의료기
+- 수복지: 복지 관련 사업
+- 교육원: 교육 관련 사업
+
+분류 기준:
+- 거래처 이름, 금액, 건수를 종합적으로 판단
+- 한국 상호/업종명을 참고해 카테고리 결정
+- 사업자는 거래 성격상 특정 사업자에만 해당하는 경우만 지정, 불분명하면 ""
+- 절대 설명 없이 JSON만 응답
+
+분류할 거래처 목록:
+${lines}
+
+응답 형식 (JSON만, 코드 블록 없이):
+{"거래처명": {"cat": "카테고리", "biz": "사업자"}, ...}`;
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': ANTHROPIC_KEY,
+      'anthropic-version': '2023-06-01',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 4096,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Anthropic ${res.status}: ${body.slice(0, 200)}`);
+  }
+  const data = await res.json();
+  const text = data.content?.[0]?.text || '';
+  const m = text.match(/\{[\s\S]*\}/);
+  if (!m) throw new Error('AI 응답에 JSON 없음');
+  return JSON.parse(m[0]);
 }
 
 // 로컬 파일 폴백 (Supabase 미설정 or 개발 환경)
@@ -329,6 +392,38 @@ const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(info, null, 2));
     }
+    return;
+  }
+
+  // AI 자동 태깅 API
+  if (url === '/api/ai-tag' && req.method === 'POST') {
+    if (!ANTHROPIC_KEY) {
+      res.writeHead(503, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: 'ANTHROPIC_API_KEY 미설정' }));
+      return;
+    }
+    let body = '';
+    req.on('data', c => { body += c; });
+    req.on('end', async () => {
+      try {
+        const { merchants } = JSON.parse(body);
+        if (!Array.isArray(merchants) || merchants.length === 0) {
+          res.writeHead(400); res.end('merchants 배열 필요'); return;
+        }
+        const BATCH = 80;
+        const results = {};
+        for (let i = 0; i < merchants.length; i += BATCH) {
+          const tagged = await callClaudeTagging(merchants.slice(i, i + BATCH));
+          Object.assign(results, tagged);
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, results }));
+      } catch (e) {
+        console.error('[AI tag error]', e.message);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: e.message }));
+      }
+    });
     return;
   }
 
