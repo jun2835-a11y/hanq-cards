@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KPI 대시보드 — hanQ</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F7F5F0;--surface:#FFFFFF;--border:#E2DED7;--ink:#1A1814;--ink2:#5C5851;
+  --muted:#9A958F;--accent:#C8380A;
+}
+body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;min-height:100vh;display:flex;flex-direction:column}
+.page-main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 32px;text-align:center}
+.wip-icon{font-size:48px;margin-bottom:24px;opacity:.35;display:inline-block;position:relative;line-height:1}
+.crane-rope-anim{position:absolute;top:34%;left:63%;display:flex;flex-direction:column;align-items:center}
+.crane-rope-line{width:2px;background:var(--ink);border-radius:1px;animation:ropeStretch 1.8s ease-in-out infinite}
+.crane-rope-hook{width:8px;height:5px;border:2px solid var(--ink);border-top:none;border-radius:0 0 4px 4px}
+@keyframes ropeStretch{
+  0%,100%{height:13px}
+  50%    {height:4px}
+}
+.wip-badge{display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:white;font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;padding:4px 12px;margin-bottom:20px}
+.wip-title{font-size:28px;font-weight:700;letter-spacing:-.02em;color:var(--ink);margin-bottom:12px}
+.wip-sub{font-size:14px;color:var(--muted);line-height:1.7;max-width:480px;margin-bottom:40px}
+.wip-divider{width:40px;height:2px;background:var(--border);margin:0 auto 40px}
+.wip-scope{background:var(--surface);border:1px solid var(--border);padding:28px 36px;max-width:540px;width:100%;text-align:left}
+.wip-scope-title{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:16px;font-weight:700}
+.wip-scope-item{display:flex;align-items:flex-start;gap:10px;font-size:12px;color:var(--ink2);line-height:1.6;padding:6px 0;border-bottom:1px solid var(--border)}
+.wip-scope-item:last-child{border-bottom:none}
+.wip-scope-dot{width:4px;height:4px;border-radius:50%;background:var(--muted);flex-shrink:0;margin-top:7px}
+</style>
+</head>
+<body>
+
+<div class="page-main">
+  <div class="wip-icon">🏗<div class="crane-rope-anim"><div class="crane-rope-line"></div><div class="crane-rope-hook"></div></div></div>
+  <div class="wip-badge">개발중</div>
+  <div class="wip-title">KPI 대시보드</div>
+  <div class="wip-sub">사업자별 핵심 성과 지표 모니터링.<br>현재 설계 및 개발 중입니다.</div>
+  <div class="wip-divider"></div>
+  <div class="wip-scope">
+    <div class="wip-scope-title">구현 예정 기능</div>
+    <div class="wip-scope-item"><div class="wip-scope-dot"></div>사업자별 매출 · 비용 · 이익 KPI 카드</div>
+    <div class="wip-scope-item"><div class="wip-scope-dot"></div>전년 동기 대비 증감률 시각화</div>
+    <div class="wip-scope-item"><div class="wip-scope-dot"></div>프로젝트별 수익성 분석</div>
+    <div class="wip-scope-item"><div class="wip-scope-dot"></div>월별 목표 대비 달성률 트래킹</div>
+    <div class="wip-scope-item"><div class="wip-scope-dot"></div>인건비 · 운영비 비율 추이 차트</div>
+  </div>
+</div>
+
+<script>(function(){if(window.self===window.top)return;var s=document.createElement("style");s.textContent="html,html *{cursor:none!important}";document.head.appendChild(s);document.addEventListener("mousemove",function(e){window.parent.postMessage({type:"cursor-move",x:e.clientX,y:e.clientY},"*");});})();</script>
+</body>
+</html>

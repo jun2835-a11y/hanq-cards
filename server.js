@@ -173,6 +173,7 @@ const ROUTES = {
   '/roster':       '관리명부.html',
   '/finance-new':  '재무관리(신).html',
   '/finance-work': '재무관리(신)_작업.html',
+  '/kpi':          'kpi.html',
 };
 
 function serveHTML(res, file) {
