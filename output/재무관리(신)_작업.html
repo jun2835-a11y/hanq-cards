@@ -87,8 +87,11 @@ input[type=file]{display:none}
 .vs-scroll-wrap{height:calc(100vh - 340px);min-height:300px;overflow-y:auto}
 .vs-spacer td{padding:0!important;border:none!important;background:transparent!important}
 
-.td-merchant{font-weight:500;color:var(--ink);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.td-merchant{font-weight:500;color:var(--ink);max-width:200px;white-space:nowrap}
 .td-merchant .staff-name{color:#1A56B0;font-weight:700}
+.merchant-name-input{border:none;background:transparent;font-family:inherit;font-size:inherit;font-weight:500;color:var(--ink);width:100%;outline:none;cursor:text;padding:0;min-width:80px}
+.merchant-name-input:hover{background:rgba(0,0,0,.04)}
+.merchant-name-input:focus{background:#fff;border-bottom:1px solid var(--accent)}
 .td-count{color:var(--muted);text-align:right;white-space:nowrap}
 .td-amount{text-align:right;font-weight:500;white-space:nowrap}
 .td-sample{color:var(--muted);font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -1434,7 +1437,7 @@ function vsRender(scrollTop) {
     html +=
       '<tr class="' + (isTagged ? '' : 'untagged') + '">' +
       '<td><span class="tag-status ' + (isTagged ? 'done' : 'pending') + '"></span></td>' +
-      '<td class="td-merchant" title="' + m.name + '">' + displayName + '</td>' +
+      '<td class="td-merchant"><input class="merchant-name-input" value="' + m.name.replace(/"/g,'&quot;') + '" title="' + m.name.replace(/"/g,'&quot;') + '" onblur="renameMerchant(\'' + escKey(k) + '\',this.value)" onkeydown="if(event.key===\'Enter\')this.blur();if(event.key===\'Escape\'){this.value=_merchants[\'' + escKey(k) + '\']&&_merchants[\'' + escKey(k) + '\'].name||this.defaultValue;this.blur();}"></td>' +
       '<td class="td-count">' + m.count + '</td>' +
       '<td class="td-amount">' + (m.totalOut > 0 ? (m.totalOut/10000).toFixed(0) + '만' : '-') + '</td>' +
       '<td>' + catSelect(k, m.cat) + '</td>' +
@@ -1482,6 +1485,24 @@ function setTag(key, field, val) {
   var sw = document.getElementById('vsScrollWrap');
   if (sw) _vsScrollTop = sw.scrollTop;
   renderMerchants();
+}
+
+function renameMerchant(oldKey, newName) {
+  newName = newName.trim();
+  if (!newName || newName === oldKey) return;
+  if (_merchants[newName] && newName !== oldKey) {
+    alert('이미 존재하는 거래내용입니다: ' + newName + '\n다른 이름을 사용해 주세요.');
+    vsRender(_vsScrollTop); // 원래 값으로 복원
+    return;
+  }
+  _merchants[newName] = _merchants[oldKey];
+  _merchants[newName].name = newName;
+  delete _merchants[oldKey];
+  _txns.forEach(function(t){ if (t.merchant === oldKey) t.merchant = newName; });
+  var idx = _vsFiltered.indexOf(oldKey);
+  if (idx >= 0) _vsFiltered[idx] = newName;
+  saveState();
+  vsRender(_vsScrollTop);
 }
 
 async function resetTags() {
