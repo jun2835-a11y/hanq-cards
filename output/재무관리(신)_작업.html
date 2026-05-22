@@ -236,6 +236,7 @@ input[type=file]{display:none}
     <select class="agg-select" id="aggView" onchange="renderAgg()">
       <option value="month">월별</option>
       <option value="cat" id="aggViewCatOpt">카테고리별</option>
+      <option value="biz">사업자별</option>
     </select>
     <button class="export-btn" onclick="exportCSV()">CSV 내보내기</button>
   </div>
@@ -1586,7 +1587,8 @@ function renderAgg() {
       document.getElementById('aggTableWrap').innerHTML = '<div class="no-data">해당 조건에 맞는 입금 거래가 없습니다.</div>';
       return;
     }
-    if (view === 'month') renderAggMonthIn(filteredIn);
+    if (view === 'biz')   renderAggBiz(filteredIn, 'in');
+    else if (view === 'month') renderAggMonthIn(filteredIn);
     else renderAggSourceIn(filteredIn);
     return;
   }
@@ -1607,7 +1609,8 @@ function renderAgg() {
     return;
   }
 
-  if (view === 'month') renderAggMonth(filtered);
+  if (view === 'biz')   renderAggBiz(filtered, 'out');
+  else if (view === 'month') renderAggMonth(filtered);
   else renderAggCat(filtered);
 }
 
@@ -1746,6 +1749,90 @@ function renderAggSourceIn(txns) {
   html += '<tr class="total"><td>합계</td><td>' + txns.length + '</td><td>' + fmt(grandTotal) + '</td><td>100%</td></tr>';
   html += '</tbody></table>';
   document.getElementById('aggTableWrap').innerHTML = html;
+}
+
+// 사업자별 비교 — 출금: 사업자×카테고리, 입금: 사업자×월
+function renderAggBiz(txns, mode) {
+  var BIZ_ORDER = ['한솔','수복지','한큐','교육원','미배분'];
+  var usedBiz = {};
+
+  if (mode === 'out') {
+    // data[biz][cat] = amount
+    var data = {};
+    var allCats = {};
+    txns.forEach(function(t) {
+      var m = _merchants[t.merchant];
+      var bk = (m && m.biz) ? m.biz : '미배분';
+      var ck = (m && m.cat) ? m.cat : '미분류';
+      if (!data[bk]) data[bk] = {};
+      data[bk][ck] = (data[bk][ck] || 0) + t.out;
+      usedBiz[bk] = 1; allCats[ck] = 1;
+    });
+    var bizList = BIZ_ORDER.filter(function(b){ return usedBiz[b]; });
+    var cats = CATS.filter(function(c){ return allCats[c]; });
+    if (allCats['미분류']) cats.push('미분류');
+
+    var html = '<table class="agg-table"><thead><tr><th>사업자</th>';
+    cats.forEach(function(c){ html += '<th>' + c + '</th>'; });
+    html += '<th>합계</th></tr></thead><tbody>';
+
+    var colTotals = {};
+    bizList.forEach(function(bk) {
+      var row = data[bk] || {};
+      var rowTotal = cats.reduce(function(s,c){ return s+(row[c]||0); }, 0);
+      html += '<tr><td><b>' + bk + '</b></td>';
+      cats.forEach(function(c) {
+        var v = row[c] || 0;
+        html += '<td class="'+(v?'':'zero')+'">'+(v ? fmt(v) : '-')+'</td>';
+        colTotals[c] = (colTotals[c]||0) + v;
+      });
+      html += '<td><b>' + fmt(rowTotal) + '</b></td></tr>';
+    });
+    var grandTotal = cats.reduce(function(s,c){ return s+(colTotals[c]||0); }, 0);
+    html += '<tr class="total"><td>합계</td>';
+    cats.forEach(function(c){ html += '<td>' + fmt(colTotals[c]||0) + '</td>'; });
+    html += '<td>' + fmt(grandTotal) + '</td></tr>';
+    html += '</tbody></table>';
+    document.getElementById('aggTableWrap').innerHTML = html;
+
+  } else {
+    // 입금: data[biz][YYYY-MM] = amount
+    var dataIn = {};
+    var allMonths = {};
+    txns.forEach(function(t) {
+      var m = _merchants[t.merchant];
+      var bk = (m && m.biz) ? m.biz : '미배분';
+      var ym = t.date.substring(0, 7);
+      if (!dataIn[bk]) dataIn[bk] = {};
+      dataIn[bk][ym] = (dataIn[bk][ym] || 0) + t.in;
+      usedBiz[bk] = 1; allMonths[ym] = 1;
+    });
+    var bizListIn = BIZ_ORDER.filter(function(b){ return usedBiz[b]; });
+    var months = Object.keys(allMonths).sort();
+
+    var html = '<table class="agg-table"><thead><tr><th>사업자</th>';
+    months.forEach(function(ym){ html += '<th>' + ym + '</th>'; });
+    html += '<th>합계</th></tr></thead><tbody>';
+
+    var colTotalsIn = {};
+    bizListIn.forEach(function(bk) {
+      var row = dataIn[bk] || {};
+      var rowTotal = months.reduce(function(s,ym){ return s+(row[ym]||0); }, 0);
+      html += '<tr><td><b>' + bk + '</b></td>';
+      months.forEach(function(ym) {
+        var v = row[ym] || 0;
+        html += '<td class="'+(v?'':'zero')+'">'+(v ? fmt(v) : '-')+'</td>';
+        colTotalsIn[ym] = (colTotalsIn[ym]||0) + v;
+      });
+      html += '<td><b>' + fmt(rowTotal) + '</b></td></tr>';
+    });
+    var grandTotalIn = months.reduce(function(s,ym){ return s+(colTotalsIn[ym]||0); }, 0);
+    html += '<tr class="total"><td>합계</td>';
+    months.forEach(function(ym){ html += '<td>' + fmt(colTotalsIn[ym]||0) + '</td>'; });
+    html += '<td>' + fmt(grandTotalIn) + '</td></tr>';
+    html += '</tbody></table>';
+    document.getElementById('aggTableWrap').innerHTML = html;
+  }
 }
 
 function fmt(n) { return n.toLocaleString() + '원'; }
