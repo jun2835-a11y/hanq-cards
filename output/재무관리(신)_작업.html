@@ -1050,11 +1050,19 @@ function parseExcelData(data, type, filename) {
       var wb = XLSX.read(data, opts);
       var label = type + (extraOpts && extraOpts.codepage ? ' cp'+extraOpts.codepage : '');
       console.log('[parseExcelData] '+label+' SheetNames='+JSON.stringify(wb.SheetNames));
-      var sheetName = wb.SheetNames.find(function(n){ return n.includes('거래'); }) || wb.SheetNames[0];
+      // 행 수가 가장 많은 시트 선택 (제목만 있는 시트 자동 건너뜀)
+      var sheetName = wb.SheetNames[0];
+      var rows = [];
+      for (var si = 0; si < wb.SheetNames.length; si++) {
+        var sn = wb.SheetNames[si];
+        var ws2 = wb.Sheets[sn];
+        if (!ws2) continue;
+        var r2 = XLSX.utils.sheet_to_json(ws2, { header: 1, defval: '', raw: true });
+        if (r2.length > rows.length) { rows = r2; sheetName = sn; }
+      }
       var ws = wb.Sheets[sheetName];
       if (!ws) return { err: '시트 없음('+sheetName+')', rows: [] };
-      var rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: true });
-      console.log('[parseExcelData] 총 행수='+rows.length+' 첫행='+(rows[0]?rows[0].map(String).slice(0,6).join('|'):'(없음)'));
+      console.log('[parseExcelData] 선택시트='+sheetName+' 총 행수='+rows.length+' 첫행='+(rows[0]?rows[0].map(String).slice(0,6).join('|'):'(없음)'));
       return { rows: rows };
     } catch(e) {
       console.error('[parseExcelData] SheetJS 예외 ('+type+(extraOpts&&extraOpts.codepage?' cp'+extraOpts.codepage:'')+'):', e.message);
