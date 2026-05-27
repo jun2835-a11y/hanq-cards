@@ -259,7 +259,7 @@ input[type=file]{display:none}
 <script>
 // ── 상수 ──────────────────────────────────────────────
 const CATS = ['인건비','4대보험','3.3소득세','식비/경비','임대료','제세공과금','통신비',
-  '마케팅/광고비','특허','변호사비','인증비','IT인프라비','사무용품/사무집기','복리후생비','차량유지비','지급수수료','금융비용(이자)','일괄송금(사유확인불가)','기타'];
+  '마케팅/광고비','특허','변호사비','인증비','IT인프라비','사무용품/사무집기','복리후생비','차량유지비','지급수수료','금융비용(이자)','일괄송금(사유확인불가)','거래처','기타'];
 
 // 카테고리 드롭다운 초기화 (태깅 필터 + 집계 필터)
 (function(){
@@ -735,6 +735,14 @@ function looksLikePersonName(merchantName) {
   return false;
 }
 
+var CORPORATE_PATTERNS = ['(주)','㈜','주식회사','유한회사','합자회사','합명회사','유한책임회사','협동조합','재단법인','사단법인','사회적기업','사회적협동조합'];
+function looksLikeCorporate(name) {
+  for (var i = 0; i < CORPORATE_PATTERNS.length; i++) {
+    if (name.includes(CORPORATE_PATTERNS[i])) return true;
+  }
+  return false;
+}
+
 function autoTag(merchantName) {
   // 1. 직원 이름 → 인건비
   if (matchStaffName(merchantName)) {
@@ -753,6 +761,10 @@ function autoTag(merchantName) {
   // 3. 직원 외 사람 이름 패턴 → 기타
   if (looksLikePersonName(merchantName)) {
     return { cat: '기타', biz: '', autoTagged: true };
+  }
+  // 4. 법인명 패턴 → 거래처
+  if (looksLikeCorporate(merchantName)) {
+    return { cat: '거래처', biz: '', autoTagged: true };
   }
   return { cat: '', biz: '', autoTagged: false };
 }
