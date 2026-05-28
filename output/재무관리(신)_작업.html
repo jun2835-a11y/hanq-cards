@@ -351,8 +351,9 @@ var VS_ROW_H = 44;    // 행 높이(px) — merchant-table td padding 기준
 var VS_BUFFER = 20;   // 뷰포트 위아래 추가 렌더 행 수
 
 // ── 서버 저장/복원 ────────────────────────────────────
-var API    = (location.hostname === 'localhost' ? 'http://localhost:3005' : '') + '/api/finance-work-tags';
-var TX_API = (location.hostname === 'localhost' ? 'http://localhost:3005' : '') + '/api/tx-data-state';
+var API       = (location.hostname === 'localhost' ? 'http://localhost:3005' : '') + '/api/finance-work-tags';
+var PATCH_API = (location.hostname === 'localhost' ? 'http://localhost:3005' : '') + '/api/finance-work-tags/patch';
+var TX_API    = (location.hostname === 'localhost' ? 'http://localhost:3005' : '') + '/api/tx-data-state';
 
 // 거래 원본(_txns) 저장 — CSV 파싱 완료 시 한 번만 호출
 function saveTxns() {
@@ -1583,7 +1584,20 @@ function setTag(key, field, val) {
     if (projs.indexOf(_merchants[key].proj || '') < 0) _merchants[key].proj = '';
   }
   updateProgress();
-  saveState();
+  // 단건 patch — 해당 거래처 정보만 전송 (전체 저장보다 훨씬 빠름)
+  var m = _merchants[key];
+  setSaveStatus('saving');
+  fetch(PATCH_API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ key: key, fields: {
+      name: m.name, cat: m.cat || '', biz: m.biz || '', proj: m.proj || '',
+      autoTagged: !!m.autoTagged, count: m.count || 0,
+      totalOut: m.totalOut || 0, totalIn: m.totalIn || 0, sampleDate: m.sampleDate || ''
+    }})
+  }).then(function(r){ return r.json(); }).then(function(res){
+    setSaveStatus(res && res.supabase === false ? 'nosb' : 'saved');
+  }).catch(function(){ setSaveStatus('error'); });
   var sw = document.getElementById('vsScrollWrap');
   if (sw) _vsScrollTop = sw.scrollTop;
   renderMerchants();

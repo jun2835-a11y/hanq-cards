@@ -399,6 +399,26 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // 태그 단건 패치 — 거래처 하나만 업데이트 (빠른 수작업 태깅용)
+  if (url === '/api/finance-work-tags/patch' && req.method === 'POST') {
+    let body = '';
+    req.on('data', c => { body += c; });
+    req.on('end', async () => {
+      try {
+        const { key, fields } = JSON.parse(body);
+        if (!key || !fields) { res.writeHead(400); res.end('key, fields 필요'); return; }
+        const current = readJSON('finance-work-tags.json');
+        if (!current.merchants) current.merchants = {};
+        if (!current.merchants[key]) current.merchants[key] = { name: key };
+        Object.assign(current.merchants[key], fields);
+        const sbOk = await writeJSON('finance-work-tags.json', current);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, supabase: !!(SB_URL && SB_KEY && sbOk) }));
+      } catch (e) { res.writeHead(400); res.end('Bad JSON'); }
+    });
+    return;
+  }
+
   // AI 자동 태깅 API
   if (url === '/api/ai-tag' && req.method === 'POST') {
     if (!ANTHROPIC_KEY) {
