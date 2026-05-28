@@ -2,8 +2,9 @@ const http = require('http');
 const fs   = require('fs');
 const path = require('path');
 
-const PORT   = process.env.PORT || 3005;
-const OUT    = path.join(__dirname, 'output');
+const PORT         = process.env.PORT || 3005;
+const OUT          = path.join(__dirname, 'output');
+const SERVER_START = new Date().toISOString();
 
 // ── Supabase 영구 저장소 ─────────────────────────────────────────────────
 // 환경변수 SUPABASE_URL, SUPABASE_KEY 가 없으면 로컬 파일로 폴백 (개발용)
@@ -396,6 +397,13 @@ const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(info, null, 2));
     }
+    return;
+  }
+
+  // 서버 버전/시작 시간
+  if (url === '/api/version' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ startedAt: SERVER_START }));
     return;
   }
 
