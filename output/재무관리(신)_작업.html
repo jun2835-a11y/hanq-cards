@@ -351,13 +351,24 @@ var VS_ROW_H = 44;    // 행 높이(px) — merchant-table td padding 기준
 var VS_BUFFER = 20;   // 뷰포트 위아래 추가 렌더 행 수
 
 // ── 서버 저장/복원 ────────────────────────────────────
-var API = (location.hostname === 'localhost' ? 'http://localhost:3005' : '') + '/api/finance-work-tags';
+var API    = (location.hostname === 'localhost' ? 'http://localhost:3005' : '') + '/api/finance-work-tags';
+var TX_API = (location.hostname === 'localhost' ? 'http://localhost:3005' : '') + '/api/tx-data-state';
+
+// 거래 원본(_txns) 저장 — CSV 파싱 완료 시 한 번만 호출
+function saveTxns() {
+  if (_txns.length === 0) return;
+  fetch(TX_API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ txns: _txns })
+  }).catch(function(e){ console.error('[saveTxns]', e.message); });
+}
 
 var _saveTimer = null;
 function saveState() {
   setSaveStatus('saving');
   clearTimeout(_saveTimer);
-  _saveTimer = setTimeout(function() { doSave(0); }, 800);
+  _saveTimer = setTimeout(function() { doSave(0); }, 2000);
 }
 
 function doSave(attempt) {
@@ -367,7 +378,12 @@ function doSave(attempt) {
   Object.keys(_merchants).forEach(function(k) {
     var m = _merchants[k];
     allMeta.push([k, m.count || 0, m.totalOut || 0, m.totalIn || 0, m.sampleDate || '']);
-    if (m.cat || m.biz) tagged[k] = m;
+    if (m.cat || m.biz) tagged[k] = {
+      name: m.name, count: m.count || 0, totalOut: m.totalOut || 0,
+      totalIn: m.totalIn || 0, sampleDate: m.sampleDate || '',
+      cat: m.cat || '', biz: m.biz || '', proj: m.proj || '',
+      autoTagged: !!m.autoTagged
+    };
   });
   if (attempt === 0) showLoad('저장 중...');
   fetch(API, {
@@ -488,7 +504,14 @@ function loadStateOnInit() {
     renderMerchants();
     populateYears();
     refreshTagStats();
-    callAiTagging();
+    // 거래 원본 복원 — 성공하면 월별 집계 정상 작동, 실패해도 makePseudoTxns fallback
+    fetch(TX_API).then(function(r){ return r.json(); }).then(function(tx){
+      if (tx && Array.isArray(tx.txns) && tx.txns.length > 0) {
+        _txns = tx.txns;
+        populateYears();
+      }
+      callAiTagging();
+    }).catch(function(){ callAiTagging(); });
   }).catch(function(){ hideLoad(); });
 }
 loadStateOnInit();
@@ -1408,6 +1431,7 @@ function showParseResult() {
     '검수 필요: <b style="color:var(--accent)">' + pendingCount + '개</b>';
 
   refreshTagStats();
+  saveTxns();
 }
 
 // ── 진행률 ────────────────────────────────────────────
