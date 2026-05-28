@@ -407,18 +407,28 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // 태그 단건 패치 — 거래처 하나만 업데이트 (빠른 수작업 태깅용)
+  // 태그 패치 — 단건 또는 배치(merchants 맵) 업데이트
   if (url === '/api/finance-work-tags/patch' && req.method === 'POST') {
     let body = '';
     req.on('data', c => { body += c; });
     req.on('end', async () => {
       try {
-        const { key, fields } = JSON.parse(body);
-        if (!key || !fields) { res.writeHead(400); res.end('key, fields 필요'); return; }
+        const parsed = JSON.parse(body);
         const current = readJSON('finance-work-tags.json');
         if (!current.merchants) current.merchants = {};
-        if (!current.merchants[key]) current.merchants[key] = { name: key };
-        Object.assign(current.merchants[key], fields);
+        if (parsed.merchants && typeof parsed.merchants === 'object') {
+          // 배치 패치: { merchants: { key1: fields1, key2: fields2, ... } }
+          for (const [k, fields] of Object.entries(parsed.merchants)) {
+            if (!current.merchants[k]) current.merchants[k] = { name: k };
+            Object.assign(current.merchants[k], fields);
+          }
+        } else if (parsed.key && parsed.fields) {
+          // 단건 패치: { key, fields } (하위 호환)
+          if (!current.merchants[parsed.key]) current.merchants[parsed.key] = { name: parsed.key };
+          Object.assign(current.merchants[parsed.key], parsed.fields);
+        } else {
+          res.writeHead(400); res.end('key+fields 또는 merchants 필요'); return;
+        }
         const sbOk = await writeJSON('finance-work-tags.json', current);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true, supabase: !!(SB_URL && SB_KEY && sbOk) }));

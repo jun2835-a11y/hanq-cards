@@ -177,6 +177,7 @@ input[type=file]{display:none}
   <button class="tab-btn" id="tabTag" onclick="switchTab('tag')">태깅 작업 <span class="tab-badge" id="pendingBadge" style="display:none">0</span></button>
   <button class="tab-btn" id="tabAgg" onclick="switchTab('agg')">집계</button>
   <div class="save-indicator" id="saveInd"><span class="save-dot"></span><span id="saveText">대기 중</span></div>
+  <div id="deployInfo" style="font-size:10px;color:var(--muted);padding:0 12px;align-self:center;letter-spacing:.02em"></div>
 </div>
 
 <!-- ── 탭 1: 업로드 ── -->
@@ -370,6 +371,29 @@ function saveState() {
   setSaveStatus('saving');
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(function() { doSave(0); }, 2000);
+}
+
+// 배치 패치 — 빠른 수작업 태깅 시 여러 변경을 모아 1회 저장
+var _dirtyBatch = {};
+var _dirtyTimer = null;
+function flushDirtyBatch() {
+  var batch = _dirtyBatch;
+  _dirtyBatch = {};
+  if (Object.keys(batch).length === 0) return;
+  setSaveStatus('saving');
+  showLoad('저장 중...');
+  fetch(PATCH_API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ merchants: batch })
+  }).then(function(r){ return r.json(); }).then(function(res){
+    hideLoad();
+    setSaveStatus(res && res.supabase === false ? 'nosb' : 'saved');
+  }).catch(function(){
+    hideLoad();
+    Object.assign(_dirtyBatch, batch); // 실패 시 재적재
+    setSaveStatus('error');
+  });
 }
 
 function doSave(attempt) {
@@ -1578,26 +1602,21 @@ function escKey(k) { return k.replace(/'/g, "\\'").replace(/\\/g, '\\\\'); }
 function setTag(key, field, val) {
   if (!_merchants[key]) return;
   _merchants[key][field] = val;
-  // 사업자 변경 시 해당 사업자의 프로젝트 목록에 없는 proj는 초기화
   if (field === 'biz') {
     var projs = PROJ_BY_BIZ[val] || [];
     if (projs.indexOf(_merchants[key].proj || '') < 0) _merchants[key].proj = '';
   }
   updateProgress();
-  // 단건 patch — 해당 거래처 정보만 전송 (전체 저장보다 훨씬 빠름)
+  // 변경된 거래처를 배치에 누적 → 800ms 비활성 후 한 번에 전송
   var m = _merchants[key];
+  _dirtyBatch[key] = {
+    name: m.name, cat: m.cat || '', biz: m.biz || '', proj: m.proj || '',
+    autoTagged: !!m.autoTagged, count: m.count || 0,
+    totalOut: m.totalOut || 0, totalIn: m.totalIn || 0, sampleDate: m.sampleDate || ''
+  };
   setSaveStatus('saving');
-  fetch(PATCH_API, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ key: key, fields: {
-      name: m.name, cat: m.cat || '', biz: m.biz || '', proj: m.proj || '',
-      autoTagged: !!m.autoTagged, count: m.count || 0,
-      totalOut: m.totalOut || 0, totalIn: m.totalIn || 0, sampleDate: m.sampleDate || ''
-    }})
-  }).then(function(r){ return r.json(); }).then(function(res){
-    setSaveStatus(res && res.supabase === false ? 'nosb' : 'saved');
-  }).catch(function(){ setSaveStatus('error'); });
+  clearTimeout(_dirtyTimer);
+  _dirtyTimer = setTimeout(flushDirtyBatch, 800);
   var sw = document.getElementById('vsScrollWrap');
   if (sw) _vsScrollTop = sw.scrollTop;
   renderMerchants();
