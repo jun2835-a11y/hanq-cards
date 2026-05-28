@@ -386,9 +386,9 @@ function flushDirtyBatch() {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ merchants: batch })
-  }).then(function(r){ return r.json(); }).then(function(res){
+  }).then(function(r){ return r.json(); }).then(function(){
     hideLoad();
-    setSaveStatus(res && res.supabase === false ? 'nosb' : 'saved');
+    setSaveStatus('saved');
   }).catch(function(){
     hideLoad();
     Object.assign(_dirtyBatch, batch); // 실패 시 재적재

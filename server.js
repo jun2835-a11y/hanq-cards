@@ -27,6 +27,20 @@ const FILE_TO_KEY = {
 // 인메모리 캐시 — 서버 시작 시 로드, 이후 동기 읽기 가능
 const _cache = {};
 
+// 고빈도 패치용 Supabase 지연 쓰기 (마지막 패치 후 10초 뒤 1회만 씀)
+const _sbDeferTimers = {};
+function deferredSbWrite(file) {
+  clearTimeout(_sbDeferTimers[file]);
+  _sbDeferTimers[file] = setTimeout(async () => {
+    const key = FILE_TO_KEY[file];
+    if (SB_URL && SB_KEY && key) {
+      await sbWrite(key, _cache[file]).catch(e => console.error('[deferred sbWrite]', e.message));
+    } else {
+      localWrite(file, _cache[file]);
+    }
+  }, 10000);
+}
+
 async function sbRead(key) {
   try {
     const res = await fetch(
@@ -407,31 +421,31 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // 태그 패치 — 단건 또는 배치(merchants 맵) 업데이트
+  // 태그 패치 — 캐시 즉시 업데이트 후 응답, Supabase는 10초 지연 쓰기
   if (url === '/api/finance-work-tags/patch' && req.method === 'POST') {
     let body = '';
     req.on('data', c => { body += c; });
-    req.on('end', async () => {
+    req.on('end', () => {
       try {
         const parsed = JSON.parse(body);
         const current = readJSON('finance-work-tags.json');
         if (!current.merchants) current.merchants = {};
         if (parsed.merchants && typeof parsed.merchants === 'object') {
-          // 배치 패치: { merchants: { key1: fields1, key2: fields2, ... } }
           for (const [k, fields] of Object.entries(parsed.merchants)) {
             if (!current.merchants[k]) current.merchants[k] = { name: k };
             Object.assign(current.merchants[k], fields);
           }
         } else if (parsed.key && parsed.fields) {
-          // 단건 패치: { key, fields } (하위 호환)
           if (!current.merchants[parsed.key]) current.merchants[parsed.key] = { name: parsed.key };
           Object.assign(current.merchants[parsed.key], parsed.fields);
         } else {
           res.writeHead(400); res.end('key+fields 또는 merchants 필요'); return;
         }
-        const sbOk = await writeJSON('finance-work-tags.json', current);
+        // 캐시에만 즉시 반영, Supabase는 백그라운드 지연 쓰기
+        _cache['finance-work-tags.json'] = current;
+        deferredSbWrite('finance-work-tags.json');
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true, supabase: !!(SB_URL && SB_KEY && sbOk) }));
+        res.end(JSON.stringify({ ok: true }));
       } catch (e) { res.writeHead(400); res.end('Bad JSON'); }
     });
     return;
