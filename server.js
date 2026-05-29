@@ -734,8 +734,127 @@ ${bizLines ? `### 사업자별 현황\n${bizLines}` : ''}
     return;
   }
 
+  // FM AI 챗봇 API
+  if (url === '/api/fm-chat' && req.method === 'POST') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    if (!ANTHROPIC_KEY) {
+      res.writeHead(503, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: 'ANTHROPIC_API_KEY 미설정' }));
+      return;
+    }
+    let body = '';
+    req.on('data', c => { body += c; });
+    req.on('end', async () => {
+      try {
+        const { question, context } = JSON.parse(body);
+        const prompt = buildFmChatPrompt(context, question);
+        const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'x-api-key': ANTHROPIC_KEY,
+            'anthropic-version': '2023-06-01',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 1024,
+            messages: [{ role: 'user', content: prompt }],
+          }),
+        });
+        if (!aiRes.ok) {
+          const errText = await aiRes.text().catch(() => '');
+          throw new Error(`Anthropic ${aiRes.status}: ${errText.slice(0, 200)}`);
+        }
+        const aiData = await aiRes.json();
+        const answer = aiData.content?.[0]?.text || '';
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, answer: answer.trim() }));
+      } catch (e) {
+        console.error('[fm-chat error]', e.message);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: e.message }));
+      }
+    });
+    return;
+  }
+
   res.writeHead(404); res.end('Not found');
 });
+
+function buildFmChatPrompt(ctx, question) {
+  const lines = [];
+  lines.push('당신은 hanQ 그룹의 재무 AI 어시스턴트입니다. 아래 재무 데이터를 기반으로 질문에 답변해주세요.');
+  lines.push('답변은 한국어로, 간결하고 수치 근거를 포함해서 작성하세요. 마크다운 없이 평문으로 답변하세요.\n');
+
+  // 계좌 현황
+  if (ctx.accounts) {
+    const a = ctx.accounts;
+    lines.push('=== 계좌 현황 ===');
+    lines.push(`총 예금: ${fmt(a.totalDeposit)}원 / 총 대출: ${fmt(a.totalLoan)}원 / 순자금: ${fmt(a.netFunds)}원`);
+  }
+
+  // 손익 요약
+  if (ctx.pl && ctx.pl.length) {
+    lines.push('\n=== 손익 요약 (최근 6개월) ===');
+    ctx.pl.forEach(p => {
+      lines.push(`[${p.label}] 비용: ${fmt(p.totalCost)}원 | 월평균: ${fmt(Math.round(p.totalCost / Math.max(p.months, 1)))}원`);
+      if (p.costByCat && Object.keys(p.costByCat).length) {
+        const top = Object.entries(p.costByCat)
+          .sort((a, b) => b[1] - a[1]).slice(0, 5)
+          .map(([k, v]) => `${k}: ${fmt(v)}원`).join(', ');
+        lines.push(`  상위 카테고리: ${top}`);
+      }
+    });
+  }
+
+  // 월별 트렌드
+  if (ctx.monthlyTrend && ctx.monthlyTrend.length) {
+    lines.push('\n=== 전체 월별 비용 ===');
+    ctx.monthlyTrend.forEach(m => {
+      lines.push(`${m.ym}: ${fmt(m.cost)}원`);
+    });
+  }
+
+  // 반복결제
+  if (ctx.recurring && ctx.recurring.length) {
+    lines.push('\n=== 반복 결제 (최근 2개월 이상 연속) ===');
+    ctx.recurring.slice(0, 30).forEach(r => {
+      lines.push(`${r.name}: 월 ${fmt(r.avgAmt)}원 (${r.months}개월 연속)`);
+    });
+  }
+
+  // 신규 지출
+  if (ctx.newThisMonth && ctx.newThisMonth.length) {
+    lines.push('\n=== 이번 달 신규 지출 (전월 없음) ===');
+    ctx.newThisMonth.slice(0, 15).forEach(n => {
+      lines.push(`${n.name}: ${fmt(n.amt)}원`);
+    });
+  }
+
+  // 소멸 지출
+  if (ctx.droppedLastMonth && ctx.droppedLastMonth.length) {
+    lines.push('\n=== 전월 대비 소멸 지출 (이번 달 없음) ===');
+    ctx.droppedLastMonth.slice(0, 15).forEach(d => {
+      lines.push(`${d.name}: ${fmt(d.amt)}원`);
+    });
+  }
+
+  // 상위 거래처
+  if (ctx.topMerchants && ctx.topMerchants.length) {
+    lines.push('\n=== 상위 거래처 (출금 기준) ===');
+    ctx.topMerchants.slice(0, 40).forEach(m => {
+      lines.push(`${m.name} [${m.cat}]: ${fmt(m.totalOut)}원`);
+    });
+  }
+
+  lines.push(`\n=== 질문 ===\n${question}`);
+  return lines.join('\n');
+}
+
+function fmt(n) {
+  if (!n && n !== 0) return '-';
+  return Number(n).toLocaleString('ko-KR');
+}
 
 // ── 시작: state 로드 후 서버 오픈 ───────────────────────────────────────
 loadAllState().then(() => {
