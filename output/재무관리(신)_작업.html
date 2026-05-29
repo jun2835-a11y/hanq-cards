@@ -2442,11 +2442,15 @@ function computePL(bizFilter, projFilter, yearFilter) {
 
 function sanitizeCat(s) {
   // 제어문자·ZWS·BOM·사설영역(PUA) 제거
-  return (s || '')
+  var clean = (s || '')
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\u00AD\u200B-\u200F\u2028\u2029\u202A-\u202E\u2060-\u206F\uFEFF\uFFF0-\uFFFF\uE000-\uF8FF]/g, '')
     .replace(/\r?\n|\r/g, '')
     .trim();
+  return CAT_NORMALIZE[clean] || clean;
 }
+var CAT_NORMALIZE = {
+  '\uC77C\uAD04\uC1A1\uAE08(\uC720\uD655\uC778\uBD88\uAC00)': '\uC77C\uAD04\uC1A1\uAE08(\uC0AC\uC720\uD655\uC778\uBD88\uAC00)',
+};
 function kpiFmt(n) {
   if (n == null) return '-';
   var abs = Math.abs(n), sign = n < 0 ? '-' : '';
