@@ -189,6 +189,8 @@ input[type=file]{display:none}
 .kpi-ai-month-lbl{font-size:10px;font-weight:700;letter-spacing:.05em;color:var(--muted);margin-bottom:6px}
 .kpi-ai-month-val{font-size:15px;font-weight:700}
 .kpi-ai-insights > div:last-child{margin-bottom:0!important}
+.kpi-ai-chart-wrap{margin-bottom:16px;border:1px solid var(--border);padding:14px 16px;background:var(--bg)}
+.kpi-ai-chart-title{font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-bottom:10px}
 </style>
 </head>
 <body>
@@ -330,6 +332,10 @@ input[type=file]{display:none}
         <button class="kpi-ai-btn" id="kpiAiBtn" onclick="requestAIPrediction('biz')">3개월 예측 &amp; AI 인사이트</button>
       </div>
       <div class="kpi-ai-result" id="kpiAiResult">
+        <div class="kpi-ai-chart-wrap">
+          <div class="kpi-ai-chart-title">최근 현황 &amp; AI 3개월 예측 추이 <span style="font-weight:400;opacity:.55;letter-spacing:0">— — — AI 예측</span></div>
+          <div style="position:relative;height:200px"><canvas id="chartAiForecastBiz"></canvas></div>
+        </div>
         <div class="kpi-ai-forecast"></div>
         <div class="kpi-ai-insights"></div>
       </div>
@@ -364,6 +370,10 @@ input[type=file]{display:none}
         <button class="kpi-ai-btn" id="kpiTotalAiBtn" onclick="requestAIPrediction('total')">그룹 전체 AI 분석</button>
       </div>
       <div class="kpi-ai-result" id="kpiTotalAiResult">
+        <div class="kpi-ai-chart-wrap">
+          <div class="kpi-ai-chart-title">최근 현황 &amp; AI 3개월 예측 추이 (그룹 전체) <span style="font-weight:400;opacity:.55;letter-spacing:0">— — — AI 예측</span></div>
+          <div style="position:relative;height:200px"><canvas id="chartAiForecastTotal"></canvas></div>
+        </div>
         <div class="kpi-ai-forecast"></div>
         <div class="kpi-ai-insights"></div>
       </div>
@@ -2321,6 +2331,33 @@ function kpiCards(id, rev, cost, profit) {
 }
 
 var KPI_PALETTE = ['#C8380A','#1565C0','#2E7D32','#F9A825','#6A1B9A','#00838F','#E65100','#37474F','#558B2F','#AD1457','#795548','#607D8B'];
+var KPI_FONT = "'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif";
+
+function kpiNextMonths(last, n) {
+  var p = last.split('-'), y = parseInt(p[0]), m = parseInt(p[1]), r = [];
+  for (var i = 0; i < n; i++) { if (++m > 12) { m = 1; y++; } r.push(y + '-' + (m < 10 ? '0'+m : m)); }
+  return r;
+}
+function kpiLinearForecast(vals, n) {
+  var len = vals.length;
+  if (!len) return Array(n).fill(0);
+  if (len === 1) return Array(n).fill(vals[0]);
+  var use = vals.slice(-Math.min(len, 6)), dn = use.length;
+  var sx = 0, sy = 0, sxy = 0, sx2 = 0;
+  for (var i = 0; i < dn; i++) { sx += i; sy += use[i]; sxy += i*use[i]; sx2 += i*i; }
+  var den = dn*sx2 - sx*sx;
+  var sl = den ? (dn*sxy - sx*sy) / den : 0;
+  var ic = (sy - sl*sx) / dn;
+  var res = [];
+  for (var j = dn; j < dn+n; j++) res.push(Math.round(sl*j + ic));
+  return res;
+}
+function makeForecastDS(hist, fc, color, label) {
+  var n = hist.length;
+  var data = hist.map(function(v, i){ return i === n-1 ? v : null; }).concat(fc);
+  return { type:'line', label:label, data:data, borderColor:color, backgroundColor:'transparent',
+    borderWidth:1.5, borderDash:[5,4], pointRadius:2, fill:false, tension:.2, order:0, spanGaps:false };
+}
 
 function renderKpiBiz() {
   var biz = document.getElementById('kpiBiz').value;
@@ -2337,28 +2374,46 @@ function renderKpiBiz() {
   }
   kpiCards('kpiBizCards', d.totalRev, d.totalCost, d.profit);
 
-  // Chart 1: Monthly bar + profit line
+  // 예측 사전 계산
+  var hRev = d.months.map(function(m){ return d.monthly[m].revenue; });
+  var hCst = d.months.map(function(m){ return d.monthly[m].costs; });
+  var hPrf = d.months.map(function(m){ return d.monthly[m].profit; });
+  var hCum = d.months.map(function(m){ return d.monthly[m].cumulative; });
+  var futM = d.months.length ? kpiNextMonths(d.months[d.months.length-1], 3) : [];
+  var allLbl = d.months.concat(futM);
+  var fcRev = kpiLinearForecast(hRev, 3);
+  var fcCst = kpiLinearForecast(hCst, 3);
+  var fcPrf = fcRev.map(function(r,i){ return r - fcCst[i]; });
+  var fcCum = []; var cumAcc = hCum.length ? hCum[hCum.length-1] : 0;
+  fcPrf.forEach(function(p){ cumAcc += p; fcCum.push(cumAcc); });
+  var nf = [null,null,null];
+
+  // Chart 1: Monthly bar + profit line + 예측 dashed
   var ctx1 = document.getElementById('chartBizMonthly').getContext('2d');
   _kpiCharts.chartBizMonthly = new Chart(ctx1, {
     type: 'bar',
     data: {
-      labels: d.months,
+      labels: allLbl,
       datasets: [
-        { label:'매출', data: d.months.map(function(m){ return d.monthly[m].revenue; }),
+        { label:'매출', data: hRev.concat(nf),
           backgroundColor:'rgba(200,56,10,.25)', borderColor:'#C8380A', borderWidth:1.5, order:2 },
-        { label:'비용', data: d.months.map(function(m){ return d.monthly[m].costs; }),
+        { label:'비용', data: hCst.concat(nf),
           backgroundColor:'rgba(92,88,81,.15)', borderColor:'#9A958F', borderWidth:1.5, order:2 },
-        { type:'line', label:'순이익', data: d.months.map(function(m){ return d.monthly[m].profit; }),
+        { type:'line', label:'순이익', data: hPrf.concat(nf),
           borderColor:'#2E7D32', backgroundColor:'rgba(46,125,50,.08)', borderWidth:2,
           pointRadius:3, fill:true, tension:.3, order:1 },
+        makeForecastDS(hRev, fcRev, 'rgba(200,56,10,.55)', '매출 예측'),
+        makeForecastDS(hCst, fcCst, 'rgba(92,88,81,.5)', '비용 예측'),
+        makeForecastDS(hPrf, fcPrf, 'rgba(46,125,50,.55)', '순이익 예측'),
       ],
     },
     options: {
       responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{ labels:{ font:{size:11,family:"'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif"}, boxWidth:10 } } },
+      plugins:{ legend:{ labels:{ font:{size:11,family:KPI_FONT}, boxWidth:10,
+        filter:function(item){ return item.datasetIndex < 3; } } } },
       scales:{
-        x:{ ticks:{ font:{size:10,family:"'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif"}, maxRotation:45 } },
-        y:{ ticks:{ font:{size:10,family:"'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif"}, callback:function(v){ return kpiFmt(v); } } },
+        x:{ ticks:{ font:{size:10,family:KPI_FONT}, maxRotation:45 } },
+        y:{ ticks:{ font:{size:10,family:KPI_FONT}, callback:function(v){ return kpiFmt(v); } } },
       },
     },
   });
@@ -2376,7 +2431,7 @@ function renderKpiBiz() {
     options:{
       responsive:true, maintainAspectRatio:false,
       plugins:{
-        legend:{ position:'right', labels:{ font:{size:9,family:"'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif"}, boxWidth:8 } },
+        legend:{ position:'right', labels:{ font:{size:9,family:KPI_FONT}, boxWidth:8 } },
         tooltip:{ callbacks:{ label:function(ctx){
           var pct = d.totalCost > 0 ? (ctx.parsed/d.totalCost*100).toFixed(1) : '0';
           return ctx.label + ': ' + kpiFmt(ctx.parsed) + '원 (' + pct + '%)';
@@ -2385,25 +2440,28 @@ function renderKpiBiz() {
     },
   });
 
-  // Chart 3: Cumulative area
-  var cumData = d.months.map(function(m){ return d.monthly[m].cumulative; });
-  var lastCum = cumData[cumData.length-1] || 0;
-  var cumColor = lastCum >= 0 ? '#2E7D32' : '#C8380A';
-  var cumBg = lastCum >= 0 ? 'rgba(46,125,50,.12)' : 'rgba(200,56,10,.12)';
+  // Chart 3: Cumulative area + 예측 dashed
+  var lastCumVal = hCum.length ? hCum[hCum.length-1] : 0;
+  var cumColor = lastCumVal >= 0 ? '#2E7D32' : '#C8380A';
+  var cumBg = lastCumVal >= 0 ? 'rgba(46,125,50,.12)' : 'rgba(200,56,10,.12)';
+  var fcCumColor = (fcCum.length ? fcCum[fcCum.length-1] : 0) >= 0 ? 'rgba(46,125,50,.5)' : 'rgba(200,56,10,.5)';
   var ctx3 = document.getElementById('chartBizCumul').getContext('2d');
   _kpiCharts.chartBizCumul = new Chart(ctx3, {
     type:'line',
     data:{
-      labels: d.months,
-      datasets:[{ label:'누적 순이익', data: cumData,
-        borderColor:cumColor, backgroundColor:cumBg, borderWidth:2, fill:true, tension:.3, pointRadius:2 }],
+      labels: allLbl,
+      datasets:[
+        { label:'누적 순이익', data: hCum.concat(nf),
+          borderColor:cumColor, backgroundColor:cumBg, borderWidth:2, fill:true, tension:.3, pointRadius:2 },
+        makeForecastDS(hCum, fcCum, fcCumColor, '예측'),
+      ],
     },
     options:{
       responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{ display:false } },
       scales:{
-        x:{ ticks:{ font:{size:10,family:"'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif"}, maxRotation:45 } },
-        y:{ ticks:{ font:{size:10,family:"'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif"}, callback:function(v){ return kpiFmt(v); } } },
+        x:{ ticks:{ font:{size:10,family:KPI_FONT}, maxRotation:45 } },
+        y:{ ticks:{ font:{size:10,family:KPI_FONT}, callback:function(v){ return kpiFmt(v); } } },
       },
     },
   });
@@ -2428,53 +2486,71 @@ function renderKpiTotal() {
   var allM = total.months;
   var bizColors = { '한솔':'rgba(200,56,10,.8)', '한큐':'rgba(21,101,192,.8)', '수복지':'rgba(46,125,50,.8)', '교육원':'rgba(249,168,37,.9)' };
 
-  // Chart 1: Stacked revenue by biz + profit line
+  // 예측 사전 계산
+  var tHRev = allM.map(function(m){ return (total.monthly[m]||{}).revenue||0; });
+  var tHCst = allM.map(function(m){ return (total.monthly[m]||{}).costs||0; });
+  var tHPrf = allM.map(function(m){ return (total.monthly[m]||{}).profit||0; });
+  var futMT = allM.length ? kpiNextMonths(allM[allM.length-1], 3) : [];
+  var allMExt = allM.concat(futMT);
+  var fcTRev = kpiLinearForecast(tHRev, 3);
+  var fcTCst = kpiLinearForecast(tHCst, 3);
+  var fcTPrf = fcTRev.map(function(r,i){ return r - fcTCst[i]; });
+  var nf = [null,null,null];
+
+  // Chart 1: Stacked revenue by biz + profit line + 매출 예측 dashed
   var ctx1 = document.getElementById('chartTotalStacked').getContext('2d');
   _kpiCharts.chartTotalStacked = new Chart(ctx1, {
     type:'bar',
     data:{
-      labels: allM,
+      labels: allMExt,
       datasets: bizList.map(function(b){
-        return { label:b, data: allM.map(function(m){ return (bizData[b].monthly[m]||{}).revenue||0; }),
+        return { label:b, data: allM.map(function(m){ return (bizData[b].monthly[m]||{}).revenue||0; }).concat(nf),
           backgroundColor:bizColors[b], stack:'rev', order:2 };
-      }).concat([{
-        type:'line', label:'그룹 순이익',
-        data: allM.map(function(m){ return (total.monthly[m]||{}).profit||0; }),
-        borderColor:'#1A1814', backgroundColor:'transparent',
-        borderWidth:2, pointRadius:3, tension:.3, order:1,
-      }]),
+      }).concat([
+        { type:'line', label:'그룹 순이익',
+          data: tHPrf.concat(nf),
+          borderColor:'#1A1814', backgroundColor:'transparent',
+          borderWidth:2, pointRadius:3, tension:.3, order:1 },
+        makeForecastDS(tHRev, fcTRev, 'rgba(200,56,10,.55)', '매출 예측'),
+        makeForecastDS(tHPrf, fcTPrf, 'rgba(46,125,50,.5)', '순이익 예측'),
+      ]),
     },
     options:{
       responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{ labels:{ font:{size:11,family:"'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif"}, boxWidth:10 } } },
+      plugins:{ legend:{ labels:{ font:{size:11,family:KPI_FONT}, boxWidth:10,
+        filter:function(item){ return item.datasetIndex < 5; } } } },
       scales:{
-        x:{ ticks:{ font:{size:10,family:"'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif"}, maxRotation:45 } },
-        y:{ stacked:true, ticks:{ font:{size:10,family:"'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif"}, callback:function(v){ return kpiFmt(v); } } },
+        x:{ ticks:{ font:{size:10,family:KPI_FONT}, maxRotation:45 } },
+        y:{ stacked:true, ticks:{ font:{size:10,family:KPI_FONT}, callback:function(v){ return kpiFmt(v); } } },
       },
     },
   });
 
-  // Chart 2: Group P&L trend (3 lines)
+  // Chart 2: Group P&L trend + 예측 dashed
   var ctx2 = document.getElementById('chartTotalTrend').getContext('2d');
   _kpiCharts.chartTotalTrend = new Chart(ctx2, {
     type:'line',
     data:{
-      labels: allM,
+      labels: allMExt,
       datasets:[
-        { label:'매출', data: allM.map(function(m){ return (total.monthly[m]||{}).revenue||0; }),
+        { label:'매출', data: tHRev.concat(nf),
           borderColor:'#C8380A', backgroundColor:'rgba(200,56,10,.1)', borderWidth:2, fill:true, tension:.3 },
-        { label:'비용', data: allM.map(function(m){ return (total.monthly[m]||{}).costs||0; }),
+        { label:'비용', data: tHCst.concat(nf),
           borderColor:'#5C5851', backgroundColor:'rgba(92,88,81,.06)', borderWidth:1.5, fill:true, tension:.3, borderDash:[4,3] },
-        { label:'순이익', data: allM.map(function(m){ return (total.monthly[m]||{}).profit||0; }),
+        { label:'순이익', data: tHPrf.concat(nf),
           borderColor:'#2E7D32', backgroundColor:'rgba(46,125,50,.1)', borderWidth:2, fill:true, tension:.3 },
+        makeForecastDS(tHRev, fcTRev, 'rgba(200,56,10,.55)', '매출 예측'),
+        makeForecastDS(tHCst, fcTCst, 'rgba(92,88,81,.5)', '비용 예측'),
+        makeForecastDS(tHPrf, fcTPrf, 'rgba(46,125,50,.55)', '순이익 예측'),
       ],
     },
     options:{
       responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{ labels:{ font:{size:11,family:"'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif"}, boxWidth:10 } } },
+      plugins:{ legend:{ labels:{ font:{size:11,family:KPI_FONT}, boxWidth:10,
+        filter:function(item){ return item.datasetIndex < 3; } } } },
       scales:{
-        x:{ ticks:{ font:{size:10,family:"'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif"}, maxRotation:45 } },
-        y:{ ticks:{ font:{size:10,family:"'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif"}, callback:function(v){ return kpiFmt(v); } } },
+        x:{ ticks:{ font:{size:10,family:KPI_FONT}, maxRotation:45 } },
+        y:{ ticks:{ font:{size:10,family:KPI_FONT}, callback:function(v){ return kpiFmt(v); } } },
       },
     },
   });
@@ -2493,8 +2569,8 @@ function renderKpiTotal() {
       indexAxis:'y', responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{ display:false } },
       scales:{
-        x:{ ticks:{ font:{size:10,family:"'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif"}, callback:function(v){ return kpiFmt(v); } } },
-        y:{ ticks:{ font:{size:9,family:"'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif"} } },
+        x:{ ticks:{ font:{size:10,family:KPI_FONT}, callback:function(v){ return kpiFmt(v); } } },
+        y:{ ticks:{ font:{size:9,family:KPI_FONT} } },
       },
     },
   });
@@ -2550,6 +2626,55 @@ async function requestAIPrediction(scope) {
     });
     var result = await res.json();
     if (!result.ok) throw new Error(result.error || '예측 실패');
+
+    // AI 예측 차트 (현황 추이 + AI 3개월 예측 교차)
+    var chartKey = isBiz ? 'chartAiForecastBiz' : 'chartAiForecastTotal';
+    kpiDestroy(chartKey);
+    var recentH = history.slice(-6);
+    var fc = result.forecast || [];
+    if (fc.length && recentH.length) {
+      var hLbls = recentH.map(function(h){ return h.month; });
+      var fcLbls = fc.map(function(f){ return f.month; });
+      var hR = recentH.map(function(h){ return h.revenue; });
+      var hC = recentH.map(function(h){ return h.costs; });
+      var hP = recentH.map(function(h){ return h.profit; });
+      var fR = fc.map(function(f){ return f.revenue; });
+      var fC = fc.map(function(f){ return f.costs; });
+      var fP = fc.map(function(f){ return f.profit; });
+      var nfAi = fc.map(function(){ return null; });
+      var aiEl = document.getElementById(chartKey);
+      if (aiEl) {
+        _kpiCharts[chartKey] = new Chart(aiEl.getContext('2d'), {
+          type:'line',
+          data:{
+            labels: hLbls.concat(fcLbls),
+            datasets:[
+              { label:'매출(실적)', data: hR.concat(nfAi),
+                borderColor:'#C8380A', backgroundColor:'rgba(200,56,10,.1)', borderWidth:2, fill:true, tension:.3, pointRadius:3 },
+              { label:'비용(실적)', data: hC.concat(nfAi),
+                borderColor:'#9A958F', backgroundColor:'rgba(92,88,81,.06)', borderWidth:1.5, fill:true, tension:.3, pointRadius:2 },
+              { label:'순이익(실적)', data: hP.concat(nfAi),
+                borderColor:'#2E7D32', backgroundColor:'rgba(46,125,50,.1)', borderWidth:2, fill:true, tension:.3, pointRadius:3 },
+              makeForecastDS(hR, fR, '#C8380A', 'AI 매출 예측'),
+              makeForecastDS(hC, fC, '#9A958F', 'AI 비용 예측'),
+              makeForecastDS(hP, fP, '#2E7D32', 'AI 순이익 예측'),
+            ],
+          },
+          options:{
+            responsive:true, maintainAspectRatio:false,
+            plugins:{
+              legend:{ labels:{ font:{size:10,family:KPI_FONT}, boxWidth:8,
+                filter:function(item){ return item.datasetIndex < 3; } } },
+              tooltip:{ mode:'index', intersect:false },
+            },
+            scales:{
+              x:{ ticks:{ font:{size:9,family:KPI_FONT}, maxRotation:45 } },
+              y:{ ticks:{ font:{size:9,family:KPI_FONT}, callback:function(v){ return kpiFmt(v); } } },
+            },
+          },
+        });
+      }
+    }
 
     var forecast = result.forecast || [];
     resultEl.querySelector('.kpi-ai-forecast').innerHTML = forecast.map(function(f) {
