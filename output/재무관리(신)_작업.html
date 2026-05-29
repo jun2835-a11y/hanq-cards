@@ -197,6 +197,34 @@ input[type=file]{display:none}
 .kpi-leg-item{font-size:11px;color:var(--ink2);display:flex;align-items:center;gap:6px;line-height:1.3;min-width:0}
 .kpi-leg-item span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kpi-leg-dot{width:9px;height:9px;border-radius:2px;flex-shrink:0;display:inline-block}
+/* ── 수익성 지표 ── */
+.kpi-prof-section{margin-bottom:24px}
+.kpi-prof-section-hd{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.kpi-prof-section-label{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.kpi-prof-section-line{flex:1;height:1px;background:var(--border)}
+.kpi-prof-save-st{font-size:10px;color:var(--muted);white-space:nowrap;min-width:60px;text-align:right}
+.kpi-prof-grid{display:grid;gap:10px}
+.kpi-prof-grid-5{grid-template-columns:repeat(5,1fr)}
+.kpi-prof-grid-3{grid-template-columns:repeat(3,1fr)}
+.kpi-prof-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--border);padding:18px 16px 14px}
+.kpi-prof-card.cg{border-left-color:#2E7D32;background:rgba(46,125,50,.02)}
+.kpi-prof-card.ct{border-left-color:#00838F;background:rgba(0,131,143,.02)}
+.kpi-prof-card.cb{border-left-color:#1565C0;background:rgba(21,101,192,.02)}
+.kpi-prof-card.co{border-left-color:#E65100;background:rgba(230,81,0,.02)}
+.kpi-prof-card.cr{border-left-color:#C8380A;background:rgba(200,56,10,.02)}
+.kpi-prof-card.cn{border-left-color:var(--border)}
+.kpi-prof-eng{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+.kpi-prof-kor{font-size:10px;color:var(--ink2);margin-bottom:16px;line-height:1.35}
+.kpi-prof-val{font-size:26px;font-weight:700;letter-spacing:-.02em;line-height:1;margin-bottom:10px;color:var(--ink)}
+.kpi-prof-bar{height:3px;background:var(--border);border-radius:2px;margin-bottom:10px;overflow:hidden}
+.kpi-prof-bar-fill{height:100%;border-radius:2px;transition:width .5s ease}
+.kpi-prof-note{font-size:9px;color:var(--muted);line-height:1.55}
+.kpi-bs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.kpi-bs-box{background:var(--surface);border:1px solid var(--border);padding:14px 16px}
+.kpi-bs-lbl{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:9px}
+.kpi-bs-inp{width:100%;font-size:13px;border:none;border-bottom:1.5px solid var(--border);background:transparent;color:var(--ink);padding:4px 0;font-family:inherit;text-align:right;box-sizing:border-box}
+.kpi-bs-inp:focus{outline:none;border-color:var(--ink)}
+.kpi-bs-sub{font-size:9px;color:var(--muted);margin-top:5px;text-align:right}
 </style>
 </head>
 <body>
@@ -301,6 +329,7 @@ input[type=file]{display:none}
   <div class="kpi-subnav">
     <button class="kpi-sub-btn active" id="kpiSubBiz" onclick="switchKpiView('biz')">사업자·프로젝트 손익</button>
     <button class="kpi-sub-btn" id="kpiSubTotal" onclick="switchKpiView('total')">전체 그룹 손익</button>
+    <button class="kpi-sub-btn" id="kpiSubProf" onclick="switchKpiView('prof')">수익성 지표</button>
   </div>
 
   <!-- View A: 사업자·프로젝트 손익 -->
@@ -386,6 +415,53 @@ input[type=file]{display:none}
         <div class="kpi-ai-forecast"></div>
         <div class="kpi-ai-insights"></div>
       </div>
+    </div>
+  </div>
+
+  <!-- View C: 수익성 지표 -->
+  <div id="kpiProfView" class="kpi-view">
+    <div class="kpi-ctrl-row">
+      <select class="agg-select" id="kpiProfBiz" onchange="renderKpiProf()">
+        <option value="">전체 사업자</option>
+        <option>한솔</option><option>수복지</option><option>한큐</option><option>교육원</option>
+      </select>
+      <select class="agg-select" id="kpiProfYear" onchange="renderKpiProf()">
+        <option value="">전체 기간</option>
+      </select>
+    </div>
+
+    <div class="kpi-prof-section">
+      <div class="kpi-prof-section-hd">
+        <span class="kpi-prof-section-label">손익 기반 지표 · 현금주의 자동 산출</span>
+        <div class="kpi-prof-section-line"></div>
+      </div>
+      <div class="kpi-prof-grid kpi-prof-grid-5" id="kpiProfCards1"></div>
+    </div>
+
+    <div class="kpi-prof-section">
+      <div class="kpi-prof-section-hd">
+        <span class="kpi-prof-section-label">자본 수익률 · 재무제표 수동 입력</span>
+        <div class="kpi-prof-section-line"></div>
+        <span class="kpi-prof-save-st" id="kpiBsSt"></span>
+      </div>
+      <div class="kpi-bs-grid">
+        <div class="kpi-bs-box">
+          <div class="kpi-bs-lbl">자기자본 (Equity)</div>
+          <input class="kpi-bs-inp" id="bsEquity" type="text" placeholder="금액 입력 (원)" oninput="onBsInput()" />
+          <div class="kpi-bs-sub">ROE 산출 기준</div>
+        </div>
+        <div class="kpi-bs-box">
+          <div class="kpi-bs-lbl">총자산 (Total Assets)</div>
+          <input class="kpi-bs-inp" id="bsAssets" type="text" placeholder="금액 입력 (원)" oninput="onBsInput()" />
+          <div class="kpi-bs-sub">ROA 산출 기준</div>
+        </div>
+        <div class="kpi-bs-box">
+          <div class="kpi-bs-lbl">투하자본 (Invested Capital)</div>
+          <input class="kpi-bs-inp" id="bsCapital" type="text" placeholder="금액 입력 (원)" oninput="onBsInput()" />
+          <div class="kpi-bs-sub">ROIC · 자기자본 + 차입금</div>
+        </div>
+      </div>
+      <div class="kpi-prof-grid kpi-prof-grid-3" id="kpiProfCards2"></div>
     </div>
   </div>
 </div>
@@ -491,6 +567,11 @@ var VS_BUFFER = 20;   // 뷰포트 위아래 추가 렌더 행 수
 var API       = (location.hostname === 'localhost' ? 'http://localhost:3005' : '') + '/api/finance-work-tags';
 var PATCH_API = (location.hostname === 'localhost' ? 'http://localhost:3005' : '') + '/api/finance-work-tags/patch';
 var TX_API    = (location.hostname === 'localhost' ? 'http://localhost:3005' : '') + '/api/tx-data-state';
+var BS_API    = (location.hostname === 'localhost' ? 'http://localhost:3005' : '') + '/api/bs-params';
+
+// 재무제표 파라미터 (ROE/ROA/ROIC 분모 값), 사업자별 키
+var _bsParams = {};
+(function(){ fetch(BS_API).then(function(r){ return r.json(); }).then(function(j){ if (j.ok) _bsParams = j.params || {}; }).catch(function(){}); })();
 
 // 거래 원본(_txns) 저장 — CSV 파싱 완료 시 한 번만 호출
 function saveTxns() {
@@ -2245,10 +2326,13 @@ function switchKpiView(v) {
   _kpiCurrentView = v;
   document.getElementById('kpiBizView').classList.toggle('active', v === 'biz');
   document.getElementById('kpiTotalView').classList.toggle('active', v === 'total');
+  document.getElementById('kpiProfView').classList.toggle('active', v === 'prof');
   document.getElementById('kpiSubBiz').classList.toggle('active', v === 'biz');
   document.getElementById('kpiSubTotal').classList.toggle('active', v === 'total');
+  document.getElementById('kpiSubProf').classList.toggle('active', v === 'prof');
   if (v === 'biz') renderKpiBiz();
-  else renderKpiTotal();
+  else if (v === 'total') renderKpiTotal();
+  else renderKpiProf();
 }
 
 function onKpiBizChange() {
@@ -2269,7 +2353,7 @@ function initKpiYears() {
   var txns = _txns.length > 0 ? _txns : makePseudoTxns();
   txns.forEach(function(t) { years[t.date.substring(0,4)] = 1; });
   var sorted = Object.keys(years).sort();
-  ['kpiYear','kpiTotalYear'].forEach(function(id) {
+  ['kpiYear','kpiTotalYear','kpiProfYear'].forEach(function(id) {
     var sel = document.getElementById(id);
     var prev = sel.value;
     sel.innerHTML = '<option value="">전체 기간</option>';
@@ -2600,7 +2684,113 @@ function renderKpiTotal() {
 function renderKpiDashboard() {
   initKpiYears();
   if (_kpiCurrentView === 'biz') renderKpiBiz();
-  else renderKpiTotal();
+  else if (_kpiCurrentView === 'total') renderKpiTotal();
+  else renderKpiProf();
+}
+
+// ── BS 입력 디바운스 저장 ────────────────────────────────
+var _bsSaveTimer = null;
+function onBsInput() {
+  var key = (document.getElementById('kpiProfBiz').value) || 'all';
+  if (!_bsParams[key]) _bsParams[key] = {};
+  _bsParams[key].equity  = document.getElementById('bsEquity').value;
+  _bsParams[key].assets  = document.getElementById('bsAssets').value;
+  _bsParams[key].capital = document.getElementById('bsCapital').value;
+  renderKpiProf();
+  clearTimeout(_bsSaveTimer);
+  document.getElementById('kpiBsSt').textContent = '저장 중...';
+  _bsSaveTimer = setTimeout(function() {
+    fetch(BS_API, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(_bsParams) })
+      .then(function(){ document.getElementById('kpiBsSt').textContent = '✓ 저장됨'; setTimeout(function(){ var el=document.getElementById('kpiBsSt'); if(el) el.textContent=''; }, 2000); })
+      .catch(function(){ document.getElementById('kpiBsSt').textContent = '저장 실패'; });
+  }, 1500);
+}
+
+// ── 수익성 지표 렌더 ────────────────────────────────────
+function renderKpiProf() {
+  var biz  = document.getElementById('kpiProfBiz').value;
+  var year = document.getElementById('kpiProfYear').value;
+  var d    = computePL(biz, '', year);
+  var key  = biz || 'all';
+  var bp   = _bsParams[key] || {};
+
+  if (!d.months.length) {
+    document.getElementById('kpiProfCards1').innerHTML = '<div style="color:var(--muted);font-size:12px;padding:20px 0;grid-column:1/-1">데이터가 없습니다. CSV 업로드 후 태깅을 완료하세요.</div>';
+    document.getElementById('kpiProfCards2').innerHTML = '';
+    return;
+  }
+
+  // ── 지표 계산 ──
+  var interest   = d.costByCat['금융비용(이자)'] || 0;
+  var labor      = (d.costByCat['인건비']||0) + (d.costByCat['4대보험']||0) + (d.costByCat['3.3소득세']||0);
+  var ebit       = d.profit + interest;
+  var ebitda     = ebit;
+  var opMargin   = d.totalRev > 0 ? ebit / d.totalRev * 100 : null;
+  var netMargin  = d.totalRev > 0 ? d.profit / d.totalRev * 100 : null;
+  var grossMargin= d.totalRev > 0 ? (d.totalRev - labor) / d.totalRev * 100 : null;
+
+  var parseAmt = function(s){ return parseFloat((s||'').replace(/[,원\s]/g,'')) || 0; };
+  var equity = parseAmt(bp.equity), assets = parseAmt(bp.assets), capital = parseAmt(bp.capital);
+  var roe  = equity  > 0 ? d.profit / equity  * 100 : null;
+  var roa  = assets  > 0 ? d.profit / assets  * 100 : null;
+  var roic = capital > 0 ? ebit     / capital * 100 : null;
+
+  // ── 입력 필드 갱신 (포커스 중인 필드 제외) ──
+  var act = document.activeElement;
+  var eqEl=document.getElementById('bsEquity'), asEl=document.getElementById('bsAssets'), caEl=document.getElementById('bsCapital');
+  if (act !== eqEl) eqEl.value = bp.equity || '';
+  if (act !== asEl) asEl.value = bp.assets || '';
+  if (act !== caEl) caEl.value = bp.capital || '';
+
+  // ── 헬퍼 ──
+  function cc(v, t1, t2, t3) {
+    if (v === null) return 'cn';
+    if (v >= t1) return 'cg'; if (v >= t2) return 'ct'; if (v >= t3) return 'cb'; if (v >= 0) return 'co'; return 'cr';
+  }
+  var colorMap = {cg:'#2E7D32', ct:'#00838F', cb:'#1565C0', co:'#E65100', cr:'#C8380A', cn:'#bbb'};
+  function bar(v, max, c) {
+    if (v === null || max <= 0) return '';
+    var w = Math.min(Math.max(v, 0), max) / max * 100;
+    return '<div class="kpi-prof-bar"><div class="kpi-prof-bar-fill" style="width:'+w.toFixed(1)+'%;background:'+colorMap[c]+'"></div></div>';
+  }
+  function fmtPct(v) {
+    if (v === null) return '<span style="font-size:16px;font-weight:500;color:var(--muted)">—</span>';
+    var col = v >= 0 ? 'var(--ink)' : 'var(--accent)';
+    return '<span style="color:'+col+'">'+v.toFixed(1)+'</span><span style="font-size:15px;font-weight:500;color:var(--muted)">%</span>';
+  }
+  function fmtAmt(v) {
+    var c = v >= 0 ? 'var(--ink)' : 'var(--accent)';
+    return '<span style="color:'+c+'">'+kpiFmt(v)+'</span><span style="font-size:13px;font-weight:400;color:var(--muted)">원</span>';
+  }
+  function card(eng, kor, valHtml, barHtml, note, cls) {
+    return '<div class="kpi-prof-card '+cls+'"><div class="kpi-prof-eng">'+eng+'</div><div class="kpi-prof-kor">'+kor+'</div><div class="kpi-prof-val">'+valHtml+'</div>'+barHtml+'<div class="kpi-prof-note">'+note+'</div></div>';
+  }
+
+  var oCC = cc(opMargin, 20, 12, 5), nCC = cc(netMargin, 15, 8, 3), gCC = cc(grossMargin, 50, 30, 15);
+  var eCC = ebit >= 0 ? 'ct' : 'cr';
+
+  document.getElementById('kpiProfCards1').innerHTML = [
+    card('EBIT','영업이익 · 세전이자공제전', fmtAmt(ebit), '',
+      '매출 '+kpiFmt(d.totalRev)+'원 &minus; 비용 '+kpiFmt(d.totalCost)+'원 + 이자비용 환원 '+kpiFmt(interest)+'원', eCC),
+    card('EBITDA','상각전영업이익', fmtAmt(ebitda), '',
+      'EBIT '+kpiFmt(ebit)+'원 &middot; 감가상각·무형자산상각 미산정', eCC),
+    card('영업이익률','Operating Margin', fmtPct(opMargin), bar(opMargin, 50, oCC),
+      'EBIT &divide; 매출 &middot; '+(opMargin === null ? '매출 없음' : opMargin >= 20 ? '우수한 수준' : opMargin >= 12 ? '양호한 수준' : opMargin >= 5 ? '보통' : '주의 필요'), oCC),
+    card('순이익률','Net Profit Margin', fmtPct(netMargin), bar(netMargin, 50, nCC),
+      '순이익 &divide; 매출 &middot; 이자비용 차감 후 현금 기준', nCC),
+    card('매출총이익률','Gross Profit Margin', fmtPct(grossMargin), bar(grossMargin, 100, gCC),
+      '인건비·4대보험·3.3소득세 직접인건비 기준 근사치', gCC),
+  ].join('');
+
+  var rCC = cc(roe, 15, 8, 3), aCC = cc(roa, 10, 5, 2), iCC = cc(roic, 12, 7, 3);
+  document.getElementById('kpiProfCards2').innerHTML = [
+    card('ROE','자기자본이익률', fmtPct(roe), bar(roe, 30, rCC),
+      equity > 0 ? '순이익 &divide; 자기자본 '+kpiFmt(equity)+'원' : '← 자기자본 입력 후 자동 산출', rCC),
+    card('ROA','총자산이익률', fmtPct(roa), bar(roa, 20, aCC),
+      assets > 0 ? '순이익 &divide; 총자산 '+kpiFmt(assets)+'원' : '← 총자산 입력 후 자동 산출', aCC),
+    card('ROIC','투하자본이익률', fmtPct(roic), bar(roic, 25, iCC),
+      capital > 0 ? 'EBIT &divide; 투하자본 '+kpiFmt(capital)+'원' : '← 투하자본 입력 후 자동 산출', iCC),
+  ].join('');
 }
 
 async function requestAIPrediction(scope) {

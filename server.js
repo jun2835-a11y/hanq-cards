@@ -557,6 +557,36 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // BS 파라미터 (ROE/ROA/ROIC 분모값) 저장/조회
+  if (url === '/api/bs-params') {
+    if (req.method === 'GET') {
+      (SB_URL && SB_KEY ? sbRead('bs-params') : Promise.resolve(_cache['bs-params'] || null))
+        .then(function(data) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: true, params: data || _cache['bs-params'] || {} }));
+        })
+        .catch(function() {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: true, params: _cache['bs-params'] || {} }));
+        });
+      return;
+    }
+    if (req.method === 'POST') {
+      let body = '';
+      req.on('data', c => { body += c; });
+      req.on('end', async () => {
+        try {
+          const params = JSON.parse(body);
+          _cache['bs-params'] = params;
+          if (SB_URL && SB_KEY) sbWrite('bs-params', params).catch(e => console.error('[bs-params]', e.message));
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: true }));
+        } catch(e) { res.writeHead(400); res.end('Bad JSON'); }
+      });
+      return;
+    }
+  }
+
   // KPI 예측 & 인사이트 API
   if (url === '/api/kpi-predict' && req.method === 'POST') {
     if (!ANTHROPIC_KEY) {
