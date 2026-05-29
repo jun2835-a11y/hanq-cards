@@ -192,6 +192,12 @@ input[type=file]{display:none}
 .kpi-ai-chart-wrap{margin-bottom:16px;border:1px solid var(--border);padding:14px 16px;background:var(--bg)}
 .kpi-ai-chart-title{font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-bottom:10px}
 .kpi-donut-wrap{display:flex;gap:16px;align-items:center;height:220px}
+.cat-bar-list{display:flex;flex-direction:column;gap:5px;max-height:240px;overflow-y:auto;padding-right:2px}
+.cat-bar-row{display:flex;align-items:center;gap:7px;min-height:20px}
+.cat-bar-name{font-size:11px;color:var(--ink2);flex:0 0 130px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cat-bar-track{flex:1;height:13px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden}
+.cat-bar-fill{height:100%;border-radius:3px;background:rgba(200,56,10,.7);transition:width .3s}
+.cat-bar-val{font-size:10px;color:var(--muted);flex:0 0 62px;text-align:right;white-space:nowrap}
 .kpi-donut-canvas{position:relative;height:220px;width:200px;flex-shrink:0}
 .kpi-donut-legend{flex:1;display:flex;flex-direction:column;gap:5px;overflow:hidden}
 .kpi-leg-item{font-size:11px;color:var(--ink2);display:flex;align-items:center;gap:6px;line-height:1.3;min-width:0}
@@ -399,7 +405,7 @@ input[type=file]{display:none}
       </div>
       <div class="kpi-box" style="margin-bottom:0">
         <div class="kpi-box-title">비용 카테고리 분석</div>
-        <div style="position:relative;height:220px"><canvas id="chartTotalCost"></canvas></div>
+        <div id="chartTotalCost" class="cat-bar-list"></div>
       </div>
     </div>
     <div class="kpi-ai-wrap" style="margin-top:12px">
@@ -757,6 +763,11 @@ function loadStateOnInit() {
         };
       });
     }
+
+    // 서버에서 불러온 cat 값의 비가시 Unicode 제거 (깨진 문자 방지)
+    Object.keys(_merchants).forEach(function(k) {
+      if (_merchants[k].cat) _merchants[k].cat = sanitizeCat(_merchants[k].cat);
+    });
 
     // 총 출금 1만원 미만이고 수기 태그 없는 거래처 → 기타 자동분류
     Object.keys(_merchants).forEach(function(k) {
@@ -2382,7 +2393,7 @@ function computePL(bizFilter, projFilter, yearFilter) {
     if (!m) return;
     var tBiz = m.biz || '미배분';
     var tProj = m.proj || '';
-    var tCat = (m.cat || '미분류').replace(/[\r\n\t]/g, '').trim();
+    var tCat = sanitizeCat(m.cat) || '미분류';
     if (bizFilter && tBiz !== bizFilter) return;
     if (projFilter && tProj !== projFilter) return;
     if (yearFilter && t.date.substring(0,4) !== yearFilter) return;
@@ -2410,6 +2421,13 @@ function computePL(bizFilter, projFilter, yearFilter) {
     profit:totalRev - totalCost, costByCat:costByCat };
 }
 
+function sanitizeCat(s) {
+  // 제어문자·ZWS·BOM·사설영역(PUA) 제거
+  return (s || '')
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\u00AD\u200B-\u200F\u2028\u2029\u202A-\u202E\u2060-\u206F\uFEFF\uFFF0-\uFFFF\uE000-\uF8FF]/g, '')
+    .replace(/\r?\n|\r/g, '')
+    .trim();
+}
 function kpiFmt(n) {
   if (n == null) return '-';
   var abs = Math.abs(n), sign = n < 0 ? '-' : '';
@@ -2547,8 +2565,9 @@ function renderKpiBiz() {
     },
   });
   document.getElementById('kpiBizCostLegend').innerHTML = topCats.map(function(c,i){
+    var label = sanitizeCat(c);
     var pct = catTotal > 0 ? (catVals[i]/catTotal*100).toFixed(1) : '0';
-    return '<div class="kpi-leg-item"><i class="kpi-leg-dot" style="background:'+KPI_PALETTE[i%KPI_PALETTE.length]+'"></i><span title="'+c+'">'+c+'</span><span style="margin-left:auto;color:var(--muted);font-size:10px;flex-shrink:0">'+pct+'%</span></div>';
+    return '<div class="kpi-leg-item"><i class="kpi-leg-dot" style="background:'+KPI_PALETTE[i%KPI_PALETTE.length]+'"></i><span title="'+label+'">'+label+'</span><span style="margin-left:auto;color:var(--muted);font-size:10px;flex-shrink:0">'+pct+'%</span></div>';
   }).join('');
 
   // Chart 3: Cumulative area + 예측 dashed
@@ -2666,28 +2685,22 @@ function renderKpiTotal() {
     },
   });
 
-  // Chart 3: Cost categories horizontal bar (상위 12개, font 11px)
+  // Chart 3: Cost categories — Canvas Y축 한글 깨짐 방지 → 순수 HTML 바 차트
   var allCatsTot = Object.keys(total.costByCat).sort(function(a,b){ return total.costByCat[b]-total.costByCat[a]; });
   var cats = allCatsTot.slice(0, 12);
   var otherTotSum = allCatsTot.slice(12).reduce(function(s,c){ return s + total.costByCat[c]; }, 0);
   if (otherTotSum > 0) cats = cats.concat(['기타']);
   var catTotVals = cats.map(function(c){ return c === '기타' ? otherTotSum : total.costByCat[c]; });
-  var ctx3 = document.getElementById('chartTotalCost').getContext('2d');
-  _kpiCharts.chartTotalCost = new Chart(ctx3, {
-    type:'bar',
-    data:{
-      labels: cats,
-      datasets:[{ label:'비용', data: catTotVals, backgroundColor:'rgba(200,56,10,.7)', borderRadius:2 }],
-    },
-    options:{
-      indexAxis:'y', responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{ display:false } },
-      scales:{
-        x:{ ticks:{ font:{size:10,family:KPI_FONT}, callback:function(v){ return kpiFmt(v); } } },
-        y:{ ticks:{ font:{size:11,family:KPI_FONT} } },
-      },
-    },
-  });
+  var maxVal = catTotVals.reduce(function(a,b){ return Math.max(a,b); }, 1);
+  document.getElementById('chartTotalCost').innerHTML = cats.map(function(c,i){
+    var label = sanitizeCat(c);
+    var pct = (catTotVals[i] / maxVal * 100).toFixed(1);
+    return '<div class="cat-bar-row">' +
+      '<span class="cat-bar-name" title="'+label+'">'+label+'</span>' +
+      '<div class="cat-bar-track"><div class="cat-bar-fill" style="width:'+pct+'%"></div></div>' +
+      '<span class="cat-bar-val">'+kpiFmt(catTotVals[i])+'</span>' +
+    '</div>';
+  }).join('');
   document.getElementById('kpiTotalAiResult').style.display = 'none';
 }
 
