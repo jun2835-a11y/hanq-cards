@@ -747,8 +747,12 @@ ${bizLines ? `### 사업자별 현황\n${bizLines}` : ''}
     req.on('data', c => { body += c; });
     req.on('end', async () => {
       try {
-        const { question, context } = JSON.parse(body);
-        const prompt = buildFmChatPrompt(context, question);
+        const { question } = JSON.parse(body);
+        if (!question || typeof question !== 'string') {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: false, error: 'question 필요' })); return;
+        }
+        const prompt = buildFmContextServer(question);
         const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
           headers: {
@@ -782,80 +786,6 @@ ${bizLines ? `### 사업자별 현황\n${bizLines}` : ''}
   res.writeHead(404); res.end('Not found');
 });
 
-function buildFmChatPrompt(ctx, question) {
-  const lines = [];
-  lines.push('당신은 hanQ 그룹의 재무 AI 어시스턴트입니다. 아래 재무 데이터를 기반으로 질문에 답변해주세요.');
-  lines.push('답변은 한국어로, 간결하고 수치 근거를 포함해서 작성하세요. 마크다운 없이 평문으로 답변하세요.\n');
-
-  // 계좌 현황
-  if (ctx.accounts) {
-    const a = ctx.accounts;
-    lines.push('=== 계좌 현황 ===');
-    lines.push(`총 예금: ${fmt(a.totalDeposit)}원 / 총 대출: ${fmt(a.totalLoan)}원 / 순자금: ${fmt(a.netFunds)}원`);
-  }
-
-  // 손익 요약
-  if (ctx.pl && ctx.pl.length) {
-    lines.push('\n=== 손익 요약 (최근 6개월) ===');
-    ctx.pl.forEach(p => {
-      lines.push(`[${p.label}] 비용: ${fmt(p.totalCost)}원 | 월평균: ${fmt(Math.round(p.totalCost / Math.max(p.months, 1)))}원`);
-      if (p.costByCat && Object.keys(p.costByCat).length) {
-        const top = Object.entries(p.costByCat)
-          .sort((a, b) => b[1] - a[1]).slice(0, 5)
-          .map(([k, v]) => `${k}: ${fmt(v)}원`).join(', ');
-        lines.push(`  상위 카테고리: ${top}`);
-      }
-    });
-  }
-
-  // 월별 트렌드
-  if (ctx.monthlyTrend && ctx.monthlyTrend.length) {
-    lines.push('\n=== 전체 월별 비용 ===');
-    ctx.monthlyTrend.forEach(m => {
-      lines.push(`${m.ym}: ${fmt(m.cost)}원`);
-    });
-  }
-
-  // 반복결제
-  if (ctx.recurring && ctx.recurring.length) {
-    lines.push('\n=== 반복 결제 (최근 2개월 이상 연속) ===');
-    ctx.recurring.slice(0, 30).forEach(r => {
-      lines.push(`${r.name}: 월 ${fmt(r.avgAmt)}원 (${r.months}개월 연속)`);
-    });
-  }
-
-  // 신규 지출
-  if (ctx.newThisMonth && ctx.newThisMonth.length) {
-    lines.push('\n=== 이번 달 신규 지출 (전월 없음) ===');
-    ctx.newThisMonth.slice(0, 15).forEach(n => {
-      lines.push(`${n.name}: ${fmt(n.amt)}원`);
-    });
-  }
-
-  // 소멸 지출
-  if (ctx.droppedLastMonth && ctx.droppedLastMonth.length) {
-    lines.push('\n=== 전월 대비 소멸 지출 (이번 달 없음) ===');
-    ctx.droppedLastMonth.slice(0, 15).forEach(d => {
-      lines.push(`${d.name}: ${fmt(d.amt)}원`);
-    });
-  }
-
-  // 상위 거래처
-  if (ctx.topMerchants && ctx.topMerchants.length) {
-    lines.push('\n=== 상위 거래처 (출금 기준) ===');
-    ctx.topMerchants.slice(0, 40).forEach(m => {
-      lines.push(`${m.name} [${m.cat}]: ${fmt(m.totalOut)}원`);
-    });
-  }
-
-  lines.push(`\n=== 질문 ===\n${question}`);
-  return lines.join('\n');
-}
-
-function fmt(n) {
-  if (!n && n !== 0) return '-';
-  return Number(n).toLocaleString('ko-KR');
-}
 
 // ── 시작: state 로드 후 서버 오픈 ───────────────────────────────────────
 loadAllState().then(() => {
@@ -869,3 +799,147 @@ loadAllState().then(() => {
     console.log('');
   });
 });
+
+function buildFmContextServer(question) {
+  const L = [];
+  L.push('당신은 hanQ 그룹의 재무 AI 어시스턴트입니다. 아래 재무 데이터를 기반으로 질문에 한국어로 답변하세요.');
+  L.push('수치 근거를 포함하고, 마크다운 없이 평문으로 작성하세요.\n');
+
+  // ── 1. 계좌 현황 ─────────────────────────────────────────────────────────
+  const finState = _cache['finance-state.json'] || {};
+  const balances = finState.balances || {};
+  let totalDeposit = 0;
+  const depLines = [];
+  SUMMARY_DEPOSITS.forEach(d => {
+    let bal = d.balance;
+    if (balances[d.accountNo] !== undefined) bal = balances[d.accountNo].value;
+    if (bal !== null && bal !== undefined) {
+      if (bal > 0) totalDeposit += bal;
+      if (bal !== 0) depLines.push(`  ${d.accountNo}: ${fmtN(bal)}원`);
+    }
+  });
+  let totalLoan = 0;
+  const loanLines = [];
+  SUMMARY_LOANS.forEach(loan => {
+    totalLoan += (loan.balance || 0);
+    loanLines.push(`  ${loan.bank}: ${fmtN(loan.balance)}원 (만기 ${loan.maturity})`);
+  });
+  L.push('=== 계좌 현황 ===');
+  L.push(`총 예금: ${fmtN(totalDeposit)}원 / 총 대출: ${fmtN(totalLoan)}원 / 순자금: ${fmtN(totalDeposit - totalLoan)}원`);
+  if (depLines.length) L.push('예금 계좌:\n' + depLines.join('\n'));
+  if (loanLines.length) L.push('대출:\n' + loanLines.join('\n'));
+
+  // ── 2. 카드 결제일 ───────────────────────────────────────────────────────
+  L.push('\n=== 법인카드 결제일 ===');
+  CARD_PAYMENTS.forEach(cp => L.push(`  ${cp.label}: 매월 ${cp.payDay}일`));
+
+  // ── 3. 거래 내역 분석 ────────────────────────────────────────────────────
+  const txState    = _cache['tx-data-state.json'] || {};
+  const txns       = Array.isArray(txState.txns) ? txState.txns : [];
+  const tagState   = _cache['finance-work-tags.json'] || {};
+  const merchants  = tagState.merchants || {};
+
+  if (txns.length > 0) {
+    const monthly = {}, catTotals = {}, bizTotals = {}, mMap = {};
+
+    txns.forEach(t => {
+      if (!t.date || !t.out || t.out <= 0) return;
+      const ym  = t.date.slice(0, 7);
+      const mer = t.merchant || t.name || '';
+      const m   = merchants[mer] || {};
+      const cat = m.cat || '미분류';
+      const biz = m.biz || t.biz || '';
+
+      monthly[ym]  = (monthly[ym]  || 0) + t.out;
+      catTotals[cat] = (catTotals[cat] || 0) + t.out;
+      if (biz) bizTotals[biz] = (bizTotals[biz] || 0) + t.out;
+
+      if (!mMap[mer]) mMap[mer] = {};
+      mMap[mer][ym] = (mMap[mer][ym] || 0) + t.out;
+    });
+
+    const sortedYms = Object.keys(monthly).sort();
+    const last6 = sortedYms.slice(-6);
+    const latestYm = last6[last6.length - 1] || '';
+    const prevYm   = last6[last6.length - 2] || '';
+
+    L.push('\n=== 월별 총 비용 (최근 6개월) ===');
+    last6.forEach(ym => L.push(`  ${ym}: ${fmtN(monthly[ym])}원`));
+
+    const catTop = Object.entries(catTotals).sort((a, b) => b[1] - a[1]).slice(0, 10);
+    L.push('\n=== 카테고리별 누적 비용 ===');
+    catTop.forEach(([cat, amt]) => L.push(`  ${cat}: ${fmtN(amt)}원`));
+
+    if (Object.keys(bizTotals).length > 0) {
+      L.push('\n=== 사업자별 비용 ===');
+      Object.entries(bizTotals).sort((a, b) => b[1] - a[1])
+        .forEach(([biz, amt]) => L.push(`  ${biz}: ${fmtN(amt)}원`));
+    }
+
+    // 반복/신규/소멸
+    const recurring = [], newThis = [], dropped = [];
+    Object.keys(mMap).forEach(name => {
+      const byYm = mMap[name];
+      let consecutive = 0;
+      for (let i = last6.length - 1; i >= 0; i--) {
+        if (byYm[last6[i]]) consecutive++; else break;
+      }
+      const ymKeys = Object.keys(byYm);
+      const avgAmt = Math.round(ymKeys.reduce((s, y) => s + byYm[y], 0) / ymKeys.length);
+      if (consecutive >= 2) recurring.push({ name, months: consecutive, avgAmt });
+      if (latestYm && byYm[latestYm] && prevYm && !byYm[prevYm] && byYm[latestYm] > 10000)
+        newThis.push({ name, amt: byYm[latestYm] });
+      if (prevYm && byYm[prevYm] && latestYm && !byYm[latestYm] && byYm[prevYm] > 10000)
+        dropped.push({ name, amt: byYm[prevYm] });
+    });
+
+    if (recurring.length) {
+      recurring.sort((a, b) => b.avgAmt - a.avgAmt);
+      L.push('\n=== 반복 결제 (2개월 이상 연속) ===');
+      recurring.slice(0, 30).forEach(r => {
+        const cat = (merchants[r.name] || {}).cat || '미분류';
+        L.push(`  ${r.name} [${cat}]: 월 ${fmtN(r.avgAmt)}원 (${r.months}개월 연속)`);
+      });
+    }
+    if (newThis.length) {
+      newThis.sort((a, b) => b.amt - a.amt);
+      L.push('\n=== 이번 달 신규 지출 ===');
+      newThis.slice(0, 15).forEach(n => L.push(`  ${n.name}: ${fmtN(n.amt)}원`));
+    }
+    if (dropped.length) {
+      dropped.sort((a, b) => b.amt - a.amt);
+      L.push('\n=== 전월 대비 소멸 지출 ===');
+      dropped.slice(0, 15).forEach(d => L.push(`  ${d.name}: ${fmtN(d.amt)}원`));
+    }
+  }
+
+  // ── 4. 상위 거래처 ───────────────────────────────────────────────────────
+  const topMer = Object.entries(merchants)
+    .filter(([, m]) => (m.totalOut || 0) > 0)
+    .sort((a, b) => b[1].totalOut - a[1].totalOut)
+    .slice(0, 40);
+  if (topMer.length) {
+    L.push('\n=== 상위 거래처 (출금 기준) ===');
+    topMer.forEach(([k, m]) => L.push(`  ${k} [${m.cat || '미분류'}]: ${fmtN(m.totalOut)}원`));
+  }
+
+  // ── 5. 자금 계획 ─────────────────────────────────────────────────────────
+  const planState = _cache['finance-plan-state.json'] || {};
+  const plans = planState.plans || planState.monthly || {};
+  const planKeys = Object.keys(plans).sort().slice(-4);
+  if (planKeys.length) {
+    L.push('\n=== 자금 계획 (최근) ===');
+    planKeys.forEach(ym => {
+      const p = plans[ym];
+      if (p) L.push(`  ${ym}: 계획 ${fmtN(p.planned || p.plan || 0)}원, 실제 ${fmtN(p.actual || 0)}원`);
+    });
+  }
+
+  L.push(`\n=== 질문 ===\n${question}`);
+  return L.join('\n');
+}
+
+function fmtN(n) {
+  if (n === null || n === undefined) return '-';
+  return Number(n).toLocaleString('ko-KR');
+}

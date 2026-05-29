@@ -3260,5 +3260,166 @@ function dismissPopup(type) {
 document.addEventListener('DOMContentLoaded', () => ActivityLog.syncFromServer().then(() => setTimeout(showActivityPopup, 900)));
 </script>
 <script>(function(){if(window.self===window.top)return;var s=document.createElement("style");s.textContent="html,html *{cursor:none!important}";document.head.appendChild(s);document.addEventListener("mousemove",function(e){window.parent.postMessage({type:"cursor-move",x:e.clientX,y:e.clientY},"*");});})();</script>
+
+<style>
+/* ── FM AI 챗봇 ─────────────────────────────────── */
+#chat-fab {
+  position:fixed;bottom:28px;right:28px;z-index:9000;
+  width:52px;height:52px;border-radius:50%;
+  background:var(--accent,#C8380A);color:#fff;border:none;
+  font-size:20px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.25);
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .15s,box-shadow .15s;
+}
+#chat-fab:hover{transform:scale(1.08);box-shadow:0 6px 20px rgba(0,0,0,.35);}
+#chat-panel {
+  position:fixed;bottom:92px;right:28px;z-index:9000;
+  width:390px;height:540px;
+  background:var(--surface,#fff);border:1px solid var(--border,#E2DED7);
+  border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.18);
+  display:none;flex-direction:column;overflow:hidden;
+}
+#chat-panel.open{display:flex;}
+.chat-hdr{
+  padding:14px 16px 12px;border-bottom:1px solid var(--border,#E2DED7);
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--surface,#fff);
+}
+.chat-hdr-title{font-size:14px;font-weight:700;color:var(--accent,#C8380A);}
+.chat-hdr-sub{font-size:11px;color:var(--ink2,#5C5851);margin-top:2px;}
+.chat-close{background:none;border:none;color:var(--ink2,#5C5851);font-size:18px;cursor:pointer;padding:0 4px;}
+.chat-close:hover{color:var(--ink,#1A1814);}
+.chat-msgs{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:10px;}
+.chat-msg{max-width:88%;word-break:break-word;}
+.chat-msg.user{align-self:flex-end;}
+.chat-msg.bot{align-self:flex-start;}
+.chat-bubble{padding:9px 13px;border-radius:12px;font-size:13px;line-height:1.6;}
+.chat-msg.user .chat-bubble{background:var(--accent,#C8380A);color:#fff;border-bottom-right-radius:3px;}
+.chat-msg.bot .chat-bubble{
+  background:var(--surface,#fff);color:var(--ink,#1A1814);
+  border:1px solid var(--border,#E2DED7);border-bottom-left-radius:3px;
+}
+.chat-msg.bot .chat-bubble.typing{color:var(--muted,#9A958F);font-style:italic;}
+.chat-chips{
+  padding:6px 14px 8px;display:flex;gap:6px;flex-wrap:wrap;
+  border-top:1px solid var(--border,#E2DED7);
+}
+.chat-chip{
+  font-size:11px;padding:4px 10px;border-radius:20px;cursor:pointer;
+  border:1px solid var(--accent,#C8380A);color:var(--accent,#C8380A);
+  background:transparent;transition:background .12s;white-space:nowrap;
+}
+.chat-chip:hover{background:var(--accent,#C8380A);color:#fff;}
+.chat-inp-row{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--border,#E2DED7);align-items:flex-end;}
+#chat-input{
+  flex:1;background:var(--surface,#fff);border:1px solid var(--border,#E2DED7);
+  border-radius:8px;padding:8px 10px;color:var(--ink,#1A1814);font-size:13px;
+  resize:none;line-height:1.4;max-height:90px;min-height:36px;
+  font-family:inherit;outline:none;
+}
+#chat-input:focus{border-color:var(--accent,#C8380A);}
+#chat-send{
+  background:var(--accent,#C8380A);color:#fff;border:none;
+  border-radius:8px;padding:8px 12px;cursor:pointer;font-size:15px;
+  transition:opacity .15s;align-self:flex-end;height:36px;min-width:36px;
+}
+#chat-send:disabled{opacity:.4;cursor:default;}
+</style>
+
+<!-- FM AI 챗봇 -->
+<button id="chat-fab" onclick="toggleChat()" title="AI 재무 어시스턴트">💬</button>
+<div id="chat-panel">
+  <div class="chat-hdr">
+    <div>
+      <div class="chat-hdr-title">hanQ AI 재무 어시스턴트</div>
+      <div class="chat-hdr-sub">FM 전체 데이터 기반 질문 답변</div>
+    </div>
+    <button class="chat-close" onclick="toggleChat()">✕</button>
+  </div>
+  <div class="chat-msgs" id="chat-msgs">
+    <div class="chat-msg bot"><div class="chat-bubble">안녕하세요! FM 전체 메뉴 데이터에 대해 질문하세요.<br>계좌·거래·카드·비용 분석 등 무엇이든 답변해 드립니다.</div></div>
+  </div>
+  <div class="chat-chips">
+    <button class="chat-chip" onclick="chatAsk('이번 달 신규 지출은 뭐가 있나요?')">신규 지출</button>
+    <button class="chat-chip" onclick="chatAsk('반복 결제 목록 알려줘')">반복 결제</button>
+    <button class="chat-chip" onclick="chatAsk('카테고리별 비용 현황은?')">카테고리</button>
+    <button class="chat-chip" onclick="chatAsk('사업자별 지출 비교해줘')">사업자별</button>
+    <button class="chat-chip" onclick="chatAsk('전월 대비 소멸된 지출 있나요?')">소멸 지출</button>
+    <button class="chat-chip" onclick="chatAsk('현재 대출 현황과 만기일은?')">대출 현황</button>
+  </div>
+  <div class="chat-inp-row">
+    <textarea id="chat-input" rows="1" placeholder="질문을 입력하세요... (Enter 전송)" onkeydown="chatKeydown(event)"></textarea>
+    <button id="chat-send" onclick="sendChat()">↑</button>
+  </div>
+</div>
+
+<script>
+(function() {
+  var CHAT_API = (location.hostname === 'localhost' ? 'http://localhost:3005' : '') + '/api/fm-chat';
+  var open = false, busy = false;
+
+  window.toggleChat = function() {
+    open = !open;
+    document.getElementById('chat-panel').classList.toggle('open', open);
+    if (open) setTimeout(function() { document.getElementById('chat-input').focus(); }, 50);
+  };
+
+  window.chatAsk = function(q) {
+    if (!open) toggleChat();
+    document.getElementById('chat-input').value = q;
+    sendChat();
+  };
+
+  window.chatKeydown = function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+  };
+
+  window.sendChat = function() {
+    if (busy) return;
+    var inp = document.getElementById('chat-input');
+    var q = inp.value.trim();
+    if (!q) return;
+    inp.value = '';
+    appendMsg('user', q);
+    busy = true;
+    document.getElementById('chat-send').disabled = true;
+    var tid = appendMsg('bot', '분석 중...', true);
+    fetch(CHAT_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: q })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      var el = document.getElementById(tid);
+      if (el) { el.textContent = d.ok ? d.answer : ('오류: ' + (d.error || '알 수 없음')); el.classList.remove('typing'); }
+    })
+    .catch(function() {
+      var el = document.getElementById(tid);
+      if (el) { el.textContent = '연결 오류가 발생했습니다.'; el.classList.remove('typing'); }
+    })
+    .finally(function() {
+      busy = false;
+      document.getElementById('chat-send').disabled = false;
+      var msgs = document.getElementById('chat-msgs');
+      msgs.scrollTop = msgs.scrollHeight;
+    });
+  };
+
+  function appendMsg(role, text, typing) {
+    var msgs = document.getElementById('chat-msgs');
+    var id = 'cm-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+    var d = document.createElement('div');
+    d.className = 'chat-msg ' + role;
+    var b = document.createElement('div');
+    b.className = 'chat-bubble' + (typing ? ' typing' : '');
+    b.id = id; b.textContent = text;
+    d.appendChild(b); msgs.appendChild(d);
+    msgs.scrollTop = msgs.scrollHeight;
+    return id;
+  }
+})();
+</script>
+
 </body>
 </html>
