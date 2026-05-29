@@ -83,6 +83,86 @@ async function sbWrite(key, data) {
   } catch (e) { console.error('[Supabase write error]', e.message); return false; }
 }
 
+// ── merchants 테이블 (개별 행 저장 — IO 최소화) ──────────────────────────
+
+// DB 행 배열을 500개씩 나눠 upsert
+async function sbUpsertMerchants(rows) {
+  if (!SB_URL || !SB_KEY || rows.length === 0) return false;
+  try {
+    for (let i = 0; i < rows.length; i += 500) {
+      const batch = rows.slice(i, i + 500);
+      const res = await fetch(`${SB_URL}/rest/v1/merchants`, {
+        method: 'POST',
+        headers: {
+          apikey: SB_KEY,
+          Authorization: `Bearer ${SB_KEY}`,
+          'Content-Type': 'application/json',
+          Prefer: 'resolution=merge-duplicates',
+        },
+        body: JSON.stringify(batch),
+      });
+      if (!res.ok) {
+        const body = await res.text().catch(() => '');
+        console.error(`[merchants upsert error] ${res.status}:`, body.slice(0, 200));
+        return false;
+      }
+    }
+    return true;
+  } catch (e) { console.error('[merchants upsert error]', e.message); return false; }
+}
+
+// merchants 테이블 전체 읽기 (1000행씩 페이지네이션)
+async function sbReadAllMerchants() {
+  if (!SB_URL || !SB_KEY) return null;
+  try {
+    let allRows = [], offset = 0;
+    const limit = 1000;
+    while (true) {
+      const res = await fetch(
+        `${SB_URL}/rest/v1/merchants?select=*&limit=${limit}&offset=${offset}`,
+        { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
+      );
+      if (!res.ok) return null;
+      const rows = await res.json();
+      allRows = allRows.concat(rows);
+      if (rows.length < limit) break;
+      offset += limit;
+    }
+    if (allRows.length === 0) return null;
+    const merchants = {};
+    allRows.forEach(r => {
+      merchants[r.key] = {
+        name: r.name || r.key,
+        cat: r.cat || '',
+        biz: r.biz || '',
+        proj: r.proj || '',
+        autoTagged: r.auto_tagged || false,
+        count: r.count || 0,
+        totalOut: r.total_out || 0,
+        totalIn: r.total_in || 0,
+        sampleDate: r.sample_date || '',
+      };
+    });
+    return merchants;
+  } catch (e) { console.error('[sbReadAllMerchants error]', e.message); return null; }
+}
+
+// merchants 객체 → DB 행 배열 변환
+function merchantsToRows(merchantsObj) {
+  return Object.entries(merchantsObj).map(([key, m]) => ({
+    key,
+    name: m.name || key,
+    cat: m.cat || '',
+    biz: m.biz || '',
+    proj: m.proj || '',
+    auto_tagged: !!m.autoTagged,
+    count: m.count || 0,
+    total_out: m.totalOut || 0,
+    total_in: m.totalIn || 0,
+    sample_date: m.sampleDate || '',
+  }));
+}
+
 // Supabase 연결 테스트 (테이블 접근 가능 여부)
 async function sbPing() {
   try {
@@ -195,15 +275,31 @@ async function loadAllState() {
       _cache[file] = data;
       console.log(`[state] loaded ${file} from Supabase (${Object.keys(data).length} keys)`);
     } else {
-      // Supabase 미설정이거나 키 없음 → 로컬 파일로 폴백
       data = localRead(file);
       _cache[file] = data;
       if (SB_URL && SB_KEY && Object.keys(data).length > 0) {
-        // 로컬에 데이터 있으면 Supabase에 seed
         console.log(`[state] seeding ${key} to Supabase from local…`);
         await sbWrite(key, data);
       }
       console.log(`[state] loaded ${file} from local (${Object.keys(data).length} keys)`);
+    }
+  }
+
+  // merchants 테이블에서 태그 데이터 로드 (kv_store 대체)
+  if (SB_URL && SB_KEY) {
+    const tableData = await sbReadAllMerchants();
+    if (tableData && Object.keys(tableData).length > 0) {
+      if (!_cache['finance-work-tags.json']) _cache['finance-work-tags.json'] = {};
+      _cache['finance-work-tags.json'].merchants = tableData;
+      console.log(`[state] loaded merchants table (${Object.keys(tableData).length} rows)`);
+    } else {
+      // 테이블 비어있음 → kv_store에서 자동 마이그레이션
+      const kvMerchants = _cache['finance-work-tags.json']?.merchants;
+      if (kvMerchants && Object.keys(kvMerchants).length > 0) {
+        console.log(`[migrate] merchants 테이블로 이관 중 (${Object.keys(kvMerchants).length}개)...`);
+        await sbUpsertMerchants(merchantsToRows(kvMerchants));
+        console.log(`[migrate] 완료`);
+      }
     }
   }
 }
@@ -340,6 +436,12 @@ const server = http.createServer((req, res) => {
       try {
         const data = JSON.parse(body);
         const sbOk = await writeJSON(postRoutes[url], data);
+        // finance-work-tags POST 시 tagged merchants를 테이블에도 저장
+        if (postRoutes[url] === 'finance-work-tags.json' && data.merchants) {
+          sbUpsertMerchants(merchantsToRows(data.merchants)).catch(e =>
+            console.error('[post upsert]', e.message)
+          );
+        }
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true, supabase: !!(SB_URL && SB_KEY && sbOk) }));
       } catch { res.writeHead(400); res.end('Bad JSON'); }
@@ -421,7 +523,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // 태그 패치 — 캐시 즉시 업데이트 후 응답, Supabase는 10초 지연 쓰기
+  // 태그 패치 — 캐시 즉시 업데이트 + merchants 테이블 개별 행 upsert (논블로킹)
   if (url === '/api/finance-work-tags/patch' && req.method === 'POST') {
     let body = '';
     req.on('data', c => { body += c; });
@@ -430,20 +532,23 @@ const server = http.createServer((req, res) => {
         const parsed = JSON.parse(body);
         const current = readJSON('finance-work-tags.json');
         if (!current.merchants) current.merchants = {};
+        let changedMap = {};
         if (parsed.merchants && typeof parsed.merchants === 'object') {
-          for (const [k, fields] of Object.entries(parsed.merchants)) {
-            if (!current.merchants[k]) current.merchants[k] = { name: k };
-            Object.assign(current.merchants[k], fields);
-          }
+          changedMap = parsed.merchants;
         } else if (parsed.key && parsed.fields) {
-          if (!current.merchants[parsed.key]) current.merchants[parsed.key] = { name: parsed.key };
-          Object.assign(current.merchants[parsed.key], parsed.fields);
+          changedMap = { [parsed.key]: parsed.fields };
         } else {
           res.writeHead(400); res.end('key+fields 또는 merchants 필요'); return;
         }
-        // 캐시에만 즉시 반영, Supabase는 백그라운드 지연 쓰기
+        for (const [k, fields] of Object.entries(changedMap)) {
+          if (!current.merchants[k]) current.merchants[k] = { name: k };
+          Object.assign(current.merchants[k], fields);
+        }
         _cache['finance-work-tags.json'] = current;
-        deferredSbWrite('finance-work-tags.json');
+        // merchants 테이블에 개별 행 upsert (논블로킹 — 소량 페이로드)
+        sbUpsertMerchants(merchantsToRows(changedMap)).catch(e =>
+          console.error('[patch upsert]', e.message)
+        );
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true }));
       } catch (e) { res.writeHead(400); res.end('Bad JSON'); }
