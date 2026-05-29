@@ -24,6 +24,9 @@ body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;background:var(--bg);
 
 /* ── 진행률 헤더 ── */
 .progress-bar-wrap{background:var(--ink);padding:10px 24px;display:flex;align-items:center;gap:16px}
+.ai-tag-btn{background:rgba(255,255,255,.12);color:rgba(255,255,255,.9);font-size:10px;font-weight:700;letter-spacing:.05em;padding:5px 13px;cursor:pointer;border:1px solid rgba(255,255,255,.2);font-family:inherit;white-space:nowrap;transition:background .15s}
+.ai-tag-btn:hover{background:rgba(255,255,255,.22)}
+.ai-tag-btn:disabled{opacity:.4;cursor:default}
 .progress-label{font-size:11px;color:rgba(255,255,255,.6);letter-spacing:.04em;white-space:nowrap}
 .progress-track{flex:1;height:4px;background:rgba(255,255,255,.12)}
 .progress-fill{height:100%;background:var(--accent);transition:width .4s ease}
@@ -242,6 +245,7 @@ input[type=file]{display:none}
   <span class="progress-label">태깅 진행률</span>
   <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
   <span class="progress-stats"><b id="progressDone">0</b> / <b id="progressTotal">0</b> 거래내용 · <span id="progressPct">0%</span></span>
+  <button class="ai-tag-btn" id="aiTagBtn" onclick="callAiTagging()">AI 미분류 태깅</button>
 </div>
 
 <div class="tab-bar">
@@ -693,8 +697,13 @@ function loadSavedTags() {
 
 // ── AI 자동 태깅 ──────────────────────────────────────
 function callAiTagging() {
+  var btn = document.getElementById('aiTagBtn');
   var untagged = Object.values(_merchants).filter(function(m){ return !m.cat; });
-  if (untagged.length === 0) return;
+  if (untagged.length === 0) {
+    if (btn) { btn.textContent = '미분류 없음'; setTimeout(function(){ btn.textContent = 'AI 미분류 태깅'; }, 2000); }
+    return;
+  }
+  if (btn) { btn.disabled = true; btn.textContent = '태깅 중...'; }
   showLoad('AI 자동 태깅 중... (' + untagged.length + '개)');
   fetch('/api/ai-tag', {
     method: 'POST',
@@ -706,7 +715,11 @@ function callAiTagging() {
     })
   }).then(function(r){ return r.json(); }).then(function(resp){
     hideLoad();
-    if (!resp.ok || !resp.results) return;
+    if (btn) { btn.disabled = false; }
+    if (!resp.ok || !resp.results) {
+      if (btn) { btn.textContent = '오류'; setTimeout(function(){ btn.textContent = 'AI 미분류 태깅'; }, 2000); }
+      return;
+    }
     var changed = 0;
     Object.keys(resp.results).forEach(function(name){
       var r = resp.results[name];
@@ -717,13 +730,17 @@ function callAiTagging() {
         _merchants[name].autoTagged = true;
       }
     });
+    if (btn) {
+      btn.textContent = changed > 0 ? (changed + '개 태깅 완료') : '미분류 없음';
+      setTimeout(function(){ btn.textContent = 'AI 미분류 태깅'; }, 3000);
+    }
     if (changed > 0) {
       updateProgress();
       renderMerchants();
       refreshTagStats();
       saveState();
     }
-  }).catch(function(e){ console.error('[AI tag]', e); hideLoad(); });
+  }).catch(function(e){ console.error('[AI tag]', e); hideLoad(); if (btn) { btn.disabled = false; btn.textContent = 'AI 미분류 태깅'; } });
 }
 
 function loadStateOnInit() {
@@ -788,8 +805,7 @@ function loadStateOnInit() {
         _txns = tx.txns;
         populateYears();
       }
-      callAiTagging();
-    }).catch(function(){ callAiTagging(); });
+    }).catch(function(){});
   }).catch(function(){ hideLoad(); });
 }
 loadStateOnInit();
