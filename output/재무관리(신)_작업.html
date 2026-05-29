@@ -399,7 +399,7 @@ input[type=file]{display:none}
     </div>
     <div class="kpi-cards" id="kpiTotalCards"></div>
     <div class="kpi-box">
-      <div class="kpi-box-title">사업자별 월별 매출 (입금 기준)</div>
+      <div class="kpi-box-title">사업자별 월별 비용 추이</div>
       <div style="position:relative;height:240px"><canvas id="chartTotalStacked"></canvas></div>
     </div>
     <div class="kpi-grid-1-1">
@@ -2435,10 +2435,7 @@ function computePL(bizFilter, projFilter, yearFilter) {
     if (yearFilter && t.date.substring(0,4) !== yearFilter) return;
     var ym = t.date.substring(0,7);
     if (!monthly[ym]) monthly[ym] = { revenue:0, costs:0, costByCat:{} };
-    if (tCat === '거래처') {
-      monthly[ym].revenue += t.in;
-      totalRev += t.in;
-    } else if (KPI_COST_EXCLUDE.indexOf(tCat) < 0) {
+    if (KPI_COST_EXCLUDE.indexOf(tCat) < 0) {
       monthly[ym].costs += t.out;
       totalCost += t.out;
       monthly[ym].costByCat[tCat] = (monthly[ym].costByCat[tCat] || 0) + t.out;
@@ -2483,12 +2480,11 @@ function kpiDestroy(key) {
 
 function kpiCards(id, rev, cost, profit) {
   var pct = rev > 0 ? (profit / rev * 100).toFixed(1) + '%' : '--';
-  var cls = profit >= 0 ? 'positive' : 'negative';
   document.getElementById(id).innerHTML =
-    '<div class="kpi-card"><div class="kpi-card-lbl">총 매출 (입금)</div><div class="kpi-card-val">' + kpiFmt(rev) + '원</div><div class="kpi-card-sub">' + rev.toLocaleString() + '원</div></div>' +
+    '<div class="kpi-card"><div class="kpi-card-lbl">총 매출</div><div class="kpi-card-val" style="color:var(--muted);font-size:16px;letter-spacing:.3px;">준비중</div><div class="kpi-card-sub">별도 입력 예정</div></div>' +
     '<div class="kpi-card"><div class="kpi-card-lbl">총 비용 (출금)</div><div class="kpi-card-val">' + kpiFmt(cost) + '원</div><div class="kpi-card-sub">' + cost.toLocaleString() + '원</div></div>' +
-    '<div class="kpi-card ' + cls + '"><div class="kpi-card-lbl">순이익</div><div class="kpi-card-val">' + kpiFmt(profit) + '원</div><div class="kpi-card-sub">' + profit.toLocaleString() + '원</div></div>' +
-    '<div class="kpi-card"><div class="kpi-card-lbl">이익률</div><div class="kpi-card-val">' + pct + '</div><div class="kpi-card-sub">매출 대비 순이익</div></div>';
+    '<div class="kpi-card"><div class="kpi-card-lbl">순이익</div><div class="kpi-card-val" style="color:var(--muted);font-size:16px;">—</div><div class="kpi-card-sub">매출 입력 후 산출</div></div>' +
+    '<div class="kpi-card"><div class="kpi-card-lbl">이익률</div><div class="kpi-card-val" style="color:var(--muted);font-size:16px;">—</div><div class="kpi-card-sub">매출 입력 후 산출</div></div>';
 }
 
 var KPI_PALETTE = ['#C8380A','#1565C0','#2E7D32','#F9A825','#6A1B9A','#00838F','#E65100','#37474F','#558B2F','#AD1457','#795548','#607D8B'];
@@ -2556,7 +2552,7 @@ function renderKpiBiz() {
     data: {
       labels: allLbl,
       datasets: [
-        { label:'매출', data: hRev.concat(nf),
+        { label:'매출', data: hRev.concat(nf), hidden: true,
           backgroundColor:'rgba(200,56,10,.25)', borderColor:'#C8380A', borderWidth:1.5, order:2 },
         { label:'비용', data: hCst.concat(nf),
           backgroundColor:'rgba(92,88,81,.15)', borderColor:'#9A958F', borderWidth:1.5, order:2 },
@@ -2674,7 +2670,7 @@ function renderKpiTotal() {
     data:{
       labels: allMExt,
       datasets: bizList.map(function(b){
-        return { label:b, data: allM.map(function(m){ return (bizData[b].monthly[m]||{}).revenue||0; }).concat(nf),
+        return { label:b, hidden: true, data: allM.map(function(m){ return (bizData[b].monthly[m]||{}).revenue||0; }).concat(nf),
           backgroundColor:bizColors[b], stack:'rev', order:2 };
       }).concat([
         { type:'line', label:'그룹 순이익',
@@ -2703,7 +2699,7 @@ function renderKpiTotal() {
     data:{
       labels: allMExt,
       datasets:[
-        { label:'매출', data: tHRev.concat(nf),
+        { label:'매출', data: tHRev.concat(nf), hidden: true,
           borderColor:'#C8380A', backgroundColor:'rgba(200,56,10,.1)', borderWidth:2, fill:true, tension:.3 },
         { label:'비용', data: tHCst.concat(nf),
           borderColor:'#5C5851', backgroundColor:'rgba(92,88,81,.06)', borderWidth:1.5, fill:true, tension:.3, borderDash:[4,3] },
