@@ -527,7 +527,7 @@ const server = http.createServer((req, res) => {
   if (url === '/api/finance-work-tags/patch' && req.method === 'POST') {
     let body = '';
     req.on('data', c => { body += c; });
-    req.on('end', () => {
+    req.on('end', async () => {
       try {
         const parsed = JSON.parse(body);
         const current = readJSON('finance-work-tags.json');
@@ -545,12 +545,13 @@ const server = http.createServer((req, res) => {
           Object.assign(current.merchants[k], fields);
         }
         _cache['finance-work-tags.json'] = current;
-        // 즉시 응답 후 Supabase 쓰기 (논블로킹, 딜레이 없음)
+        // Supabase 쓰기 완료 후 응답 (5초 타임아웃 안전장치)
+        await Promise.race([
+          sbUpsertMerchants(merchantsToRows(changedMap)),
+          new Promise((_, rej) => setTimeout(() => rej(new Error('sb-timeout')), 5000))
+        ]).catch(e => console.error('[patch upsert]', e.message));
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true }));
-        sbUpsertMerchants(merchantsToRows(changedMap)).catch(e =>
-          console.error('[patch upsert]', e.message)
-        );
       } catch (e) { res.writeHead(400); res.end('Bad JSON'); }
     });
     return;
