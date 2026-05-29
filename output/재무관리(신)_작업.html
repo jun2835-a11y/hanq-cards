@@ -494,15 +494,6 @@ function saveState() {
 var _dirtyBatch = {};
 var _dirtyTimer = null;
 
-// 페이지 이탈 시 미저장 데이터 경고
-window.addEventListener('beforeunload', function(e) {
-  if (Object.keys(_dirtyBatch).length > 0 || _dirtyTimer !== null) {
-    e.preventDefault();
-    e.returnValue = '저장되지 않은 태그가 있습니다. 페이지를 나가면 데이터가 유실됩니다.';
-    return e.returnValue;
-  }
-});
-
 // 탭 숨김(다른 탭 이동, 최소화) 시 즉시 저장
 document.addEventListener('visibilitychange', function() {
   if (document.hidden && (Object.keys(_dirtyBatch).length > 0 || _dirtyTimer !== null)) {
