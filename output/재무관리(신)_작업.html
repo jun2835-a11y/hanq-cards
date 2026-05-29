@@ -786,10 +786,13 @@ function loadStateOnInit() {
       if (_merchants[k].cat) _merchants[k].cat = sanitizeCat(_merchants[k].cat);
     });
 
-    // 총 출금 1만원 미만이고 수기 태그 없는 거래처 → 기타 자동분류
+    // 총 출금 1만원 미만 또는 출금 0원(입금 전용) → 기타 자동분류 (수기 태그 보호)
     Object.keys(_merchants).forEach(function(k) {
       var m = _merchants[k];
       if (m.totalOut > 0 && m.totalOut < 10000 && (!m.cat || m.autoTagged)) {
+        m.cat = '기타'; m.autoTagged = true;
+      }
+      if (!m.cat && m.totalOut <= 0) {
         m.cat = '기타'; m.autoTagged = true;
       }
     });
