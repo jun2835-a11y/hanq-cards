@@ -191,6 +191,12 @@ input[type=file]{display:none}
 .kpi-ai-insights > div:last-child{margin-bottom:0!important}
 .kpi-ai-chart-wrap{margin-bottom:16px;border:1px solid var(--border);padding:14px 16px;background:var(--bg)}
 .kpi-ai-chart-title{font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-bottom:10px}
+.kpi-donut-wrap{display:flex;gap:16px;align-items:center;height:220px}
+.kpi-donut-canvas{position:relative;height:220px;width:200px;flex-shrink:0}
+.kpi-donut-legend{flex:1;display:flex;flex-direction:column;gap:5px;overflow:hidden}
+.kpi-leg-item{font-size:11px;color:var(--ink2);display:flex;align-items:center;gap:6px;line-height:1.3;min-width:0}
+.kpi-leg-item span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kpi-leg-dot{width:9px;height:9px;border-radius:2px;flex-shrink:0;display:inline-block}
 </style>
 </head>
 <body>
@@ -319,7 +325,10 @@ input[type=file]{display:none}
       </div>
       <div class="kpi-box" style="margin-bottom:0">
         <div class="kpi-box-title">비용 구성</div>
-        <div style="position:relative;height:220px"><canvas id="chartBizCost"></canvas></div>
+        <div class="kpi-donut-wrap">
+          <div class="kpi-donut-canvas"><canvas id="chartBizCost"></canvas></div>
+          <div class="kpi-donut-legend" id="kpiBizCostLegend"></div>
+        </div>
       </div>
     </div>
     <div class="kpi-box">
@@ -2279,7 +2288,7 @@ function computePL(bizFilter, projFilter, yearFilter) {
     if (!m) return;
     var tBiz = m.biz || '미배분';
     var tProj = m.proj || '';
-    var tCat = m.cat || '미분류';
+    var tCat = (m.cat || '미분류').replace(/[\r\n\t]/g, '').trim();
     if (bizFilter && tBiz !== bizFilter) return;
     if (projFilter && tProj !== projFilter) return;
     if (yearFilter && t.date.substring(0,4) !== yearFilter) return;
@@ -2418,27 +2427,35 @@ function renderKpiBiz() {
     },
   });
 
-  // Chart 2: Cost donut
-  var cats = Object.keys(d.costByCat).sort(function(a,b){ return d.costByCat[b]-d.costByCat[a]; });
+  // Chart 2: Cost donut (Canvas 범례 제거 → HTML 범례로 한글 깨짐 완전 방지)
+  var allCatsSorted = Object.keys(d.costByCat).sort(function(a,b){ return d.costByCat[b]-d.costByCat[a]; });
+  var topCats = allCatsSorted.slice(0, 10);
+  var restSum = allCatsSorted.slice(10).reduce(function(s,c){ return s + d.costByCat[c]; }, 0);
+  if (restSum > 0) topCats = topCats.concat(['기타']);
+  var catVals = topCats.map(function(c){ return c === '기타' ? restSum : d.costByCat[c]; });
+  var catTotal = catVals.reduce(function(s,v){ return s + v; }, 0);
   var ctx2 = document.getElementById('chartBizCost').getContext('2d');
   _kpiCharts.chartBizCost = new Chart(ctx2, {
     type:'doughnut',
     data:{
-      labels: cats,
-      datasets:[{ data: cats.map(function(c){ return d.costByCat[c]; }),
-        backgroundColor: KPI_PALETTE, borderWidth:1 }],
+      labels: topCats,
+      datasets:[{ data: catVals, backgroundColor: KPI_PALETTE, borderWidth:1 }],
     },
     options:{
       responsive:true, maintainAspectRatio:false,
       plugins:{
-        legend:{ position:'right', labels:{ font:{size:9,family:KPI_FONT}, boxWidth:8 } },
-        tooltip:{ callbacks:{ label:function(ctx){
-          var pct = d.totalCost > 0 ? (ctx.parsed/d.totalCost*100).toFixed(1) : '0';
-          return ctx.label + ': ' + kpiFmt(ctx.parsed) + '원 (' + pct + '%)';
+        legend:{ display:false },
+        tooltip:{ callbacks:{ label:function(c){
+          var pct = catTotal > 0 ? (c.parsed/catTotal*100).toFixed(1) : '0';
+          return c.label + ': ' + kpiFmt(c.parsed) + '원 (' + pct + '%)';
         }}},
       },
     },
   });
+  document.getElementById('kpiBizCostLegend').innerHTML = topCats.map(function(c,i){
+    var pct = catTotal > 0 ? (catVals[i]/catTotal*100).toFixed(1) : '0';
+    return '<div class="kpi-leg-item"><i class="kpi-leg-dot" style="background:'+KPI_PALETTE[i%KPI_PALETTE.length]+'"></i><span title="'+c+'">'+c+'</span><span style="margin-left:auto;color:var(--muted);font-size:10px;flex-shrink:0">'+pct+'%</span></div>';
+  }).join('');
 
   // Chart 3: Cumulative area + 예측 dashed
   var lastCumVal = hCum.length ? hCum[hCum.length-1] : 0;
@@ -2555,22 +2572,25 @@ function renderKpiTotal() {
     },
   });
 
-  // Chart 3: Cost categories horizontal bar
-  var cats = Object.keys(total.costByCat).sort(function(a,b){ return total.costByCat[b]-total.costByCat[a]; });
+  // Chart 3: Cost categories horizontal bar (상위 12개, font 11px)
+  var allCatsTot = Object.keys(total.costByCat).sort(function(a,b){ return total.costByCat[b]-total.costByCat[a]; });
+  var cats = allCatsTot.slice(0, 12);
+  var otherTotSum = allCatsTot.slice(12).reduce(function(s,c){ return s + total.costByCat[c]; }, 0);
+  if (otherTotSum > 0) cats = cats.concat(['기타']);
+  var catTotVals = cats.map(function(c){ return c === '기타' ? otherTotSum : total.costByCat[c]; });
   var ctx3 = document.getElementById('chartTotalCost').getContext('2d');
   _kpiCharts.chartTotalCost = new Chart(ctx3, {
     type:'bar',
     data:{
       labels: cats,
-      datasets:[{ label:'비용', data: cats.map(function(c){ return total.costByCat[c]; }),
-        backgroundColor:'rgba(200,56,10,.7)', borderRadius:2 }],
+      datasets:[{ label:'비용', data: catTotVals, backgroundColor:'rgba(200,56,10,.7)', borderRadius:2 }],
     },
     options:{
       indexAxis:'y', responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{ display:false } },
       scales:{
         x:{ ticks:{ font:{size:10,family:KPI_FONT}, callback:function(v){ return kpiFmt(v); } } },
-        y:{ ticks:{ font:{size:9,family:KPI_FONT} } },
+        y:{ ticks:{ font:{size:11,family:KPI_FONT} } },
       },
     },
   });
