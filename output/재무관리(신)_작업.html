@@ -2355,10 +2355,10 @@ function renderKpiBiz() {
     },
     options: {
       responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{ labels:{ font:{size:11}, boxWidth:10 } } },
+      plugins:{ legend:{ labels:{ font:{size:11,family:"'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif"}, boxWidth:10 } } },
       scales:{
-        x:{ ticks:{ font:{size:10}, maxRotation:45 } },
-        y:{ ticks:{ font:{size:10}, callback:function(v){ return kpiFmt(v); } } },
+        x:{ ticks:{ font:{size:10,family:"'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif"}, maxRotation:45 } },
+        y:{ ticks:{ font:{size:10,family:"'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif"}, callback:function(v){ return kpiFmt(v); } } },
       },
     },
   });
@@ -2376,7 +2376,7 @@ function renderKpiBiz() {
     options:{
       responsive:true, maintainAspectRatio:false,
       plugins:{
-        legend:{ position:'right', labels:{ font:{size:9}, boxWidth:8 } },
+        legend:{ position:'right', labels:{ font:{size:9,family:"'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif"}, boxWidth:8 } },
         tooltip:{ callbacks:{ label:function(ctx){
           var pct = d.totalCost > 0 ? (ctx.parsed/d.totalCost*100).toFixed(1) : '0';
           return ctx.label + ': ' + kpiFmt(ctx.parsed) + '원 (' + pct + '%)';
@@ -2402,8 +2402,8 @@ function renderKpiBiz() {
       responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{ display:false } },
       scales:{
-        x:{ ticks:{ font:{size:10}, maxRotation:45 } },
-        y:{ ticks:{ font:{size:10}, callback:function(v){ return kpiFmt(v); } } },
+        x:{ ticks:{ font:{size:10,family:"'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif"}, maxRotation:45 } },
+        y:{ ticks:{ font:{size:10,family:"'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif"}, callback:function(v){ return kpiFmt(v); } } },
       },
     },
   });
@@ -2446,10 +2446,10 @@ function renderKpiTotal() {
     },
     options:{
       responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{ labels:{ font:{size:11}, boxWidth:10 } } },
+      plugins:{ legend:{ labels:{ font:{size:11,family:"'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif"}, boxWidth:10 } } },
       scales:{
-        x:{ ticks:{ font:{size:10}, maxRotation:45 } },
-        y:{ stacked:true, ticks:{ font:{size:10}, callback:function(v){ return kpiFmt(v); } } },
+        x:{ ticks:{ font:{size:10,family:"'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif"}, maxRotation:45 } },
+        y:{ stacked:true, ticks:{ font:{size:10,family:"'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif"}, callback:function(v){ return kpiFmt(v); } } },
       },
     },
   });
@@ -2471,10 +2471,10 @@ function renderKpiTotal() {
     },
     options:{
       responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{ labels:{ font:{size:11}, boxWidth:10 } } },
+      plugins:{ legend:{ labels:{ font:{size:11,family:"'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif"}, boxWidth:10 } } },
       scales:{
-        x:{ ticks:{ font:{size:10}, maxRotation:45 } },
-        y:{ ticks:{ font:{size:10}, callback:function(v){ return kpiFmt(v); } } },
+        x:{ ticks:{ font:{size:10,family:"'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif"}, maxRotation:45 } },
+        y:{ ticks:{ font:{size:10,family:"'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif"}, callback:function(v){ return kpiFmt(v); } } },
       },
     },
   });
@@ -2493,8 +2493,8 @@ function renderKpiTotal() {
       indexAxis:'y', responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{ display:false } },
       scales:{
-        x:{ ticks:{ font:{size:10}, callback:function(v){ return kpiFmt(v); } } },
-        y:{ ticks:{ font:{size:9} } },
+        x:{ ticks:{ font:{size:10,family:"'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif"}, callback:function(v){ return kpiFmt(v); } } },
+        y:{ ticks:{ font:{size:9,family:"'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif"} } },
       },
     },
   });
