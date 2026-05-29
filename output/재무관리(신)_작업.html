@@ -450,25 +450,26 @@ input[type=file]{display:none}
 
     <div class="kpi-prof-section">
       <div class="kpi-prof-section-hd">
-        <span class="kpi-prof-section-label">자본 수익률 · 재무제표 수동 입력</span>
+        <span class="kpi-prof-section-label" id="kpiBsSectionLabel">자본 수익률 · 재무제표</span>
         <div class="kpi-prof-section-line"></div>
+        <button onclick="refreshFinSummary()" id="kpiBsRefreshBtn" style="display:none;padding:2px 10px;font-size:11px;background:rgba(21,101,192,.15);border:1px solid rgba(21,101,192,.3);border-radius:4px;color:#64B5F6;cursor:pointer;font-family:inherit;">↻ 계좌 새로고침</button>
         <span class="kpi-prof-save-st" id="kpiBsSt"></span>
       </div>
       <div class="kpi-bs-grid">
         <div class="kpi-bs-box">
           <div class="kpi-bs-lbl">자기자본 (Equity)</div>
           <input class="kpi-bs-inp" id="bsEquity" type="text" placeholder="금액 입력 (원)" oninput="onBsInput()" />
-          <div class="kpi-bs-sub">ROE 산출 기준</div>
+          <div class="kpi-bs-sub" id="bsEquitySub">ROE 산출 기준</div>
         </div>
         <div class="kpi-bs-box">
           <div class="kpi-bs-lbl">총자산 (Total Assets)</div>
           <input class="kpi-bs-inp" id="bsAssets" type="text" placeholder="금액 입력 (원)" oninput="onBsInput()" />
-          <div class="kpi-bs-sub">ROA 산출 기준</div>
+          <div class="kpi-bs-sub" id="bsAssetsSub">ROA 산출 기준</div>
         </div>
         <div class="kpi-bs-box">
           <div class="kpi-bs-lbl">투하자본 (Invested Capital)</div>
           <input class="kpi-bs-inp" id="bsCapital" type="text" placeholder="금액 입력 (원)" oninput="onBsInput()" />
-          <div class="kpi-bs-sub">ROIC · 자기자본 + 차입금</div>
+          <div class="kpi-bs-sub" id="bsCapitalSub">ROIC · 자기자본 + 차입금</div>
         </div>
       </div>
       <div class="kpi-prof-grid kpi-prof-grid-3" id="kpiProfCards2"></div>
@@ -577,11 +578,27 @@ var VS_BUFFER = 20;   // 뷰포트 위아래 추가 렌더 행 수
 var API       = (location.hostname === 'localhost' ? 'http://localhost:3005' : '') + '/api/finance-work-tags';
 var PATCH_API = (location.hostname === 'localhost' ? 'http://localhost:3005' : '') + '/api/finance-work-tags/patch';
 var TX_API    = (location.hostname === 'localhost' ? 'http://localhost:3005' : '') + '/api/tx-data-state';
-var BS_API    = (location.hostname === 'localhost' ? 'http://localhost:3005' : '') + '/api/bs-params';
+var BS_API      = (location.hostname === 'localhost' ? 'http://localhost:3005' : '') + '/api/bs-params';
+var SUMMARY_API = (location.hostname === 'localhost' ? 'http://localhost:3005' : '') + '/api/finance-summary';
 
 // 재무제표 파라미터 (ROE/ROA/ROIC 분모 값), 사업자별 키
 var _bsParams = {};
 (function(){ fetch(BS_API).then(function(r){ return r.json(); }).then(function(j){ if (j.ok) _bsParams = j.params || {}; }).catch(function(){}); })();
+
+// 계좌 요약 데이터 (전체 기준 자산/자본 자동 연동용)
+var _finSummary = null;
+function refreshFinSummary() {
+  var st = document.getElementById('kpiBsSt');
+  if (st) st.textContent = '불러오는 중...';
+  fetch(SUMMARY_API).then(function(r){ return r.json(); }).then(function(j){
+    _finSummary = j;
+    if (st) { st.textContent = '✓ 계좌 연동됨'; setTimeout(function(){ if(st) st.textContent=''; }, 2000); }
+    renderKpiProf();
+  }).catch(function(){
+    if (st) st.textContent = '연동 실패';
+  });
+}
+(function(){ fetch(SUMMARY_API).then(function(r){ return r.json(); }).then(function(j){ _finSummary = j; }).catch(function(){}); })();
 
 // 거래 원본(_txns) 저장 — CSV 파싱 완료 시 한 번만 호출
 function saveTxns() {
@@ -2776,17 +2793,50 @@ function renderKpiProf() {
   var grossMargin= d.totalRev > 0 ? (d.totalRev - labor) / d.totalRev * 100 : null;
 
   var parseAmt = function(s){ return parseFloat((s||'').replace(/[,원\s]/g,'')) || 0; };
-  var equity = parseAmt(bp.equity), assets = parseAmt(bp.assets), capital = parseAmt(bp.capital);
+
+  var isAll = (key === 'all');
+  var equity, assets, capital;
+  var eqEl=document.getElementById('bsEquity'), asEl=document.getElementById('bsAssets'), caEl=document.getElementById('bsCapital');
+  var act = document.activeElement;
+  var labelEl = document.getElementById('kpiBsSectionLabel');
+  var refreshBtn = document.getElementById('kpiBsRefreshBtn');
+  var stEl = document.getElementById('kpiBsSt');
+
+  if (isAll && _finSummary && _finSummary.totalDeposit != null) {
+    // 전체 기준: 계좌 데이터 자동 연동
+    equity  = _finSummary.netFunds   || 0;
+    assets  = _finSummary.totalDeposit || 0;
+    capital = _finSummary.totalDeposit || 0; // 자기자본 + 차입금 ≈ 총 예금잔액
+    eqEl.value = equity;  eqEl.readOnly = true;  eqEl.style.opacity = '0.55'; eqEl.style.cursor = 'default';
+    asEl.value = assets;  asEl.readOnly = true;  asEl.style.opacity = '0.55'; asEl.style.cursor = 'default';
+    caEl.value = capital; caEl.readOnly = true;  caEl.style.opacity = '0.55'; caEl.style.cursor = 'default';
+    if (document.getElementById('bsEquitySub'))  document.getElementById('bsEquitySub').textContent  = '계좌 자동: 예금잔액 − 대출 ' + kpiFmt(equity) + '원';
+    if (document.getElementById('bsAssetsSub'))  document.getElementById('bsAssetsSub').textContent  = '계좌 자동: 예금잔액 합계 ' + kpiFmt(assets) + '원';
+    if (document.getElementById('bsCapitalSub')) document.getElementById('bsCapitalSub').textContent = '계좌 자동: 자기자본 + 차입금 ' + kpiFmt(capital) + '원';
+    if (labelEl) labelEl.textContent = '자본 수익률 · 계좌 자동 연동';
+    if (refreshBtn) refreshBtn.style.display = 'inline-block';
+    if (stEl && !stEl.textContent) stEl.textContent = '';
+  } else {
+    // 사업자별: 수동 입력
+    equity  = parseAmt(bp.equity);
+    assets  = parseAmt(bp.assets);
+    capital = parseAmt(bp.capital);
+    eqEl.readOnly = false; eqEl.style.opacity = ''; eqEl.style.cursor = '';
+    asEl.readOnly = false; asEl.style.opacity = ''; asEl.style.cursor = '';
+    caEl.readOnly = false; caEl.style.opacity = ''; caEl.style.cursor = '';
+    if (act !== eqEl) eqEl.value = bp.equity || '';
+    if (act !== asEl) asEl.value = bp.assets || '';
+    if (act !== caEl) caEl.value = bp.capital || '';
+    if (document.getElementById('bsEquitySub'))  document.getElementById('bsEquitySub').textContent  = 'ROE 산출 기준';
+    if (document.getElementById('bsAssetsSub'))  document.getElementById('bsAssetsSub').textContent  = 'ROA 산출 기준';
+    if (document.getElementById('bsCapitalSub')) document.getElementById('bsCapitalSub').textContent = 'ROIC · 자기자본 + 차입금';
+    if (labelEl) labelEl.textContent = '자본 수익률 · 재무제표 수동 입력';
+    if (refreshBtn) refreshBtn.style.display = 'none';
+  }
+
   var roe  = equity  > 0 ? d.profit / equity  * 100 : null;
   var roa  = assets  > 0 ? d.profit / assets  * 100 : null;
   var roic = capital > 0 ? ebit     / capital * 100 : null;
-
-  // ── 입력 필드 갱신 (포커스 중인 필드 제외) ──
-  var act = document.activeElement;
-  var eqEl=document.getElementById('bsEquity'), asEl=document.getElementById('bsAssets'), caEl=document.getElementById('bsCapital');
-  if (act !== eqEl) eqEl.value = bp.equity || '';
-  if (act !== asEl) asEl.value = bp.assets || '';
-  if (act !== caEl) caEl.value = bp.capital || '';
 
   // ── 헬퍼 ──
   function cc(v, t1, t2, t3) {
