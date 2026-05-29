@@ -322,6 +322,7 @@ const AUTO_RULES = [
 
 // ── 로딩 인디케이터 ──────────────────────────────────
 var _ldCount = 0;
+var _barPinned = false; // 태깅 탭에서는 바 상시 표시
 var _ldBar   = document.getElementById('ld-bar');
 var _ldToast = document.getElementById('ld-toast');
 var _ldMsg   = document.getElementById('ld-msg');
@@ -335,8 +336,10 @@ function showLoad(msg) {
 function hideLoad() {
   if (--_ldCount > 0) return;
   _ldCount = 0;
-  _ldBar.classList.remove('active');
-  _ldBar.style.display = 'none';
+  if (!_barPinned) {
+    _ldBar.classList.remove('active');
+    _ldBar.style.display = 'none';
+  }
   _ldToast.classList.remove('show');
 }
 
@@ -387,12 +390,10 @@ function flushDirtyBatch() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ merchants: batch })
   }).then(function(r){ return r.json(); }).then(function(){
-    hideLoad();
-    setSaveStatus('saved');
+    setTimeout(function(){ hideLoad(); setSaveStatus('saved'); }, 600);
   }).catch(function(){
-    hideLoad();
+    setTimeout(function(){ hideLoad(); setSaveStatus('error'); }, 600);
     Object.assign(_dirtyBatch, batch); // 실패 시 재적재
-    setSaveStatus('error');
   });
 }
 
@@ -559,6 +560,17 @@ function switchTab(t) {
   document.querySelectorAll('.tab-btn').forEach(function(b,i){
     b.classList.toggle('active', ['upload','tag','agg'][i]===t);
   });
+  if (t === 'tag') {
+    _barPinned = true;
+    _ldBar.classList.add('active');
+    _ldBar.style.display = 'block';
+  } else {
+    _barPinned = false;
+    if (_ldCount === 0) {
+      _ldBar.classList.remove('active');
+      _ldBar.style.display = 'none';
+    }
+  }
   if (t === 'agg') renderAgg();
 }
 
