@@ -556,6 +556,121 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // KPI 예측 & 인사이트 API
+  if (url === '/api/kpi-predict' && req.method === 'POST') {
+    if (!ANTHROPIC_KEY) {
+      res.writeHead(503, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: 'ANTHROPIC_API_KEY 미설정' }));
+      return;
+    }
+    let body = '';
+    req.on('data', c => { body += c; });
+    req.on('end', async () => {
+      try {
+        const { scope, history, totalRev, totalCost, profit, costByCat, bizBreakdown } = JSON.parse(body);
+
+        // 다음 3개월 계산
+        const lastMonth = (history[history.length - 1] || {}).month || new Date().toISOString().substring(0, 7);
+        const [ly, lm] = lastMonth.split('-').map(Number);
+        const next3 = [1, 2, 3].map(i => {
+          const m = ((lm - 1 + i) % 12) + 1;
+          const y = ly + Math.floor((lm - 1 + i) / 12);
+          return `${y}-${String(m).padStart(2, '0')}`;
+        });
+
+        const topCosts = Object.entries(costByCat || {})
+          .sort((a, b) => b[1] - a[1]).slice(0, 5)
+          .map(([c, v]) => `  - ${c}: ${v.toLocaleString()}원`).join('\n');
+
+        const bizLines = bizBreakdown
+          ? Object.entries(bizBreakdown)
+              .map(([b, v]) => `  - ${b}: 매출 ${v.rev.toLocaleString()}, 비용 ${v.cost.toLocaleString()}, 순이익 ${v.profit.toLocaleString()}`)
+              .join('\n')
+          : '';
+
+        const historyLines = history.map(h =>
+          `  ${h.month}: 매출 ${h.revenue.toLocaleString()}원, 비용 ${h.costs.toLocaleString()}원, 순이익 ${h.profit.toLocaleString()}원`
+        ).join('\n');
+
+        const prompt = `당신은 hanQ 그룹의 수석 재무 분석가입니다. 현금주의 회계 기준의 실제 거래 데이터를 분석합니다.
+
+## 분석 대상: "${scope}"
+
+### 누적 요약
+- 총 매출: ${totalRev.toLocaleString()}원
+- 총 비용: ${totalCost.toLocaleString()}원
+- 순이익: ${profit.toLocaleString()}원
+- 이익률: ${totalRev > 0 ? (profit / totalRev * 100).toFixed(1) : 0}%
+
+### 월별 추이 (최근 ${history.length}개월)
+${historyLines}
+
+${topCosts ? `### 주요 비용 카테고리 (상위 5개)\n${topCosts}` : ''}
+
+${bizLines ? `### 사업자별 현황\n${bizLines}` : ''}
+
+## 요청
+
+**1. 다음 3개월(${next3.join(', ')}) 예측**
+- 최근 트렌드와 계절성을 반영한 매출/비용/순이익 예측
+- 숫자는 정수 (원 단위)
+
+**2. 핵심 인사이트 4~6개**
+- 리스크(risk): 주의해야 할 재무적 위험 요소
+- 기회(opportunity): 개선 또는 성장 가능성
+- 트렌드(trend): 현재 진행 중인 의미 있는 추세
+- 각 인사이트는 데이터에 근거한 구체적 수치 포함
+
+**응답 형식 (JSON만, 마크다운 코드블록 없이):**
+{
+  "forecast": [
+    {"month": "YYYY-MM", "revenue": 숫자, "costs": 숫자, "profit": 숫자},
+    {"month": "YYYY-MM", "revenue": 숫자, "costs": 숫자, "profit": 숫자},
+    {"month": "YYYY-MM", "revenue": 숫자, "costs": 숫자, "profit": 숫자}
+  ],
+  "insights": [
+    {"type": "risk", "title": "제목 (15자 이내)", "body": "구체적 설명 (2~3문장, 수치 포함)"},
+    {"type": "opportunity", "title": "제목", "body": "설명"},
+    {"type": "trend", "title": "제목", "body": "설명"}
+  ]
+}`;
+
+        const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'x-api-key': ANTHROPIC_KEY,
+            'anthropic-version': '2023-06-01',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 2048,
+            messages: [{ role: 'user', content: prompt }],
+          }),
+        });
+
+        if (!aiRes.ok) {
+          const errText = await aiRes.text().catch(() => '');
+          throw new Error(`Anthropic ${aiRes.status}: ${errText.slice(0, 200)}`);
+        }
+
+        const aiData = await aiRes.json();
+        const text = aiData.content?.[0]?.text || '';
+        const match = text.match(/\{[\s\S]*\}/);
+        if (!match) throw new Error('AI 응답에 JSON 없음: ' + text.slice(0, 100));
+        const parsed = JSON.parse(match[0]);
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, forecast: parsed.forecast || [], insights: parsed.insights || [] }));
+      } catch(e) {
+        console.error('[kpi-predict error]', e.message);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: e.message }));
+      }
+    });
+    return;
+  }
+
   // AI 자동 태깅 API
   if (url === '/api/ai-tag' && req.method === 'POST') {
     if (!ANTHROPIC_KEY) {

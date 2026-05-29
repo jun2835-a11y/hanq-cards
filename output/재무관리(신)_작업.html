@@ -6,6 +6,7 @@
 <title>재무관리(신) 작업 — hanQ</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -159,6 +160,35 @@ input[type=file]{display:none}
 #ld-toast.show{opacity:1;transform:translateY(0)}
 #ld-spin{width:11px;height:11px;border:1.5px solid rgba(255,255,255,.2);border-top-color:white;border-radius:50%;animation:ldSpin .65s linear infinite;flex-shrink:0}
 @keyframes ldSpin{to{transform:rotate(360deg)}}
+/* ── KPI 대시보드 ── */
+.kpi-subnav{display:flex;border-bottom:1px solid var(--border);margin-bottom:20px}
+.kpi-sub-btn{padding:10px 20px;font-size:11px;font-weight:500;letter-spacing:.04em;color:var(--muted);border:none;border-bottom:2px solid transparent;cursor:pointer;background:none;font-family:inherit;transition:all .15s;text-transform:uppercase}
+.kpi-sub-btn.active{color:var(--ink);border-bottom-color:var(--accent);font-weight:700}
+.kpi-view{display:none}
+.kpi-view.active{display:block}
+.kpi-ctrl-row{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.kpi-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.kpi-card{background:var(--surface);border:1px solid var(--border);padding:16px 18px}
+.kpi-card-lbl{font-size:10px;font-weight:700;letter-spacing:.07em;color:var(--muted);text-transform:uppercase;margin-bottom:8px}
+.kpi-card-val{font-size:22px;font-weight:700;color:var(--ink);letter-spacing:-.01em;line-height:1.1}
+.kpi-card-sub{font-size:10px;color:var(--muted);margin-top:4px}
+.kpi-card.positive .kpi-card-val{color:var(--green)}
+.kpi-card.negative .kpi-card-val{color:var(--accent)}
+.kpi-grid-3-2{display:grid;grid-template-columns:3fr 2fr;gap:12px;margin-bottom:12px}
+.kpi-grid-1-1{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.kpi-box{background:var(--surface);border:1px solid var(--border);padding:18px;margin-bottom:12px}
+.kpi-box-title{font-size:10px;font-weight:700;letter-spacing:.07em;color:var(--muted);text-transform:uppercase;margin-bottom:14px}
+.kpi-ai-wrap{background:var(--surface);border:1px solid var(--border);padding:18px;margin-top:8px}
+.kpi-ai-header{display:flex;align-items:center;gap:14px;margin-bottom:4px}
+.kpi-ai-label{font-size:10px;font-weight:700;letter-spacing:.07em;color:var(--muted);text-transform:uppercase}
+.kpi-ai-btn{background:var(--ink);color:white;font-size:11px;font-weight:700;letter-spacing:.04em;padding:8px 18px;cursor:pointer;border:none;font-family:inherit;text-transform:uppercase;transition:opacity .15s}
+.kpi-ai-btn:disabled{opacity:.45;cursor:default}
+.kpi-ai-result{display:none;margin-top:14px}
+.kpi-ai-forecast{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.kpi-ai-month{background:var(--bg);border:1px solid var(--border);padding:13px 15px}
+.kpi-ai-month-lbl{font-size:10px;font-weight:700;letter-spacing:.05em;color:var(--muted);margin-bottom:6px}
+.kpi-ai-month-val{font-size:15px;font-weight:700}
+.kpi-ai-insights > div:last-child{margin-bottom:0!important}
 </style>
 </head>
 <body>
@@ -176,6 +206,7 @@ input[type=file]{display:none}
   <button class="tab-btn active" onclick="switchTab('upload')">CSV 업로드</button>
   <button class="tab-btn" id="tabTag" onclick="switchTab('tag')">태깅 작업 <span class="tab-badge" id="pendingBadge" style="display:none">0</span></button>
   <button class="tab-btn" id="tabAgg" onclick="switchTab('agg')">집계</button>
+  <button class="tab-btn" id="tabKpi" onclick="switchTab('kpi')">KPI 대시보드</button>
   <div class="save-indicator" id="saveInd"><span class="save-dot"></span><span id="saveText">대기 중</span></div>
   <div id="deployInfo" style="font-size:10px;color:var(--muted);padding:0 12px;align-self:center;letter-spacing:.02em"></div>
 </div>
@@ -255,6 +286,89 @@ input[type=file]{display:none}
     <button class="export-btn" onclick="exportCSV()">CSV 내보내기</button>
   </div>
   <div id="aggTableWrap"><div class="no-data">태깅 완료 후 집계를 확인하세요</div></div>
+</div>
+
+<!-- ── 탭 4: KPI 대시보드 ── -->
+<div class="panel" id="panelKpi">
+  <div class="kpi-subnav">
+    <button class="kpi-sub-btn active" id="kpiSubBiz" onclick="switchKpiView('biz')">사업자·프로젝트 손익</button>
+    <button class="kpi-sub-btn" id="kpiSubTotal" onclick="switchKpiView('total')">전체 그룹 손익</button>
+  </div>
+
+  <!-- View A: 사업자·프로젝트 손익 -->
+  <div id="kpiBizView" class="kpi-view active">
+    <div class="kpi-ctrl-row">
+      <select class="agg-select" id="kpiBiz" onchange="onKpiBizChange()">
+        <option value="">전체 사업자</option>
+        <option>한솔</option><option>수복지</option><option>한큐</option><option>교육원</option>
+      </select>
+      <select class="agg-select" id="kpiProj" style="display:none" onchange="renderKpiBiz()">
+        <option value="">전체 프로젝트</option>
+      </select>
+      <select class="agg-select" id="kpiYear" onchange="renderKpiBiz()">
+        <option value="">전체 기간</option>
+      </select>
+    </div>
+    <div class="kpi-cards" id="kpiBizCards"></div>
+    <div class="kpi-grid-3-2">
+      <div class="kpi-box" style="margin-bottom:0">
+        <div class="kpi-box-title">월별 손익 추이</div>
+        <div style="position:relative;height:220px"><canvas id="chartBizMonthly"></canvas></div>
+      </div>
+      <div class="kpi-box" style="margin-bottom:0">
+        <div class="kpi-box-title">비용 구성</div>
+        <div style="position:relative;height:220px"><canvas id="chartBizCost"></canvas></div>
+      </div>
+    </div>
+    <div class="kpi-box">
+      <div class="kpi-box-title">누적 순이익</div>
+      <div style="position:relative;height:150px"><canvas id="chartBizCumul"></canvas></div>
+    </div>
+    <div class="kpi-ai-wrap">
+      <div class="kpi-ai-header">
+        <span class="kpi-ai-label">AI 예측 &amp; 인사이트 (Claude Haiku)</span>
+        <button class="kpi-ai-btn" id="kpiAiBtn" onclick="requestAIPrediction('biz')">3개월 예측 &amp; AI 인사이트</button>
+      </div>
+      <div class="kpi-ai-result" id="kpiAiResult">
+        <div class="kpi-ai-forecast"></div>
+        <div class="kpi-ai-insights"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- View B: 전체 그룹 손익 -->
+  <div id="kpiTotalView" class="kpi-view">
+    <div class="kpi-ctrl-row">
+      <select class="agg-select" id="kpiTotalYear" onchange="renderKpiTotal()">
+        <option value="">전체 기간</option>
+      </select>
+    </div>
+    <div class="kpi-cards" id="kpiTotalCards"></div>
+    <div class="kpi-box">
+      <div class="kpi-box-title">사업자별 월별 매출 (입금 기준)</div>
+      <div style="position:relative;height:240px"><canvas id="chartTotalStacked"></canvas></div>
+    </div>
+    <div class="kpi-grid-1-1">
+      <div class="kpi-box" style="margin-bottom:0">
+        <div class="kpi-box-title">그룹 손익 추이</div>
+        <div style="position:relative;height:220px"><canvas id="chartTotalTrend"></canvas></div>
+      </div>
+      <div class="kpi-box" style="margin-bottom:0">
+        <div class="kpi-box-title">비용 카테고리 분석</div>
+        <div style="position:relative;height:220px"><canvas id="chartTotalCost"></canvas></div>
+      </div>
+    </div>
+    <div class="kpi-ai-wrap" style="margin-top:12px">
+      <div class="kpi-ai-header">
+        <span class="kpi-ai-label">AI 그룹 전략 분석 (Claude Haiku)</span>
+        <button class="kpi-ai-btn" id="kpiTotalAiBtn" onclick="requestAIPrediction('total')">그룹 전체 AI 분석</button>
+      </div>
+      <div class="kpi-ai-result" id="kpiTotalAiResult">
+        <div class="kpi-ai-forecast"></div>
+        <div class="kpi-ai-insights"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -554,11 +668,11 @@ function flashSave(sbOk) {
 
 // ── 탭 전환 ──────────────────────────────────────────
 function switchTab(t) {
-  ['upload','tag','agg'].forEach(function(id){
+  ['upload','tag','agg','kpi'].forEach(function(id){
     document.getElementById('panel'+id.charAt(0).toUpperCase()+id.slice(1)).classList.toggle('active', id===t);
   });
   document.querySelectorAll('.tab-btn').forEach(function(b,i){
-    b.classList.toggle('active', ['upload','tag','agg'][i]===t);
+    b.classList.toggle('active', ['upload','tag','agg','kpi'][i]===t);
   });
   if (t === 'tag') {
     _barPinned = true;
@@ -572,6 +686,7 @@ function switchTab(t) {
     }
   }
   if (t === 'agg') renderAgg();
+  if (t === 'kpi') renderKpiDashboard();
 }
 
 // ── 은행 감지 ─────────────────────────────────────────
@@ -2077,6 +2192,372 @@ function exportCSV() {
   var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
   a.download = 'hanq_finance_' + new Date().toISOString().substring(0,10) + '.csv';
   a.click();
+}
+
+// ── KPI 대시보드 ──────────────────────────────────────
+var _kpiCharts = {};
+var _kpiCurrentView = 'biz';
+var KPI_COST_EXCLUDE = ['거래처','기타','미분류'];
+
+function switchKpiView(v) {
+  _kpiCurrentView = v;
+  document.getElementById('kpiBizView').classList.toggle('active', v === 'biz');
+  document.getElementById('kpiTotalView').classList.toggle('active', v === 'total');
+  document.getElementById('kpiSubBiz').classList.toggle('active', v === 'biz');
+  document.getElementById('kpiSubTotal').classList.toggle('active', v === 'total');
+  if (v === 'biz') renderKpiBiz();
+  else renderKpiTotal();
+}
+
+function onKpiBizChange() {
+  var biz = document.getElementById('kpiBiz').value;
+  var projSel = document.getElementById('kpiProj');
+  var projs = PROJ_BY_BIZ[biz] || [];
+  if (!projs.length) { projSel.style.display = 'none'; projSel.value = ''; }
+  else {
+    projSel.innerHTML = '<option value="">전체 프로젝트</option>';
+    projs.forEach(function(p) { projSel.innerHTML += '<option>' + p + '</option>'; });
+    projSel.style.display = '';
+  }
+  renderKpiBiz();
+}
+
+function initKpiYears() {
+  var years = {};
+  var txns = _txns.length > 0 ? _txns : makePseudoTxns();
+  txns.forEach(function(t) { years[t.date.substring(0,4)] = 1; });
+  var sorted = Object.keys(years).sort();
+  ['kpiYear','kpiTotalYear'].forEach(function(id) {
+    var sel = document.getElementById(id);
+    var prev = sel.value;
+    sel.innerHTML = '<option value="">전체 기간</option>';
+    sorted.forEach(function(y) { sel.innerHTML += '<option>' + y + '</option>'; });
+    if (sorted.indexOf(prev) >= 0) sel.value = prev;
+  });
+}
+
+function computePL(bizFilter, projFilter, yearFilter) {
+  var txns = _txns.length > 0 ? _txns : makePseudoTxns();
+  var monthly = {};
+  var totalRev = 0, totalCost = 0;
+  var costByCat = {};
+  txns.forEach(function(t) {
+    var m = _merchants[t.merchant];
+    if (!m) return;
+    var tBiz = m.biz || '미배분';
+    var tProj = m.proj || '';
+    var tCat = m.cat || '미분류';
+    if (bizFilter && tBiz !== bizFilter) return;
+    if (projFilter && tProj !== projFilter) return;
+    if (yearFilter && t.date.substring(0,4) !== yearFilter) return;
+    var ym = t.date.substring(0,7);
+    if (!monthly[ym]) monthly[ym] = { revenue:0, costs:0, costByCat:{} };
+    if (tCat === '거래처') {
+      monthly[ym].revenue += t.in;
+      totalRev += t.in;
+    } else if (KPI_COST_EXCLUDE.indexOf(tCat) < 0) {
+      monthly[ym].costs += t.out;
+      totalCost += t.out;
+      monthly[ym].costByCat[tCat] = (monthly[ym].costByCat[tCat] || 0) + t.out;
+      costByCat[tCat] = (costByCat[tCat] || 0) + t.out;
+    }
+  });
+  var months = Object.keys(monthly).sort();
+  var cumulative = 0;
+  months.forEach(function(ym) {
+    var d = monthly[ym];
+    d.profit = d.revenue - d.costs;
+    cumulative += d.profit;
+    d.cumulative = cumulative;
+  });
+  return { monthly:monthly, months:months, totalRev:totalRev, totalCost:totalCost,
+    profit:totalRev - totalCost, costByCat:costByCat };
+}
+
+function kpiFmt(n) {
+  if (n == null) return '-';
+  var abs = Math.abs(n), sign = n < 0 ? '-' : '';
+  if (abs >= 100000000) return sign + (abs / 100000000).toFixed(1) + '억';
+  if (abs >= 10000000)  return sign + Math.round(abs / 10000000) + '천만';
+  if (abs >= 10000)     return sign + Math.round(abs / 10000) + '만';
+  return n.toLocaleString();
+}
+
+function kpiDestroy(key) {
+  if (_kpiCharts[key]) { try { _kpiCharts[key].destroy(); } catch(e){} delete _kpiCharts[key]; }
+}
+
+function kpiCards(id, rev, cost, profit) {
+  var pct = rev > 0 ? (profit / rev * 100).toFixed(1) + '%' : '--';
+  var cls = profit >= 0 ? 'positive' : 'negative';
+  document.getElementById(id).innerHTML =
+    '<div class="kpi-card"><div class="kpi-card-lbl">총 매출 (입금)</div><div class="kpi-card-val">' + kpiFmt(rev) + '원</div><div class="kpi-card-sub">' + rev.toLocaleString() + '원</div></div>' +
+    '<div class="kpi-card"><div class="kpi-card-lbl">총 비용 (출금)</div><div class="kpi-card-val">' + kpiFmt(cost) + '원</div><div class="kpi-card-sub">' + cost.toLocaleString() + '원</div></div>' +
+    '<div class="kpi-card ' + cls + '"><div class="kpi-card-lbl">순이익</div><div class="kpi-card-val">' + kpiFmt(profit) + '원</div><div class="kpi-card-sub">' + profit.toLocaleString() + '원</div></div>' +
+    '<div class="kpi-card"><div class="kpi-card-lbl">이익률</div><div class="kpi-card-val">' + pct + '</div><div class="kpi-card-sub">매출 대비 순이익</div></div>';
+}
+
+var KPI_PALETTE = ['#C8380A','#1565C0','#2E7D32','#F9A825','#6A1B9A','#00838F','#E65100','#37474F','#558B2F','#AD1457','#795548','#607D8B'];
+
+function renderKpiBiz() {
+  var biz = document.getElementById('kpiBiz').value;
+  var proj = document.getElementById('kpiProj').value;
+  var year = document.getElementById('kpiYear').value;
+  var d = computePL(biz, proj, year);
+  ['chartBizMonthly','chartBizCost','chartBizCumul'].forEach(kpiDestroy);
+
+  if (!d.months.length) {
+    document.getElementById('kpiBizCards').innerHTML =
+      '<div style="color:var(--muted);font-size:12px;padding:8px 0;grid-column:1/-1">데이터가 없습니다. CSV 업로드 후 태깅을 완료하세요.</div>';
+    document.getElementById('kpiAiResult').style.display = 'none';
+    return;
+  }
+  kpiCards('kpiBizCards', d.totalRev, d.totalCost, d.profit);
+
+  // Chart 1: Monthly bar + profit line
+  var ctx1 = document.getElementById('chartBizMonthly').getContext('2d');
+  _kpiCharts.chartBizMonthly = new Chart(ctx1, {
+    type: 'bar',
+    data: {
+      labels: d.months,
+      datasets: [
+        { label:'매출', data: d.months.map(function(m){ return d.monthly[m].revenue; }),
+          backgroundColor:'rgba(200,56,10,.25)', borderColor:'#C8380A', borderWidth:1.5, order:2 },
+        { label:'비용', data: d.months.map(function(m){ return d.monthly[m].costs; }),
+          backgroundColor:'rgba(92,88,81,.15)', borderColor:'#9A958F', borderWidth:1.5, order:2 },
+        { type:'line', label:'순이익', data: d.months.map(function(m){ return d.monthly[m].profit; }),
+          borderColor:'#2E7D32', backgroundColor:'rgba(46,125,50,.08)', borderWidth:2,
+          pointRadius:3, fill:true, tension:.3, order:1 },
+      ],
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ labels:{ font:{size:11}, boxWidth:10 } } },
+      scales:{
+        x:{ ticks:{ font:{size:10}, maxRotation:45 } },
+        y:{ ticks:{ font:{size:10}, callback:function(v){ return kpiFmt(v); } } },
+      },
+    },
+  });
+
+  // Chart 2: Cost donut
+  var cats = Object.keys(d.costByCat).sort(function(a,b){ return d.costByCat[b]-d.costByCat[a]; });
+  var ctx2 = document.getElementById('chartBizCost').getContext('2d');
+  _kpiCharts.chartBizCost = new Chart(ctx2, {
+    type:'doughnut',
+    data:{
+      labels: cats,
+      datasets:[{ data: cats.map(function(c){ return d.costByCat[c]; }),
+        backgroundColor: KPI_PALETTE, borderWidth:1 }],
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{ position:'right', labels:{ font:{size:9}, boxWidth:8 } },
+        tooltip:{ callbacks:{ label:function(ctx){
+          var pct = d.totalCost > 0 ? (ctx.parsed/d.totalCost*100).toFixed(1) : '0';
+          return ctx.label + ': ' + kpiFmt(ctx.parsed) + '원 (' + pct + '%)';
+        }}},
+      },
+    },
+  });
+
+  // Chart 3: Cumulative area
+  var cumData = d.months.map(function(m){ return d.monthly[m].cumulative; });
+  var lastCum = cumData[cumData.length-1] || 0;
+  var cumColor = lastCum >= 0 ? '#2E7D32' : '#C8380A';
+  var cumBg = lastCum >= 0 ? 'rgba(46,125,50,.12)' : 'rgba(200,56,10,.12)';
+  var ctx3 = document.getElementById('chartBizCumul').getContext('2d');
+  _kpiCharts.chartBizCumul = new Chart(ctx3, {
+    type:'line',
+    data:{
+      labels: d.months,
+      datasets:[{ label:'누적 순이익', data: cumData,
+        borderColor:cumColor, backgroundColor:cumBg, borderWidth:2, fill:true, tension:.3, pointRadius:2 }],
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:false } },
+      scales:{
+        x:{ ticks:{ font:{size:10}, maxRotation:45 } },
+        y:{ ticks:{ font:{size:10}, callback:function(v){ return kpiFmt(v); } } },
+      },
+    },
+  });
+  document.getElementById('kpiAiResult').style.display = 'none';
+}
+
+function renderKpiTotal() {
+  var year = document.getElementById('kpiTotalYear').value;
+  var total = computePL('', '', year);
+  var bizList = ['한솔','한큐','수복지','교육원'];
+  var bizData = {};
+  bizList.forEach(function(b){ bizData[b] = computePL(b, '', year); });
+  ['chartTotalStacked','chartTotalTrend','chartTotalCost'].forEach(kpiDestroy);
+
+  if (!total.months.length) {
+    document.getElementById('kpiTotalCards').innerHTML =
+      '<div style="color:var(--muted);font-size:12px;padding:8px 0;grid-column:1/-1">데이터가 없습니다.</div>';
+    return;
+  }
+  kpiCards('kpiTotalCards', total.totalRev, total.totalCost, total.profit);
+
+  var allM = total.months;
+  var bizColors = { '한솔':'rgba(200,56,10,.8)', '한큐':'rgba(21,101,192,.8)', '수복지':'rgba(46,125,50,.8)', '교육원':'rgba(249,168,37,.9)' };
+
+  // Chart 1: Stacked revenue by biz + profit line
+  var ctx1 = document.getElementById('chartTotalStacked').getContext('2d');
+  _kpiCharts.chartTotalStacked = new Chart(ctx1, {
+    type:'bar',
+    data:{
+      labels: allM,
+      datasets: bizList.map(function(b){
+        return { label:b, data: allM.map(function(m){ return (bizData[b].monthly[m]||{}).revenue||0; }),
+          backgroundColor:bizColors[b], stack:'rev', order:2 };
+      }).concat([{
+        type:'line', label:'그룹 순이익',
+        data: allM.map(function(m){ return (total.monthly[m]||{}).profit||0; }),
+        borderColor:'#1A1814', backgroundColor:'transparent',
+        borderWidth:2, pointRadius:3, tension:.3, order:1,
+      }]),
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ labels:{ font:{size:11}, boxWidth:10 } } },
+      scales:{
+        x:{ ticks:{ font:{size:10}, maxRotation:45 } },
+        y:{ stacked:true, ticks:{ font:{size:10}, callback:function(v){ return kpiFmt(v); } } },
+      },
+    },
+  });
+
+  // Chart 2: Group P&L trend (3 lines)
+  var ctx2 = document.getElementById('chartTotalTrend').getContext('2d');
+  _kpiCharts.chartTotalTrend = new Chart(ctx2, {
+    type:'line',
+    data:{
+      labels: allM,
+      datasets:[
+        { label:'매출', data: allM.map(function(m){ return (total.monthly[m]||{}).revenue||0; }),
+          borderColor:'#C8380A', backgroundColor:'rgba(200,56,10,.1)', borderWidth:2, fill:true, tension:.3 },
+        { label:'비용', data: allM.map(function(m){ return (total.monthly[m]||{}).costs||0; }),
+          borderColor:'#5C5851', backgroundColor:'rgba(92,88,81,.06)', borderWidth:1.5, fill:true, tension:.3, borderDash:[4,3] },
+        { label:'순이익', data: allM.map(function(m){ return (total.monthly[m]||{}).profit||0; }),
+          borderColor:'#2E7D32', backgroundColor:'rgba(46,125,50,.1)', borderWidth:2, fill:true, tension:.3 },
+      ],
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ labels:{ font:{size:11}, boxWidth:10 } } },
+      scales:{
+        x:{ ticks:{ font:{size:10}, maxRotation:45 } },
+        y:{ ticks:{ font:{size:10}, callback:function(v){ return kpiFmt(v); } } },
+      },
+    },
+  });
+
+  // Chart 3: Cost categories horizontal bar
+  var cats = Object.keys(total.costByCat).sort(function(a,b){ return total.costByCat[b]-total.costByCat[a]; });
+  var ctx3 = document.getElementById('chartTotalCost').getContext('2d');
+  _kpiCharts.chartTotalCost = new Chart(ctx3, {
+    type:'bar',
+    data:{
+      labels: cats,
+      datasets:[{ label:'비용', data: cats.map(function(c){ return total.costByCat[c]; }),
+        backgroundColor:'rgba(200,56,10,.7)', borderRadius:2 }],
+    },
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:false } },
+      scales:{
+        x:{ ticks:{ font:{size:10}, callback:function(v){ return kpiFmt(v); } } },
+        y:{ ticks:{ font:{size:9} } },
+      },
+    },
+  });
+  document.getElementById('kpiTotalAiResult').style.display = 'none';
+}
+
+function renderKpiDashboard() {
+  initKpiYears();
+  if (_kpiCurrentView === 'biz') renderKpiBiz();
+  else renderKpiTotal();
+}
+
+async function requestAIPrediction(scope) {
+  var isBiz = scope === 'biz';
+  var btn = document.getElementById(isBiz ? 'kpiAiBtn' : 'kpiTotalAiBtn');
+  var resultEl = document.getElementById(isBiz ? 'kpiAiResult' : 'kpiTotalAiResult');
+  btn.disabled = true;
+  btn.textContent = '분석 중...';
+  showLoad('AI 분석 중...');
+
+  try {
+    var biz = isBiz ? document.getElementById('kpiBiz').value : '';
+    var proj = isBiz ? document.getElementById('kpiProj').value : '';
+    var year = document.getElementById(isBiz ? 'kpiYear' : 'kpiTotalYear').value;
+    var d = computePL(biz, proj, year);
+
+    var bizBreakdown = null;
+    if (!isBiz) {
+      bizBreakdown = {};
+      ['한솔','한큐','수복지','교육원'].forEach(function(b) {
+        var bd = computePL(b, '', year);
+        bizBreakdown[b] = { rev:bd.totalRev, cost:bd.totalCost, profit:bd.profit };
+      });
+    }
+
+    var history = d.months.slice(-12).map(function(m) {
+      var md = d.monthly[m];
+      return { month:m, revenue:md.revenue, costs:md.costs, profit:md.profit, cumulative:md.cumulative };
+    });
+
+    var res = await fetch('/api/kpi-predict', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({
+        scope: isBiz ? (biz || '전체 사업자') + (proj ? ' / ' + proj : '') : '전체 그룹',
+        history: history,
+        totalRev: d.totalRev,
+        totalCost: d.totalCost,
+        profit: d.profit,
+        costByCat: d.costByCat,
+        bizBreakdown: bizBreakdown,
+      }),
+    });
+    var result = await res.json();
+    if (!result.ok) throw new Error(result.error || '예측 실패');
+
+    var forecast = result.forecast || [];
+    resultEl.querySelector('.kpi-ai-forecast').innerHTML = forecast.map(function(f) {
+      var profitStyle = f.profit >= 0 ? 'color:var(--green)' : 'color:var(--accent)';
+      var margin = f.revenue > 0 ? (f.profit / f.revenue * 100).toFixed(1) + '%' : '--';
+      return '<div class="kpi-ai-month">' +
+        '<div class="kpi-ai-month-lbl">' + f.month + '</div>' +
+        '<div style="font-size:10px;color:var(--muted);margin:3px 0">매출 ' + kpiFmt(f.revenue) + ' / 비용 ' + kpiFmt(f.costs) + '</div>' +
+        '<div class="kpi-ai-month-val" style="' + profitStyle + '">순이익 ' + kpiFmt(f.profit) + '원</div>' +
+        '<div style="font-size:9px;color:var(--muted);margin-top:2px">이익률 ' + margin + '</div>' +
+        '</div>';
+    }).join('');
+
+    var insights = result.insights || [];
+    resultEl.querySelector('.kpi-ai-insights').innerHTML = insights.map(function(ins) {
+      var typeMap = { risk:['⚠','var(--accent)'], opportunity:['↑','var(--green)'], trend:['→','var(--muted)'] };
+      var t = typeMap[ins.type] || typeMap.trend;
+      return '<div style="display:flex;gap:10px;padding:10px 12px;border-left:3px solid ' + t[1] + ';background:var(--bg);margin-bottom:8px">' +
+        '<span style="color:' + t[1] + ';font-weight:700;flex-shrink:0">' + t[0] + '</span>' +
+        '<div><div style="font-size:11px;font-weight:700;color:var(--ink);margin-bottom:2px">' + ins.title + '</div>' +
+        '<div style="font-size:11px;color:var(--ink2);line-height:1.65">' + ins.body + '</div></div></div>';
+    }).join('');
+
+    resultEl.style.display = 'block';
+  } catch(e) {
+    alert('AI 분석 실패: ' + e.message);
+  }
+
+  hideLoad();
+  btn.disabled = false;
+  btn.textContent = isBiz ? '3개월 예측 &amp; AI 인사이트' : '그룹 전체 AI 분석';
 }
 </script>
 <script>(function(){if(window.self===window.top)return;var s=document.createElement("style");s.textContent="html,html *{cursor:none!important}";document.head.appendChild(s);document.addEventListener("mousemove",function(e){window.parent.postMessage({type:"cursor-move",x:e.clientX,y:e.clientY},"*");});})();</script>
