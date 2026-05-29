@@ -518,7 +518,7 @@ const AUTO_RULES = [
   { cat:'IT인프라비', biz:'',     kw:['서버','호스팅','클라우드','도메인','SSL','SaaS','소프트웨어'] },
   { cat:'임대료',     biz:'',     kw:['월세','임대','임대료','관리비'] },
   { cat:'차량유지비', biz:'',     kw:['주유','기름','GS칼텍스','SK에너지','현대오일','에쓰오일','S-OIL','하이오일','오일뱅크','E1주유','하이패스','통행료','고속도로','자동차보험','차량','렌트카','렌터카','EV충전','전기차충전','주차','주차비','쏘카','그린카'] },
-  { cat:'지급수수료', biz:'',     kw:['수수료','중개료','플랫폼수수료','카드수수료','결제수수료','대행료','위탁수수료','대행비'] },
+  { cat:'지급수수료', biz:'',     kw:['쿠쿠','수수료','중개료','플랫폼수수료','카드수수료','결제수수료','대행료','위탁수수료','대행비'] },
   { cat:'식비/경비',  biz:'',     kw:['배달의민족','배민','요기요','쿠팡이츠','땡겨','스타벅스','이디야','투썸','메가커피','빽다방','더벤티','커피빈','할리스','엔제리너스','카페','커피','맥도날드','롯데리아','버거킹','KFC','맘스터치','서브웨이','편의점','GS25','CU','세븐일레븐','이마트','코스트코','마트','홈플러스','롯데마트','롯데슈퍼','식당','음식','점심','저녁','식사','치킨','피자','삼겹살','갈비','횟집','초밥','냉면','국밥','탕','찌개','구이','뷔페','베이커리','빵','케이크','제과','도넛','김밥','분식','떡볶이','순대','카카오T이츠'] },
   { cat:'복리후생비', biz:'',     kw:['간식','복지','경조','헬스','피트니스','병원','의원','약국','진료','의료','건강검진','의료비'] },
   { cat:'마케팅/광고비',biz:'',   kw:['광고','마케팅','홍보','카카오광고','네이버광고','메타','페이스북','인스타그램','유튜브광고','키워드광고','배너광고'] },
@@ -704,6 +704,7 @@ function callAiTagging() {
     var changed = 0;
     Object.keys(resp.results).forEach(function(name){
       var r = resp.results[name];
+      // cat이 있으면(수기 or 자동) AI가 덮어쓰지 않음
       if (_merchants[name] && !_merchants[name].cat) {
         if (r.cat) { _merchants[name].cat = r.cat; changed++; }
         if (r.biz) _merchants[name].biz = r.biz;
@@ -756,6 +757,14 @@ function loadStateOnInit() {
         };
       });
     }
+
+    // 총 출금 1만원 미만이고 수기 태그 없는 거래처 → 기타 자동분류
+    Object.keys(_merchants).forEach(function(k) {
+      var m = _merchants[k];
+      if (m.totalOut > 0 && m.totalOut < 10000 && (!m.cat || m.autoTagged)) {
+        m.cat = '기타'; m.autoTagged = true;
+      }
+    });
 
     document.getElementById('progressWrap').style.display = 'flex';
     updateProgress();
@@ -1646,11 +1655,11 @@ function _parseAllCore() {
     _merchants[k].monthly[ym].in += t.in;
   });
 
-  // 미분류 중 총 출금 1만 이하 → 기타 자동태그
+  // 미분류 중 총 출금 1만 미만 → 기타 자동태그 (수기 태그 보호)
   Object.keys(_merchants).forEach(function(k) {
     var m = _merchants[k];
-    // 건당 평균 출금 1만원 이하 → 기타
-    if (!m.cat && m.count > 0 && m.totalOut > 0 && Math.round(m.totalOut / m.count) <= 10000) {
+    // 총 출금 1만원 미만 (수기 태그 없을 때만)
+    if (m.totalOut > 0 && m.totalOut < 10000 && (!m.cat || m.autoTagged)) {
       m.cat = '기타'; m.autoTagged = true;
     }
     // 출금액 0 (입금 전용 또는 -/무 금액) → 기타
@@ -1847,6 +1856,7 @@ function escKey(k) { return k.replace(/'/g, "\\'").replace(/\\/g, '\\\\'); }
 function setTag(key, field, val) {
   if (!_merchants[key]) return;
   _merchants[key][field] = val;
+  if (field === 'cat') _merchants[key].autoTagged = false; // 수기 태그 표시
   if (field === 'biz') {
     var projs = PROJ_BY_BIZ[val] || [];
     if (projs.indexOf(_merchants[key].proj || '') < 0) _merchants[key].proj = '';
