@@ -545,6 +545,7 @@ const server = http.createServer((req, res) => {
           Object.assign(current.merchants[k], fields);
         }
         _cache['finance-work-tags.json'] = current;
+        deferredSbWrite('finance-work-tags.json'); // kv_store도 동기화 (merchants 테이블 실패 시 fallback 보장)
         // Supabase 쓰기 완료 후 응답 (5초 타임아웃 안전장치)
         await Promise.race([
           sbUpsertMerchants(merchantsToRows(changedMap)),
