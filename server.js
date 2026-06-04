@@ -23,6 +23,7 @@ const FILE_TO_KEY = {
   'activity-log.json':        'activity-log',
   'card-roster-state.json':   'card-roster-state',
   'finance-work-tags.json':   'finance-work-tags',
+  'finance-revenue-state.json': 'finance-revenue-state',
 };
 
 // 인메모리 캐시 — 서버 시작 시 로드, 이후 동기 읽기 가능
@@ -397,6 +398,7 @@ const server = http.createServer((req, res) => {
     '/api/activity-log':       'activity-log.json',
     '/api/card-roster-state':  'card-roster-state.json',
     '/api/finance-work-tags':  'finance-work-tags.json',
+    '/api/finance-revenue-state': 'finance-revenue-state.json',
   };
   if (getStateRoutes[url] && req.method === 'GET') {
     const file   = getStateRoutes[url];
@@ -431,6 +433,7 @@ const server = http.createServer((req, res) => {
     '/api/activity-log':       'activity-log.json',
     '/api/card-roster-state':  'card-roster-state.json',
     '/api/finance-work-tags':  'finance-work-tags.json',
+    '/api/finance-revenue-state': 'finance-revenue-state.json',
   };
   if (postRoutes[url] && req.method === 'POST') {
     let body = '';
