@@ -6,6 +6,8 @@ const PORT         = process.env.PORT || 3005;
 const OUT          = path.join(__dirname, 'output');
 const SERVER_START = new Date().toISOString();
 const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK_URL || '';
+const RESEND_KEY    = process.env.RESEND_API_KEY   || '';
+const REPORT_EMAIL  = process.env.REPORT_EMAIL     || 'jun2835@hansollabs.com';
 
 // ── Supabase 영구 저장소 ─────────────────────────────────────────────────
 // 환경변수 SUPABASE_URL, SUPABASE_KEY 가 없으면 로컬 파일로 폴백 (개발용)
@@ -357,6 +359,7 @@ const ROUTES = {
   '/finance-work': '재무관리(신)_작업.html',
   '/kpi':          'kpi.html',
   '/biz':          'biz-view.html',
+  '/reports':      'report-center.html',
 };
 
 function serveHTML(res, file) {
@@ -791,6 +794,183 @@ ${bizLines ? `### 사업자별 현황\n${bizLines}` : ''}
     return;
   }
 
+  // ── 월간 리포트 데이터 API ──────────────────────────────────────────────────
+  if (url.startsWith('/api/monthly-report-data') && req.method === 'GET') {
+    const qs    = new URLSearchParams(req.url.includes('?') ? req.url.split('?')[1] : '');
+    const month = qs.get('month') || (() => { const n=new Date(); return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0'); })();
+    const yr    = month.substring(0,4);
+
+    const txState  = _cache['tx-data-state.json']       || {};
+    const tagState = _cache['finance-work-tags.json']   || {};
+    const revState = _cache['finance-revenue-state.json'] || { byBiz:{} };
+    const txns     = Array.isArray(txState.txns) ? txState.txns : [];
+    const merchants= tagState.merchants || {};
+    const KPI_EXCL = ['일괄송금(사유확인불가)','인출','이체','분류불필요'];
+    const BIZ_LIST = ['한솔','수복지','한큐','교육원'];
+
+    // 계좌 현황
+    const finSt  = _cache['finance-state.json'] || {};
+    const balances = (finSt && finSt.balances) ? finSt.balances : {};
+    let totalDeposit = 0;
+    SUMMARY_DEPOSITS.forEach(d => {
+      let bal = d.balance;
+      if (balances[d.accountNo] !== undefined) bal = balances[d.accountNo].value;
+      if (bal !== null && bal > 0) totalDeposit += bal;
+    });
+
+    // 대출
+    const now = new Date(); now.setHours(0,0,0,0);
+    const loans = SUMMARY_LOANS.map(loan => {
+      const p = loan.maturity.split('.');
+      const mat = new Date(+p[0], +p[1]-1, +p[2]);
+      const days = Math.ceil((mat - now) / 86400000);
+      return { ...loan, daysLeft: days };
+    });
+    const totalLoan = SUMMARY_LOANS.reduce((s,l) => s+(l.balance||0), 0);
+
+    // 이번 달 비용 (사업자별)
+    const bizCost = {}, catCost = {};
+    let monthTotalCost = 0;
+    txns.forEach(t => {
+      if (!t.date || !t.out || t.out <= 0 || t.date.substring(0,7) !== month) return;
+      const m = merchants[t.merchant] || {};
+      const biz = m.biz || '미배분';
+      const cat = m.cat || '미분류';
+      if (KPI_EXCL.indexOf(cat) >= 0) return;
+      bizCost[biz] = (bizCost[biz]||0) + t.out;
+      catCost[cat] = (catCost[cat]||0) + t.out;
+      monthTotalCost += t.out;
+    });
+
+    // 이번 달 매출 (사업자별)
+    let monthTotalRev = 0;
+    const bizRev = {};
+    BIZ_LIST.forEach(biz => {
+      const rv = ((revState.byBiz||{})[biz]||{})[month] || 0;
+      bizRev[biz] = rv;
+      monthTotalRev += rv;
+    });
+
+    const topCats = Object.entries(catCost).sort((a,b)=>b[1]-a[1]).slice(0,8);
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      month, yr, totalDeposit, totalLoan, netFunds: totalDeposit - totalLoan,
+      loans, monthTotalCost, monthTotalRev, profit: monthTotalRev - monthTotalCost,
+      bizCost, bizRev, topCats
+    }));
+    return;
+  }
+
+  // ── 이메일 발송 ─────────────────────────────────────────────────────────────
+  if (url === '/api/send-monthly-report' && req.method === 'POST') {
+    let body = '';
+    req.on('data', c => { body += c; });
+    req.on('end', async () => {
+      try {
+        const { month, to } = JSON.parse(body || '{}');
+        const recipient = to || REPORT_EMAIL;
+        if (!RESEND_KEY) { res.writeHead(503); res.end(JSON.stringify({ ok:false, error:'RESEND_API_KEY 미설정' })); return; }
+
+        // 데이터 수집 (report-data와 동일 로직)
+        const txState  = _cache['tx-data-state.json'] || {};
+        const tagState = _cache['finance-work-tags.json'] || {};
+        const revState = _cache['finance-revenue-state.json'] || { byBiz:{} };
+        const txns     = Array.isArray(txState.txns) ? txState.txns : [];
+        const merchants= tagState.merchants || {};
+        const KPI_EXCL = ['일괄송금(사유확인불가)','인출','이체','분류불필요'];
+        const BIZ_LIST2= ['한솔','수복지','한큐','교육원'];
+        const targetMonth = month || (() => { const n=new Date(Date.now()-30*86400000); return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0'); })();
+
+        const finSt  = _cache['finance-state.json'] || {};
+        const balances = (finSt && finSt.balances) ? finSt.balances : {};
+        let totalDeposit = 0;
+        SUMMARY_DEPOSITS.forEach(d => {
+          let bal = d.balance;
+          if (balances[d.accountNo] !== undefined) bal = balances[d.accountNo].value;
+          if (bal !== null && bal > 0) totalDeposit += bal;
+        });
+        const totalLoan = SUMMARY_LOANS.reduce((s,l) => s+(l.balance||0), 0);
+        const now2 = new Date(); now2.setHours(0,0,0,0);
+        const urgentLoans = SUMMARY_LOANS.filter(l => {
+          const p=l.maturity.split('.'); const mat=new Date(+p[0],+p[1]-1,+p[2]);
+          return Math.ceil((mat-now2)/86400000) <= 90;
+        });
+
+        let monthCost = 0;
+        const bizCostE = {};
+        txns.forEach(t => {
+          if (!t.date || !t.out || t.out <= 0 || t.date.substring(0,7) !== targetMonth) return;
+          const m = merchants[t.merchant] || {};
+          if (KPI_EXCL.indexOf(m.cat||'') >= 0) return;
+          bizCostE[m.biz||'미배분'] = (bizCostE[m.biz||'미배분']||0) + t.out;
+          monthCost += t.out;
+        });
+        let monthRev = 0;
+        BIZ_LIST2.forEach(b => { monthRev += ((revState.byBiz||{})[b]||{})[targetMonth]||0; });
+        const profit = monthRev - monthCost;
+
+        function fmtN(n) { return Math.round(n).toLocaleString('ko-KR'); }
+        const [y,m2] = targetMonth.split('-');
+        const subj = `[hanQ FM] ${y}년 ${+m2}월 재무요약 리포트`;
+
+        const bizRows = BIZ_LIST2.map(b => {
+          const c = bizCostE[b]||0;
+          const r = ((revState.byBiz||{})[b]||{})[targetMonth]||0;
+          return `<tr><td style="padding:7px 14px;border-bottom:1px solid #E2DED7;font-weight:500">${b}</td><td style="padding:7px 14px;border-bottom:1px solid #E2DED7;text-align:right">${r>0?fmtN(r)+'원':'—'}</td><td style="padding:7px 14px;border-bottom:1px solid #E2DED7;text-align:right">${fmtN(c)}원</td><td style="padding:7px 14px;border-bottom:1px solid #E2DED7;text-align:right;color:${r>0?(profit>=0?'#2E7D32':'#C8380A'):'#9A958F'}">${r>0?fmtN(r-c)+'원':'—'}</td></tr>`;
+        }).join('');
+
+        const loanRows = SUMMARY_LOANS.map(l => {
+          const p=l.maturity.split('.'); const mat=new Date(+p[0],+p[1]-1,+p[2]);
+          const days=Math.ceil((mat-now2)/86400000);
+          const color = days<=30?'#C8380A':days<=90?'#F9A825':'#2E7D32';
+          return `<tr><td style="padding:7px 14px;border-bottom:1px solid #E2DED7">${l.bank}</td><td style="padding:7px 14px;border-bottom:1px solid #E2DED7;text-align:right">${fmtN(l.balance)}원</td><td style="padding:7px 14px;border-bottom:1px solid #E2DED7;text-align:right;color:${color};font-weight:600">D-${days}</td></tr>`;
+        }).join('');
+
+        const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#F7F5F0;font-family:'Malgun Gothic',sans-serif;font-size:13px;color:#1A1814">
+<div style="max-width:600px;margin:0 auto;padding:24px 16px">
+<div style="background:#1A1814;color:#fff;padding:28px 32px;margin-bottom:20px">
+<div style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#9A958F;margin-bottom:8px">HANSOL Finance Management</div>
+<div style="font-size:22px;font-weight:700;margin-bottom:4px">${y}년 ${+m2}월 재무요약</div>
+<div style="font-size:11px;color:rgba(255,255,255,.5)">${new Date().toLocaleDateString('ko-KR')} 발송</div>
+</div>
+<div style="background:#fff;border:1px solid #E2DED7;padding:20px 24px;margin-bottom:12px">
+<div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#9A958F;margin-bottom:14px">재무 현황</div>
+<table style="width:100%;border-collapse:collapse">
+<tr><td style="padding:8px 0;border-bottom:1px solid #F0EDE8;color:#5C5851">총 예금잔액</td><td style="padding:8px 0;border-bottom:1px solid #F0EDE8;text-align:right;font-weight:700">${fmtN(totalDeposit)}원</td></tr>
+<tr><td style="padding:8px 0;border-bottom:1px solid #F0EDE8;color:#5C5851">총 대출잔액</td><td style="padding:8px 0;border-bottom:1px solid #F0EDE8;text-align:right;font-weight:700;color:#C8380A">${fmtN(totalLoan)}원</td></tr>
+<tr><td style="padding:8px 0;color:#5C5851">순 자금</td><td style="padding:8px 0;text-align:right;font-weight:700;color:${totalDeposit-totalLoan>=0?'#2E7D32':'#C8380A'}">${fmtN(totalDeposit-totalLoan)}원</td></tr>
+</table></div>
+<div style="background:#fff;border:1px solid #E2DED7;margin-bottom:12px">
+<div style="padding:14px 24px 10px;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#9A958F">${+m2}월 사업자별 손익</div>
+<table style="width:100%;border-collapse:collapse">
+<tr style="background:#F7F5F0"><th style="padding:8px 14px;text-align:left;font-size:10px;letter-spacing:.08em;color:#9A958F">사업자</th><th style="padding:8px 14px;text-align:right;font-size:10px;letter-spacing:.08em;color:#9A958F">매출</th><th style="padding:8px 14px;text-align:right;font-size:10px;letter-spacing:.08em;color:#9A958F">비용</th><th style="padding:8px 14px;text-align:right;font-size:10px;letter-spacing:.08em;color:#9A958F">순이익</th></tr>
+${bizRows}
+<tr style="background:#F7F5F0"><td style="padding:9px 14px;font-weight:700">합계</td><td style="padding:9px 14px;text-align:right;font-weight:700">${monthRev>0?fmtN(monthRev)+'원':'—'}</td><td style="padding:9px 14px;text-align:right;font-weight:700">${fmtN(monthCost)}원</td><td style="padding:9px 14px;text-align:right;font-weight:700;color:${monthRev>0?(profit>=0?'#2E7D32':'#C8380A'):'#9A958F'}">${monthRev>0?fmtN(profit)+'원':'—'}</td></tr>
+</table></div>
+${SUMMARY_LOANS.length>0?`<div style="background:#fff;border:1px solid #E2DED7;margin-bottom:12px">
+<div style="padding:14px 24px 10px;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#9A958F">대출 만기 현황</div>
+<table style="width:100%;border-collapse:collapse">
+<tr style="background:#F7F5F0"><th style="padding:8px 14px;text-align:left;font-size:10px;letter-spacing:.08em;color:#9A958F">대출</th><th style="padding:8px 14px;text-align:right;font-size:10px;letter-spacing:.08em;color:#9A958F">잔액</th><th style="padding:8px 14px;text-align:right;font-size:10px;letter-spacing:.08em;color:#9A958F">만기</th></tr>
+${loanRows}</table></div>`:''}
+<div style="text-align:center;padding:16px 0;font-size:10px;color:#9A958F">HANSOL Finance Management · hanq-fm.onrender.com</div>
+</div></body></html>`;
+
+        const emailRes = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer '+RESEND_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ from:'hanQ FM <noreply@hansollabs.com>', to:[recipient], subject:subj, html })
+        });
+        const emailData = await emailRes.json().catch(()=>({}));
+        if (!emailRes.ok) { res.writeHead(500); res.end(JSON.stringify({ ok:false, error: emailData.message||'이메일 발송 실패' })); return; }
+        console.log('[Report] 월간 리포트 발송 →', recipient, targetMonth);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok:true, to:recipient, month:targetMonth }));
+      } catch(e) { res.writeHead(500); res.end(JSON.stringify({ ok:false, error:e.message })); }
+    });
+    return;
+  }
+
   // ── Slack 테스트 수동 트리거 ────────────────────────────────────────────────
   if (url === '/api/slack-test' && req.method === 'POST') {
     if (!SLACK_WEBHOOK) { res.writeHead(503); res.end(JSON.stringify({ ok: false, error: 'SLACK_WEBHOOK_URL 미설정' })); return; }
@@ -901,15 +1081,32 @@ loadAllState().then(() => {
     console.log('');
   });
 
-  // 매일 09:00 KST 알림 (1분마다 체크)
-  let _lastAlertDate = '';
+  // 매일 09:00 KST 알림 (1분마다 체크) + 매월 1일 이메일 리포트
+  let _lastAlertDate = '', _lastReportMonth = '';
   setInterval(() => {
     const utcNow  = new Date();
-    const kstHour = (utcNow.getUTCHours() + 9) % 24;
-    const kstDate = new Date(utcNow.getTime() + 9 * 3600000).toISOString().slice(0, 10);
+    const kstTime = new Date(utcNow.getTime() + 9 * 3600000);
+    const kstHour = kstTime.getUTCHours();
+    const kstDate = kstTime.toISOString().slice(0, 10);
+    const kstDay  = kstTime.getUTCDate();
+    const kstMonth= kstTime.toISOString().slice(0, 7);
+
     if (kstHour === 9 && kstDate !== _lastAlertDate) {
       _lastAlertDate = kstDate;
       runDailySlackAlert();
+
+      // 매월 1일: 전월 리포트 이메일 발송
+      if (kstDay === 1 && kstMonth !== _lastReportMonth && RESEND_KEY) {
+        _lastReportMonth = kstMonth;
+        const prev = new Date(kstTime.getFullYear(), kstTime.getMonth() - 1, 1);
+        const prevMonth = prev.getFullYear() + '-' + String(prev.getMonth() + 1).padStart(2, '0');
+        fetch('http://localhost:' + PORT + '/api/send-monthly-report', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ month: prevMonth })
+        }).then(() => console.log('[Report] 월간 리포트 자동 발송:', prevMonth))
+          .catch(e => console.error('[Report] 자동 발송 실패:', e.message));
+      }
     }
   }, 60000);
 });

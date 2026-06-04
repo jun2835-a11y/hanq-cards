@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>리포트 센터 — hanQ</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#F7F5F0;--surface:#fff;--border:#E2DED7;--ink:#1A1814;--ink2:#5C5851;--muted:#9A958F;--accent:#C8380A;--green:#2E7D32}
+body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;min-height:100vh}
+.rc-header{background:var(--ink);color:#fff;padding:13px 28px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100}
+.rc-title{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;flex:1}
+.rc-main{max-width:800px;margin:0 auto;padding:28px}
+.rc-sec{margin-bottom:28px}
+.rc-sec-label{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+.rc-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:20px}
+.rc-select{border:1px solid var(--border);background:var(--surface);font-family:inherit;font-size:12px;padding:7px 12px;color:var(--ink);outline:none;cursor:pointer}
+.rc-input{border:1px solid var(--border);background:var(--surface);font-family:inherit;font-size:12px;padding:7px 12px;color:var(--ink);outline:none;width:220px}
+.rc-btn{padding:8px 20px;font-size:12px;font-weight:700;letter-spacing:.04em;font-family:inherit;cursor:pointer;border:none;transition:all .15s}
+.rc-btn.primary{background:var(--accent);color:#fff}
+.rc-btn.primary:hover{background:#B02E08}
+.rc-btn.primary:disabled{opacity:.4;cursor:not-allowed}
+.rc-btn.secondary{background:none;border:1px solid var(--border);color:var(--ink2)}
+.rc-btn.secondary:hover{border-color:var(--ink);color:var(--ink)}
+.rc-status{font-size:12px;padding:4px 0;min-height:22px}
+.rc-status.ok{color:var(--green)}
+.rc-status.err{color:var(--accent)}
+
+/* 리포트 프리뷰 */
+.rc-preview{background:var(--surface);border:1px solid var(--border)}
+.rp-head{background:var(--ink);color:#fff;padding:24px 28px}
+.rp-head-eyebrow{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:6px}
+.rp-head-title{font-size:20px;font-weight:700;margin-bottom:3px}
+.rp-head-date{font-size:11px;color:rgba(255,255,255,.4)}
+.rp-body{padding:20px 28px}
+.rp-sec{margin-bottom:20px}
+.rp-sec-lbl{font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.rp-kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:4px}
+.rp-kpi{background:var(--bg);border:1px solid var(--border);padding:13px 16px}
+.rp-kpi-lbl{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.rp-kpi-val{font-size:18px;font-weight:700;color:var(--ink)}
+.rp-kpi-val.neg{color:var(--accent)}.rp-kpi-val.pos{color:var(--green)}
+.rp-table{width:100%;border-collapse:collapse;font-size:12px}
+.rp-table th{background:var(--bg);padding:8px 12px;text-align:left;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.rp-table th:not(:first-child){text-align:right}
+.rp-table td{padding:8px 12px;border-bottom:1px solid var(--border)}
+.rp-table td:not(:first-child){text-align:right}
+.rp-table tr:last-child td{border-bottom:none}
+.rp-table .total-row td{font-weight:700;background:var(--bg)}
+.rp-dimmed{color:var(--muted);font-style:italic}
+.rp-loading{padding:40px;text-align:center;color:var(--muted);font-size:12px}
+
+/* 인쇄 */
+@media print{
+  .rc-header,.rc-controls,.rc-sec-label,.rc-btn,.rc-status{display:none!important}
+  .rc-main{padding:0;max-width:100%}
+  .rc-preview{border:none}
+  body{background:#fff}
+}
+</style>
+</head>
+<body>
+
+<div class="rc-header">
+  <div class="rc-title">리포트 센터</div>
+  <button class="rc-btn secondary" style="font-size:11px;padding:5px 12px" onclick="window.print()">🖨 인쇄 / PDF</button>
+</div>
+
+<div class="rc-main">
+
+  <div class="rc-sec">
+    <div class="rc-sec-label">월간 재무요약 리포트</div>
+    <div class="rc-controls">
+      <select class="rc-select" id="monthSel"></select>
+      <button class="rc-btn secondary" onclick="loadPreview()">미리보기</button>
+      <button class="rc-btn primary" id="sendBtn" onclick="sendReport()">✉ 이메일 발송</button>
+      <input class="rc-input" id="emailInput" type="email" placeholder="수신 이메일 주소" value="jun2835@hansollabs.com">
+    </div>
+    <div class="rc-status" id="rcStatus"></div>
+  </div>
+
+  <div class="rc-preview" id="rcPreview">
+    <div class="rp-loading">월을 선택하고 미리보기를 눌러주세요</div>
+  </div>
+
+</div>
+
+<script>
+var BASE = location.hostname === 'localhost' ? 'http://localhost:3005' : '';
+
+function buildMonthSel() {
+  var sel = document.getElementById('monthSel');
+  var now = new Date();
+  var opts = [];
+  for (var i = 0; i < 24; i++) {
+    var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    var ym = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    var lbl = d.getFullYear() + '년 ' + (d.getMonth()+1) + '월';
+    opts.push('<option value="'+ym+'">'+lbl+'</option>');
+  }
+  sel.innerHTML = opts.join('');
+}
+
+function fmt(n) {
+  if (!n && n !== 0) return '—';
+  var s = n < 0 ? '-':'', a = Math.abs(n);
+  if (a >= 100000000) return s+(a/100000000).toFixed(1)+'억원';
+  if (a >= 10000000)  return s+Math.round(a/10000000)+'천만원';
+  if (a >= 10000)     return s+Math.round(a/10000)+'만원';
+  return n.toLocaleString()+'원';
+}
+
+function loadPreview() {
+  var month = document.getElementById('monthSel').value;
+  document.getElementById('rcPreview').innerHTML = '<div class="rp-loading">데이터 불러오는 중...</div>';
+  fetch(BASE + '/api/monthly-report-data?month=' + month)
+    .then(function(r){ return r.json(); })
+    .then(function(d) { renderPreview(d); })
+    .catch(function(e) {
+      document.getElementById('rcPreview').innerHTML = '<div class="rp-loading" style="color:var(--accent)">데이터 로드 실패: '+e.message+'</div>';
+    });
+}
+
+function renderPreview(d) {
+  var m = d.month.split('-');
+  var yr = m[0], mo = +m[1];
+
+  var bizRows = ['한솔','수복지','한큐','교육원'].map(function(biz) {
+    var cost = d.bizCost[biz] || 0;
+    var rev  = d.bizRev[biz]  || 0;
+    var prof = rev > 0 ? rev - cost : null;
+    return '<tr><td>'+biz+'</td>' +
+      '<td>'+(rev > 0 ? fmt(rev) : '<span class="rp-dimmed">미입력</span>')+'</td>' +
+      '<td>'+fmt(cost)+'</td>' +
+      '<td>'+(prof !== null ? '<span style="color:'+(prof>=0?'var(--green)':'var(--accent)')+'">'+fmt(prof)+'</span>' : '<span class="rp-dimmed">—</span>')+'</td></tr>';
+  }).join('');
+
+  var loanRows = d.loans.map(function(l) {
+    var clr = l.daysLeft <= 30 ? 'var(--accent)' : l.daysLeft <= 90 ? '#F9A825' : 'var(--green)';
+    return '<tr><td>'+l.bank+'</td><td>'+fmt(l.balance)+'</td><td style="color:'+clr+';font-weight:600">D-'+l.daysLeft+'</td></tr>';
+  }).join('');
+
+  var catRows = (d.topCats||[]).slice(0,6).map(function(c) {
+    return '<tr><td>'+c[0]+'</td><td>'+fmt(c[1])+'</td></tr>';
+  }).join('');
+
+  var profitColor = d.profit >= 0 ? 'pos' : 'neg';
+  var html =
+    '<div class="rp-head">' +
+      '<div class="rp-head-eyebrow">HANSOL Finance Management</div>' +
+      '<div class="rp-head-title">'+yr+'년 '+mo+'월 재무요약</div>' +
+      '<div class="rp-head-date">'+new Date().toLocaleDateString('ko-KR')+' 기준</div>' +
+    '</div>' +
+    '<div class="rp-body">' +
+      '<div class="rp-sec">' +
+        '<div class="rp-sec-lbl">재무 현황</div>' +
+        '<div class="rp-kpi-row">' +
+          '<div class="rp-kpi"><div class="rp-kpi-lbl">총 예금잔액</div><div class="rp-kpi-val">'+fmt(d.totalDeposit)+'</div></div>' +
+          '<div class="rp-kpi"><div class="rp-kpi-lbl">총 대출잔액</div><div class="rp-kpi-val neg">'+fmt(d.totalLoan)+'</div></div>' +
+          '<div class="rp-kpi"><div class="rp-kpi-lbl">순 자금</div><div class="rp-kpi-val '+(d.netFunds>=0?'pos':'neg')+'">'+fmt(d.netFunds)+'</div></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="rp-sec">' +
+        '<div class="rp-sec-lbl">'+mo+'월 사업자별 손익</div>' +
+        '<table class="rp-table"><thead><tr><th>사업자</th><th>매출</th><th>비용</th><th>순이익</th></tr></thead>' +
+        '<tbody>'+bizRows+'<tr class="total-row"><td>합계</td><td>'+(d.monthTotalRev>0?fmt(d.monthTotalRev):'<span class="rp-dimmed">—</span>')+'</td><td>'+fmt(d.monthTotalCost)+'</td><td>'+(d.monthTotalRev>0?'<span style="color:'+(d.profit>=0?'var(--green)':'var(--accent)')+'">'+fmt(d.profit)+'</span>':'<span class="rp-dimmed">—</span>')+'</td></tr></tbody>' +
+        '</table>' +
+      '</div>' +
+      (catRows ? '<div class="rp-sec"><div class="rp-sec-lbl">'+mo+'월 주요 비용 항목</div><table class="rp-table"><thead><tr><th>카테고리</th><th>금액</th></tr></thead><tbody>'+catRows+'</tbody></table></div>' : '') +
+      '<div class="rp-sec">' +
+        '<div class="rp-sec-lbl">대출 만기 현황</div>' +
+        '<table class="rp-table"><thead><tr><th>대출</th><th>잔액</th><th>만기</th></tr></thead><tbody>'+loanRows+'</tbody></table>' +
+      '</div>' +
+    '</div>';
+
+  document.getElementById('rcPreview').innerHTML = html;
+}
+
+function sendReport() {
+  var month = document.getElementById('monthSel').value;
+  var to    = document.getElementById('emailInput').value.trim();
+  if (!to) { setStatus('수신 이메일을 입력해주세요.', 'err'); return; }
+  var btn = document.getElementById('sendBtn');
+  btn.disabled = true; btn.textContent = '발송 중...';
+  setStatus('', '');
+  fetch(BASE + '/api/send-monthly-report', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ month: month, to: to })
+  }).then(function(r){ return r.json(); }).then(function(d) {
+    if (d.ok) setStatus('✓ '+d.to+'로 발송되었습니다.', 'ok');
+    else setStatus('✕ ' + (d.error || '발송 실패'), 'err');
+    btn.disabled = false; btn.textContent = '✉ 이메일 발송';
+  }).catch(function(e) {
+    setStatus('✕ ' + e.message, 'err');
+    btn.disabled = false; btn.textContent = '✉ 이메일 발송';
+  });
+}
+
+function setStatus(msg, cls) {
+  var el = document.getElementById('rcStatus');
+  el.textContent = msg; el.className = 'rc-status' + (cls ? ' '+cls : '');
+}
+
+buildMonthSel();
+loadPreview();
+</script>
+<script>(function(){if(window.self===window.top)return;var s=document.createElement("style");s.textContent="html,html *{cursor:none!important}";document.head.appendChild(s);document.addEventListener("mousemove",function(e){window.parent.postMessage({type:"cursor-move",x:e.clientX,y:e.clientY},"*");});})();</script>
+</body>
+</html>
