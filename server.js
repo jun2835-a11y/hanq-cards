@@ -5,6 +5,7 @@ const path = require('path');
 const PORT         = process.env.PORT || 3005;
 const OUT          = path.join(__dirname, 'output');
 const SERVER_START = new Date().toISOString();
+const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK_URL || '';
 
 // ── Supabase 영구 저장소 ─────────────────────────────────────────────────
 // 환경변수 SUPABASE_URL, SUPABASE_KEY 가 없으면 로컬 파일로 폴백 (개발용)
@@ -292,6 +293,8 @@ async function loadAllState() {
       if (!_cache['finance-work-tags.json']) _cache['finance-work-tags.json'] = {};
       _cache['finance-work-tags.json'].merchants = tableData;
       console.log(`[state] loaded merchants table (${Object.keys(tableData).length} rows)`);
+      // 기동 시 merchants 최신 상태를 kv_store에 즉시 반영 (Render 재배포 후 fallback 일관성 보장)
+      sbWrite('finance-work-tags', _cache['finance-work-tags.json']).catch(e => console.error('[startup kv-sync]', e.message));
     } else {
       // 테이블 비어있음 → kv_store에서 자동 마이그레이션
       const kvMerchants = _cache['finance-work-tags.json']?.merchants;
@@ -545,7 +548,8 @@ const server = http.createServer((req, res) => {
           Object.assign(current.merchants[k], fields);
         }
         _cache['finance-work-tags.json'] = current;
-        deferredSbWrite('finance-work-tags.json'); // kv_store도 동기화 (merchants 테이블 실패 시 fallback 보장)
+        // 즉시 kv_store 업데이트 (10초 deferred는 Render 배포 시 유실 위험)
+        if (SB_URL && SB_KEY) sbWrite('finance-work-tags', current).catch(e => console.error('[patch kv-write]', e.message));
         // Supabase 쓰기 완료 후 응답 (5초 타임아웃 안전장치)
         await Promise.race([
           sbUpsertMerchants(merchantsToRows(changedMap)),
@@ -783,9 +787,102 @@ ${bizLines ? `### 사업자별 현황\n${bizLines}` : ''}
     return;
   }
 
+  // ── Slack 테스트 수동 트리거 ────────────────────────────────────────────────
+  if (url === '/api/slack-test' && req.method === 'POST') {
+    if (!SLACK_WEBHOOK) { res.writeHead(503); res.end(JSON.stringify({ ok: false, error: 'SLACK_WEBHOOK_URL 미설정' })); return; }
+    runDailySlackAlert().then(() => {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
+    }).catch(e => { res.writeHead(500); res.end(JSON.stringify({ ok: false, error: e.message })); });
+    return;
+  }
+
   res.writeHead(404); res.end('Not found');
 });
 
+
+// ── Slack 알림 ──────────────────────────────────────────────────────────────
+async function sendSlack(text, attachments) {
+  if (!SLACK_WEBHOOK) return;
+  try {
+    await fetch(SLACK_WEBHOOK, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, attachments }),
+    });
+  } catch (e) { console.error('[Slack]', e.message); }
+}
+
+function fmtNum(n) { return Math.round(n).toLocaleString('ko-KR'); }
+
+async function runDailySlackAlert() {
+  const now = new Date(); now.setHours(0, 0, 0, 0);
+  const lines = [];
+
+  // 1) 대출 만기
+  SUMMARY_LOANS.forEach(loan => {
+    const p   = loan.maturity.split('.');
+    const mat = new Date(+p[0], +p[1] - 1, +p[2]);
+    const days = Math.ceil((mat - now) / 86400000);
+    if (days >= 0 && days <= 30) {
+      const icon = days <= 7 ? '🚨' : '⚠️';
+      lines.push(`${icon} *${loan.bank}* 만기 *D-${days}* (잔액 ${fmtNum(loan.balance)}원)`);
+    }
+  });
+
+  // 2) 카드 결제일
+  CARD_PAYMENTS.forEach(cp => {
+    const d = new Date(now); d.setDate(cp.payDay);
+    if (d <= now) d.setMonth(d.getMonth() + 1);
+    const days = Math.ceil((d - now) / 86400000);
+    if (days <= 3) {
+      const icon = days <= 1 ? '🚨' : '⚠️';
+      lines.push(`${icon} *${cp.label}* 결제일 *D-${days}*`);
+    }
+  });
+
+  // 3) 이상지출 — 이번 달 지출이 최근 3개월 평균의 1.5배 초과
+  const txState = _cache['tx-data-state.json'] || {};
+  const txns = Array.isArray(txState.txns) ? txState.txns : [];
+  if (txns.length > 0) {
+    const monthly = {};
+    txns.forEach(t => {
+      if (!t.date || !t.out || t.out <= 0) return;
+      const ym = t.date.slice(0, 7);
+      monthly[ym] = (monthly[ym] || 0) + t.out;
+    });
+    const keys = Object.keys(monthly).sort();
+    const curYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const curAmt = monthly[curYm] || 0;
+    const prev3 = keys.filter(k => k < curYm).slice(-3);
+    if (prev3.length >= 2 && curAmt > 0) {
+      const avg = prev3.reduce((s, k) => s + monthly[k], 0) / prev3.length;
+      if (curAmt > avg * 1.5) {
+        lines.push(`📈 *이상지출 감지* — 이번달 ${fmtNum(curAmt)}원 (최근 3개월 평균 ${fmtNum(avg)}원의 ${Math.round(curAmt / avg * 100)}%)`);
+      }
+    }
+  }
+
+  if (!lines.length) {
+    // 알림 없을 때도 매일 정상 확인 로그
+    console.log('[Slack] 일일 체크 완료 — 긴급 알림 없음');
+    return;
+  }
+
+  // 계좌 현황 요약
+  const st = _cache['finance-state.json'] || {};
+  const balances = (st && st.balances) ? st.balances : {};
+  let totalDeposit = 0;
+  SUMMARY_DEPOSITS.forEach(d => {
+    let bal = d.balance;
+    if (balances[d.accountNo] !== undefined) bal = balances[d.accountNo].value;
+    if (bal !== null && bal > 0) totalDeposit += bal;
+  });
+
+  const header = `*📊 hanQ FM 재무 알림* | 총 예금 ${fmtNum(totalDeposit)}원\n${now.getFullYear()}년 ${now.getMonth()+1}월 ${now.getDate()}일`;
+  await sendSlack(header + '\n\n' + lines.join('\n'));
+  console.log(`[Slack] 알림 발송 — ${lines.length}건`);
+}
 
 // ── 시작: state 로드 후 서버 오픈 ───────────────────────────────────────
 loadAllState().then(() => {
@@ -795,9 +892,22 @@ loadAllState().then(() => {
     console.log('  hanQ Cards & Finance Portal');
     console.log(`  http://localhost:${PORT}`);
     console.log(`  저장소: ${SB_URL ? 'Supabase (' + SB_URL.split('//')[1]?.split('.')[0] + ')' : '로컬 파일'}`);
+    console.log(`  Slack: ${SLACK_WEBHOOK ? '연결됨' : '미설정 (SLACK_WEBHOOK_URL 환경변수 필요)'}`);
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('');
   });
+
+  // 매일 09:00 KST 알림 (1분마다 체크)
+  let _lastAlertDate = '';
+  setInterval(() => {
+    const utcNow  = new Date();
+    const kstHour = (utcNow.getUTCHours() + 9) % 24;
+    const kstDate = new Date(utcNow.getTime() + 9 * 3600000).toISOString().slice(0, 10);
+    if (kstHour === 9 && kstDate !== _lastAlertDate) {
+      _lastAlertDate = kstDate;
+      runDailySlackAlert();
+    }
+  }, 60000);
 });
 
 function buildFmContextServer(question) {
