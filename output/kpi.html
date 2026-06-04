@@ -5,51 +5,432 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>KPI 대시보드 — hanQ</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#F7F5F0;--surface:#FFFFFF;--border:#E2DED7;--ink:#1A1814;--ink2:#5C5851;
-  --muted:#9A958F;--accent:#C8380A;
+  --bg:#F7F5F0;--surface:#fff;--border:#E2DED7;--ink:#1A1814;--ink2:#5C5851;
+  --muted:#9A958F;--accent:#C8380A;--green:#2E7D32;--yellow:#F9A825;--blue:#1565C0;
 }
-body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;min-height:100vh;display:flex;flex-direction:column}
-.page-main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 32px;text-align:center}
-.wip-icon{font-size:48px;margin-bottom:24px;opacity:.35;display:inline-block;position:relative;line-height:1}
-.crane-rope-anim{position:absolute;top:34%;left:63%;display:flex;flex-direction:column;align-items:center}
-.crane-rope-line{width:2px;background:var(--ink);border-radius:1px;animation:ropeStretch 1.8s ease-in-out infinite}
-.crane-rope-hook{width:8px;height:5px;border:2px solid var(--ink);border-top:none;border-radius:0 0 4px 4px}
-@keyframes ropeStretch{
-  0%,100%{height:13px}
-  50%    {height:4px}
+body{font-family:'Noto Sans KR','Malgun Gothic',sans-serif;background:var(--bg);color:var(--ink);font-size:13px;min-height:100vh}
+
+/* ── 헤더 ── */
+.kpi-header{background:var(--ink);color:#fff;padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;position:sticky;top:0;z-index:100}
+.kpi-header-title{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;display:flex;align-items:center;gap:10px}
+.kpi-header-sub{font-size:10px;font-weight:400;color:rgba(255,255,255,.45);letter-spacing:.04em}
+.kpi-header-right{display:flex;align-items:center;gap:10px}
+.year-sel{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);color:#fff;font-family:inherit;font-size:12px;padding:5px 10px;cursor:pointer;outline:none}
+.year-sel option{background:#1A1814;color:#fff}
+.refresh-btn{background:none;border:1px solid rgba(255,255,255,.18);color:rgba(255,255,255,.65);font-size:11px;font-family:inherit;padding:5px 12px;cursor:pointer;letter-spacing:.04em;transition:all .15s}
+.refresh-btn:hover{background:rgba(255,255,255,.1);color:#fff}
+
+/* ── 메인 컨테이너 ── */
+.kpi-main{padding:24px 28px;max-width:1320px;margin:0 auto}
+
+/* ── 섹션 헤더 ── */
+.sec-label{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+
+/* ── 요약 카드 ── */
+.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px}
+.sum-card{background:var(--surface);border:1px solid var(--border);padding:18px 20px;position:relative;overflow:hidden}
+.sum-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.sum-card.c-rev::before{background:var(--blue)}
+.sum-card.c-cost::before{background:var(--muted)}
+.sum-card.c-profit::before{background:var(--green)}
+.sum-card.c-margin::before{background:var(--accent)}
+.sum-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.sum-val{font-size:22px;font-weight:700;color:var(--ink);line-height:1;margin-bottom:4px}
+.sum-val.neg{color:var(--accent)}
+.sum-val.pos{color:var(--green)}
+.sum-sub{font-size:11px;color:var(--muted)}
+.sum-yoy{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;padding:2px 7px;margin-top:6px;border-radius:2px}
+.sum-yoy.up{background:rgba(46,125,50,.1);color:var(--green)}
+.sum-yoy.dn{background:rgba(200,56,10,.1);color:var(--accent)}
+.sum-yoy.flat{background:rgba(0,0,0,.06);color:var(--muted)}
+
+/* ── 사업자 카드 ── */
+.biz-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px}
+.biz-card{background:var(--surface);border:1px solid var(--border);padding:16px 18px}
+.biz-name{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink);margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.biz-row{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid rgba(0,0,0,.04)}
+.biz-row:last-child{border-bottom:none}
+.biz-row-lbl{font-size:11px;color:var(--muted)}
+.biz-row-val{font-size:12px;font-weight:600;color:var(--ink)}
+.biz-row-val.neg{color:var(--accent)}
+.biz-row-val.pos{color:var(--green)}
+.biz-bar{height:3px;background:var(--border);margin-top:10px;border-radius:2px;overflow:hidden}
+.biz-bar-fill{height:100%;border-radius:2px;background:var(--accent);transition:width .5s ease}
+
+/* ── 차트 영역 ── */
+.chart-row{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:28px}
+.chart-box{background:var(--surface);border:1px solid var(--border);padding:18px 20px}
+.chart-title{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
+.chart-legend{display:flex;gap:14px}
+.chart-leg-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted)}
+.chart-leg-dot{width:10px;height:3px;border-radius:2px;flex-shrink:0}
+.chart-canvas-wrap{position:relative;height:200px}
+
+/* ── 월별 테이블 ── */
+.month-table-wrap{background:var(--surface);border:1px solid var(--border);overflow:hidden;margin-bottom:28px}
+.month-table{width:100%;border-collapse:collapse}
+.month-table th{background:var(--ink);color:rgba(255,255,255,.65);font-size:10px;font-weight:700;letter-spacing:.08em;padding:9px 14px;text-align:right;white-space:nowrap}
+.month-table th:first-child{text-align:left}
+.month-table td{padding:8px 14px;border-bottom:1px solid var(--border);font-size:12px;text-align:right;white-space:nowrap}
+.month-table td:first-child{text-align:left;font-weight:500}
+.month-table tr:last-child td{border-bottom:none}
+.month-table tr:hover td{background:#F7F5F2}
+.td-pos{color:var(--green);font-weight:600}
+.td-neg{color:var(--accent);font-weight:600}
+.td-muted{color:var(--muted)}
+
+/* ── 카테고리 바 리스트 ── */
+.cat-list{display:flex;flex-direction:column;gap:8px}
+.cat-item{display:flex;align-items:center;gap:10px}
+.cat-name{font-size:11px;color:var(--ink2);width:90px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cat-bar-wrap{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.cat-bar-fill{height:100%;background:var(--accent);border-radius:3px;opacity:.8}
+.cat-amt{font-size:11px;color:var(--muted);white-space:nowrap;width:64px;text-align:right;flex-shrink:0}
+
+/* ── 로딩 ── */
+.kpi-loading{display:flex;align-items:center;justify-content:center;height:200px;color:var(--muted);font-size:13px;letter-spacing:.04em}
+
+/* ── 없음 메시지 ── */
+.no-data-msg{text-align:center;padding:40px 20px;color:var(--muted);font-size:12px;line-height:1.8}
+.no-data-link{color:var(--accent);cursor:pointer;text-decoration:none}
+
+/* ── 반응형 ── */
+@media(max-width:900px){
+  .summary-grid{grid-template-columns:1fr 1fr}
+  .biz-grid{grid-template-columns:1fr 1fr}
+  .chart-row{grid-template-columns:1fr}
+  .kpi-main{padding:16px}
 }
-.wip-badge{display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:white;font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;padding:4px 12px;margin-bottom:20px}
-.wip-title{font-size:28px;font-weight:700;letter-spacing:-.02em;color:var(--ink);margin-bottom:12px}
-.wip-sub{font-size:14px;color:var(--muted);line-height:1.7;max-width:480px;margin-bottom:40px}
-.wip-divider{width:40px;height:2px;background:var(--border);margin:0 auto 40px}
-.wip-scope{background:var(--surface);border:1px solid var(--border);padding:28px 36px;max-width:540px;width:100%;text-align:left}
-.wip-scope-title{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:16px;font-weight:700}
-.wip-scope-item{display:flex;align-items:flex-start;gap:10px;font-size:12px;color:var(--ink2);line-height:1.6;padding:6px 0;border-bottom:1px solid var(--border)}
-.wip-scope-item:last-child{border-bottom:none}
-.wip-scope-dot{width:4px;height:4px;border-radius:50%;background:var(--muted);flex-shrink:0;margin-top:7px}
+@media(max-width:520px){
+  .summary-grid{grid-template-columns:1fr}
+  .biz-grid{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
 
-<div class="page-main">
-  <div class="wip-icon">🏗<div class="crane-rope-anim"><div class="crane-rope-line"></div><div class="crane-rope-hook"></div></div></div>
-  <div class="wip-badge">개발중</div>
-  <div class="wip-title">KPI 대시보드</div>
-  <div class="wip-sub">사업자별 핵심 성과 지표 모니터링.<br>현재 설계 및 개발 중입니다.</div>
-  <div class="wip-divider"></div>
-  <div class="wip-scope">
-    <div class="wip-scope-title">구현 예정 기능</div>
-    <div class="wip-scope-item"><div class="wip-scope-dot"></div>사업자별 매출 · 비용 · 이익 KPI 카드</div>
-    <div class="wip-scope-item"><div class="wip-scope-dot"></div>전년 동기 대비 증감률 시각화</div>
-    <div class="wip-scope-item"><div class="wip-scope-dot"></div>프로젝트별 수익성 분석</div>
-    <div class="wip-scope-item"><div class="wip-scope-dot"></div>월별 목표 대비 달성률 트래킹</div>
-    <div class="wip-scope-item"><div class="wip-scope-dot"></div>인건비 · 운영비 비율 추이 차트</div>
+<div class="kpi-header">
+  <div class="kpi-header-title">
+    KPI 대시보드
+    <span class="kpi-header-sub" id="hdrSub">데이터 로딩 중...</span>
+  </div>
+  <div class="kpi-header-right">
+    <select class="year-sel" id="yearSel" onchange="onYearChange()"></select>
+    <button class="refresh-btn" onclick="loadData()">↺ 새로고침</button>
   </div>
 </div>
 
+<div class="kpi-main">
+
+  <!-- 그룹 전체 요약 -->
+  <div class="sec-label">그룹 전체 요약</div>
+  <div class="summary-grid" id="summaryGrid">
+    <div class="kpi-loading" style="grid-column:1/-1">데이터 로딩 중...</div>
+  </div>
+
+  <!-- 사업자별 -->
+  <div class="sec-label">사업자별 현황</div>
+  <div class="biz-grid" id="bizGrid">
+    <div class="kpi-loading" style="grid-column:1/-1">데이터 로딩 중...</div>
+  </div>
+
+  <!-- 차트 -->
+  <div class="chart-row">
+    <div class="chart-box">
+      <div class="chart-title">
+        월별 비용 추이 (최근 12개월)
+        <div class="chart-legend">
+          <div class="chart-leg-item"><div class="chart-leg-dot" style="background:#C8380A"></div>비용</div>
+          <div class="chart-leg-item"><div class="chart-leg-dot" style="background:#1565C0"></div>매출</div>
+          <div class="chart-leg-item"><div class="chart-leg-dot" style="background:#2E7D32"></div>순이익</div>
+        </div>
+      </div>
+      <div class="chart-canvas-wrap"><canvas id="chartTrend"></canvas></div>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">비용 카테고리</div>
+      <div id="catList" class="cat-list"><div class="kpi-loading" style="height:auto;padding:20px 0">로딩 중...</div></div>
+    </div>
+  </div>
+
+  <!-- 월별 테이블 -->
+  <div class="sec-label">최근 월별 손익</div>
+  <div class="month-table-wrap" id="monthTableWrap">
+    <div class="kpi-loading">로딩 중...</div>
+  </div>
+
+</div>
+
+<script>
+var BASE = location.hostname === 'localhost' ? 'http://localhost:3005' : '';
+var API_TX  = BASE + '/api/tx-data-state';
+var API_REV = BASE + '/api/finance-revenue-state';
+var API_TAG = BASE + '/api/finance-work-tags';
+
+var _txns = [], _merchants = {}, _revState = { byBiz:{} };
+var _yearSel = '', _charts = {};
+
+var BIZ_LIST  = ['한솔','수복지','한큐','교육원'];
+var KPI_COST_EXCLUDE = ['일괄송금(사유확인불가)','인출','이체','분류불필요'];
+
+function fmtKpi(n) {
+  if (n == null || isNaN(n)) return '—';
+  var s = n < 0 ? '-' : '', a = Math.abs(n);
+  if (a >= 100000000) return s + (a/100000000).toFixed(1) + '억';
+  if (a >= 10000000)  return s + Math.round(a/10000000) + '천만';
+  if (a >= 10000)     return s + Math.round(a/10000) + '만';
+  return n.toLocaleString();
+}
+function fmtPct(n) { return n == null ? '—' : n.toFixed(1) + '%'; }
+
+function loadData() {
+  document.getElementById('hdrSub').textContent = '데이터 로딩 중...';
+  Promise.all([
+    fetch(API_TX).then(function(r){return r.json();}).catch(function(){return {};}),
+    fetch(API_REV).then(function(r){return r.json();}).catch(function(){return {};}),
+    fetch(API_TAG).then(function(r){return r.json();}).catch(function(){return {};})
+  ]).then(function(results) {
+    var tx = results[0], rev = results[1], tag = results[2];
+    _txns     = (tx && Array.isArray(tx.txns)) ? tx.txns : [];
+    _revState = (rev && rev.byBiz) ? rev : { byBiz:{} };
+    _merchants= (tag && tag.merchants) ? tag.merchants : {};
+
+    buildYearSel();
+    render();
+
+    var total = _txns.length;
+    document.getElementById('hdrSub').textContent = total > 0
+      ? '거래 ' + total.toLocaleString() + '건' : '거래 데이터 없음';
+  });
+}
+
+function buildYearSel() {
+  var years = {};
+  _txns.forEach(function(t){ if(t.date) years[t.date.substring(0,4)] = 1; });
+  var revYears = Object.values(_revState.byBiz||{}).flatMap(function(b){ return Object.keys(b); });
+  revYears.forEach(function(ym){ years[ym.substring(0,4)] = 1; });
+  var list = Object.keys(years).sort().reverse();
+  if (!list.length) list = [String(new Date().getFullYear())];
+  var sel = document.getElementById('yearSel');
+  var cur = sel.value || list[0];
+  sel.innerHTML = '<option value="">전체 기간</option>' + list.map(function(y){
+    return '<option value="'+y+'"' + (y===cur?' selected':'') + '>'+y+'년</option>';
+  }).join('');
+  _yearSel = sel.value;
+}
+
+function onYearChange() {
+  _yearSel = document.getElementById('yearSel').value;
+  render();
+}
+
+function computePL(bizFilter, yearFilter) {
+  var monthly = {}, totalRev = 0, totalCost = 0, costByCat = {};
+  _txns.forEach(function(t) {
+    if (!t.date || !t.out || t.out <= 0) return;
+    var m = _merchants[t.merchant] || {};
+    var tBiz = m.biz || '미배분';
+    var tCat = m.cat || '미분류';
+    if (bizFilter && tBiz !== bizFilter) return;
+    if (yearFilter && t.date.substring(0,4) !== yearFilter) return;
+    if (KPI_COST_EXCLUDE.indexOf(tCat) >= 0) return;
+    var ym = t.date.substring(0,7);
+    if (!monthly[ym]) monthly[ym] = { revenue:0, costs:0, costByCat:{} };
+    monthly[ym].costs += t.out;
+    totalCost += t.out;
+    monthly[ym].costByCat[tCat] = (monthly[ym].costByCat[tCat]||0) + t.out;
+    costByCat[tCat] = (costByCat[tCat]||0) + t.out;
+  });
+  // 매출 주입
+  BIZ_LIST.forEach(function(biz) {
+    if (bizFilter && biz !== bizFilter) return;
+    var bizRev = (_revState.byBiz||{})[biz] || {};
+    Object.keys(bizRev).forEach(function(ym) {
+      var rv = bizRev[ym]||0;
+      if (rv <= 0) return;
+      if (yearFilter && ym.substring(0,4) !== yearFilter) return;
+      if (!monthly[ym]) monthly[ym] = { revenue:0, costs:0, costByCat:{} };
+      monthly[ym].revenue += rv;
+      totalRev += rv;
+    });
+  });
+  var months = Object.keys(monthly).sort();
+  months.forEach(function(ym){
+    var d = monthly[ym];
+    d.profit = d.revenue - d.costs;
+  });
+  return { monthly:monthly, months:months, totalRev:totalRev, totalCost:totalCost,
+    profit:totalRev - totalCost, costByCat:costByCat };
+}
+
+function prevYear(yr) {
+  return yr ? String(parseInt(yr)-1) : '';
+}
+
+function render() {
+  var yr = _yearSel;
+  var total  = computePL('', yr);
+  var prevYr = prevYear(yr);
+  var totalP = computePL('', prevYr);
+  renderSummary(total, totalP, yr);
+  renderBizGrid(yr, totalP);
+  renderTrendChart(yr);
+  renderCatList(total);
+  renderMonthTable(total, yr);
+}
+
+function yoyBadge(cur, prev) {
+  if (!prev || prev === 0) return '';
+  var pct = (cur - prev) / Math.abs(prev) * 100;
+  var cls = pct > 2 ? 'up' : pct < -2 ? 'dn' : 'flat';
+  var arrow = pct > 0 ? '▲' : pct < 0 ? '▼' : '—';
+  return '<span class="sum-yoy ' + cls + '">' + arrow + ' ' + Math.abs(pct).toFixed(1) + '%</span>';
+}
+
+function renderSummary(d, prev, yr) {
+  var margin = d.totalRev > 0 ? (d.profit / d.totalRev * 100) : null;
+  var prevMargin = prev.totalRev > 0 ? (prev.profit / prev.totalRev * 100) : null;
+  var html =
+    '<div class="sum-card c-rev"><div class="sum-label">총 매출</div>' +
+    '<div class="sum-val">' + (d.totalRev > 0 ? fmtKpi(d.totalRev)+'원' : '<span style="font-size:14px;color:var(--muted)">미입력</span>') + '</div>' +
+    (d.totalRev > 0 ? '<div class="sum-sub">' + d.totalRev.toLocaleString() + '원</div>' : '<div class="sum-sub"><a href="javascript:void(0)" class="no-data-link" onclick="openRevFromKpi()">→ 재무관리(신)에서 입력</a></div>') +
+    (d.totalRev > 0 ? yoyBadge(d.totalRev, prev.totalRev) : '') +
+    '</div>' +
+
+    '<div class="sum-card c-cost"><div class="sum-label">총 비용</div>' +
+    '<div class="sum-val">' + fmtKpi(d.totalCost) + '원</div>' +
+    '<div class="sum-sub">' + d.totalCost.toLocaleString() + '원</div>' +
+    yoyBadge(d.totalCost, prev.totalCost) +
+    '</div>' +
+
+    '<div class="sum-card c-profit"><div class="sum-label">순이익</div>' +
+    '<div class="sum-val ' + (d.profit >= 0 ? 'pos' : 'neg') + '">' + (d.totalRev > 0 ? fmtKpi(d.profit)+'원' : '—') + '</div>' +
+    (d.totalRev > 0 ? '<div class="sum-sub">' + d.profit.toLocaleString() + '원</div>' : '<div class="sum-sub">매출 입력 후 산출</div>') +
+    (d.totalRev > 0 ? yoyBadge(d.profit, prev.profit) : '') +
+    '</div>' +
+
+    '<div class="sum-card c-margin"><div class="sum-label">이익률</div>' +
+    '<div class="sum-val ' + (margin === null ? '' : margin >= 0 ? 'pos' : 'neg') + '">' + (margin !== null ? fmtPct(margin) : '—') + '</div>' +
+    '<div class="sum-sub">' + (margin !== null ? '순이익 / 매출' : '매출 입력 후 산출') + '</div>' +
+    (margin !== null && prevMargin !== null ? yoyBadge(margin, prevMargin) : '') +
+    '</div>';
+  document.getElementById('summaryGrid').innerHTML = html;
+}
+
+function renderBizGrid(yr, prevTotal) {
+  var maxCost = 0;
+  var bizData = BIZ_LIST.map(function(biz) {
+    var d = computePL(biz, yr);
+    if (d.totalCost > maxCost) maxCost = d.totalCost;
+    return { biz:biz, d:d };
+  });
+  var html = bizData.map(function(item) {
+    var d = item.d, biz = item.biz;
+    var pct = d.totalRev > 0 ? (d.profit/d.totalRev*100) : null;
+    var barW = maxCost > 0 ? Math.round(d.totalCost/maxCost*100) : 0;
+    return '<div class="biz-card">' +
+      '<div class="biz-name">' + biz + '</div>' +
+      '<div class="biz-row"><span class="biz-row-lbl">매출</span><span class="biz-row-val">' + (d.totalRev > 0 ? fmtKpi(d.totalRev)+'원' : '<span style="color:var(--muted);font-size:11px">미입력</span>') + '</span></div>' +
+      '<div class="biz-row"><span class="biz-row-lbl">비용</span><span class="biz-row-val">' + fmtKpi(d.totalCost) + '원</span></div>' +
+      '<div class="biz-row"><span class="biz-row-lbl">순이익</span><span class="biz-row-val ' + (d.totalRev > 0 ? (d.profit >= 0 ? 'pos':'neg') : '') + '">' + (d.totalRev > 0 ? fmtKpi(d.profit)+'원' : '—') + '</span></div>' +
+      '<div class="biz-row"><span class="biz-row-lbl">이익률</span><span class="biz-row-val ' + (pct !== null ? (pct >= 0 ? 'pos':'neg') : '') + '">' + (pct !== null ? fmtPct(pct) : '—') + '</span></div>' +
+      '<div class="biz-bar"><div class="biz-bar-fill" style="width:' + barW + '%"></div></div>' +
+      '</div>';
+  }).join('');
+  document.getElementById('bizGrid').innerHTML = html;
+}
+
+function renderTrendChart(yr) {
+  // 최근 12개월
+  var now = new Date();
+  var months = [];
+  for (var i = 11; i >= 0; i--) {
+    var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push(d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'));
+  }
+  if (yr) months = months.filter(function(m){ return m.startsWith(yr); });
+
+  var total = computePL('', yr);
+  var costs  = months.map(function(m){ return (total.monthly[m]||{}).costs||0; });
+  var revs   = months.map(function(m){ return (total.monthly[m]||{}).revenue||0; });
+  var profits= months.map(function(m){ return (total.monthly[m]||{}).profit||0; });
+  var labels = months.map(function(m){ return m.substring(5)+'월'; });
+
+  var ctx = document.getElementById('chartTrend').getContext('2d');
+  if (_charts.trend) { _charts.trend.destroy(); }
+  _charts.trend = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        { label:'비용', data:costs, backgroundColor:'rgba(200,56,10,.7)', order:2 },
+        { label:'매출', data:revs, backgroundColor:'rgba(21,101,192,.6)', order:2 },
+        { label:'순이익', data:profits, type:'line', borderColor:'rgba(46,125,50,.9)', backgroundColor:'transparent', borderWidth:2, pointRadius:3, pointBackgroundColor:'rgba(46,125,50,.9)', order:1 }
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:false } },
+      scales:{
+        x:{ grid:{ display:false }, ticks:{ font:{ size:10 }, color:'#9A958F' } },
+        y:{ grid:{ color:'rgba(0,0,0,.05)' }, ticks:{ font:{ size:10 }, color:'#9A958F', callback:function(v){ return fmtKpi(v); } } }
+      }
+    }
+  });
+}
+
+function renderCatList(d) {
+  var cats = Object.entries(d.costByCat).sort(function(a,b){return b[1]-a[1];}).slice(0,10);
+  var max = cats.length > 0 ? cats[0][1] : 1;
+  if (!cats.length) { document.getElementById('catList').innerHTML = '<div class="kpi-loading" style="height:auto;padding:20px 0;font-size:11px">데이터 없음</div>'; return; }
+  document.getElementById('catList').innerHTML = cats.map(function(c) {
+    var pct = Math.round(c[1]/max*100);
+    return '<div class="cat-item">' +
+      '<div class="cat-name">' + c[0] + '</div>' +
+      '<div class="cat-bar-wrap"><div class="cat-bar-fill" style="width:' + pct + '%"></div></div>' +
+      '<div class="cat-amt">' + fmtKpi(c[1]) + '</div>' +
+      '</div>';
+  }).join('');
+}
+
+function renderMonthTable(d, yr) {
+  var months = d.months.slice(-12).reverse();
+  if (!months.length) {
+    document.getElementById('monthTableWrap').innerHTML = '<div class="no-data-msg">거래 데이터를 업로드하면 월별 손익이 표시됩니다.<br><a class="no-data-link" href="/finance-work">재무관리(신) → CSV 업로드</a></div>';
+    return;
+  }
+  var html = '<table class="month-table"><thead><tr><th>월</th><th>매출</th><th>비용</th><th>순이익</th><th>이익률</th></tr></thead><tbody>';
+  months.forEach(function(ym) {
+    var m = d.monthly[ym];
+    var margin = m.revenue > 0 ? (m.profit/m.revenue*100) : null;
+    var profClass = m.revenue > 0 ? (m.profit >= 0 ? 'td-pos' : 'td-neg') : 'td-muted';
+    html += '<tr>' +
+      '<td>' + ym.substring(0,4) + '년 ' + ym.substring(5) + '월</td>' +
+      '<td>' + (m.revenue > 0 ? fmtKpi(m.revenue)+'원' : '<span class="td-muted">미입력</span>') + '</td>' +
+      '<td>' + fmtKpi(m.costs) + '원</td>' +
+      '<td class="' + profClass + '">' + (m.revenue > 0 ? fmtKpi(m.profit)+'원' : '—') + '</td>' +
+      '<td class="' + profClass + '">' + (margin !== null ? fmtPct(margin) : '—') + '</td>' +
+      '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('monthTableWrap').innerHTML = html;
+}
+
+function openRevFromKpi() {
+  // 재무관리(신) 작업 페이지로 이동
+  if (window.parent && window.parent._switchTo) {
+    window.parent._switchTo('finance-new');
+  } else {
+    window.location.href = '/finance-work';
+  }
+}
+
+loadData();
+</script>
 <script>(function(){if(window.self===window.top)return;var s=document.createElement("style");s.textContent="html,html *{cursor:none!important}";document.head.appendChild(s);document.addEventListener("mousemove",function(e){window.parent.postMessage({type:"cursor-move",x:e.clientX,y:e.clientY},"*");});})();</script>
 </body>
 </html>
