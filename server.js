@@ -356,6 +356,7 @@ const ROUTES = {
   '/finance-new':  '재무관리(신).html',
   '/finance-work': '재무관리(신)_작업.html',
   '/kpi':          'kpi.html',
+  '/biz':          'biz-view.html',
 };
 
 function serveHTML(res, file) {
